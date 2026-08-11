@@ -57,6 +57,8 @@
 		C21ACD7727EAF71F3AF521A5 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47574B845991BEF80EED047B /* AppTheme.swift */; };
 		C416256EE5D45FA4A4C68AA6 /* CalendarOccurrenceExpander.swift in Sources */ = {isa = PBXBuildFile; fileRef = C01E5C1B960A82340825CA2B /* CalendarOccurrenceExpander.swift */; };
 		C8029A9F3E617AF01677C912 /* SyncCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A81E42508F7E7D0194DD054 /* SyncCore.swift */; };
+		C8B200000000000000000002 /* TodoListRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8B200000000000000000001 /* TodoListRow.swift */; };
+		C8B200000000000000000004 /* TodoListDisplayOrderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8B200000000000000000003 /* TodoListDisplayOrderTests.swift */; };
 		D22D65776E58B1DB66E55E06 /* MainPagerGestureState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D5A542E8DA7D96D968C8F59 /* MainPagerGestureState.swift */; };
 		D865FF482FD917A721B71F46 /* ComposeMemoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 373EB62D1A338E001E192E14 /* ComposeMemoryView.swift */; };
 		E38BB36A3D77587B744FEE90 /* SyncV1DTOTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA12ABDCC12F47B0103421D7 /* SyncV1DTOTests.swift */; };
@@ -131,6 +133,8 @@
 		C01E5C1B960A82340825CA2B /* CalendarOccurrenceExpander.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarOccurrenceExpander.swift; sourceTree = "<group>"; };
 		C2E621C211BFD180A01C07A6 /* CoupleCoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoupleCoreTests.swift; sourceTree = "<group>"; };
 		C97B0B1BE123B2CDABD8416F /* HybridLogicalClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HybridLogicalClock.swift; sourceTree = "<group>"; };
+		C8B200000000000000000001 /* TodoListRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoListRow.swift; sourceTree = "<group>"; };
+		C8B200000000000000000003 /* TodoListDisplayOrderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoListDisplayOrderTests.swift; sourceTree = "<group>"; };
 		CBA1470A8FC37173BB13D2F0 /* ConnectivityMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectivityMonitor.swift; sourceTree = "<group>"; };
 		CBAEBE3F1822BF9165EEB90F /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		D1371DF5827C01B18C3292ED /* AppHapticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHapticsTests.swift; sourceTree = "<group>"; };
@@ -259,6 +263,7 @@
 				4B8F1C53D0FDBEB509E809E1 /* DesignTopEdgeBackground.swift */,
 				BA03DF9BC1CC5105C17BCC9E /* PhotoFlowLayout.swift */,
 				7BABCD37148C166C49F4ED67 /* TodoCompletionStrike.swift */,
+				C8B200000000000000000001 /* TodoListRow.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -323,6 +328,7 @@
 				20CB92BAC9B7C102AB588BF2 /* Offline */,
 				D1371DF5827C01B18C3292ED /* AppHapticsTests.swift */,
 				0CF5521BB5120D926EB3D944 /* TodoDisplayOrderTests.swift */,
+				C8B200000000000000000003 /* TodoListDisplayOrderTests.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -593,6 +599,7 @@
 				C8029A9F3E617AF01677C912 /* SyncCore.swift in Sources */,
 				B9B0F1229A94B3B8237AB9F4 /* SyncV1Transport.swift in Sources */,
 				5744B0F6700EF8FEC5F3BD9B /* TodoCompletionStrike.swift in Sources */,
+				C8B200000000000000000002 /* TodoListRow.swift in Sources */,
 				065A75575DE29369DFFEFFAB /* TodoDisplayOrder.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -618,6 +625,7 @@
 				E38BB36A3D77587B744FEE90 /* SyncV1DTOTests.swift in Sources */,
 				C1536A7567795BE922FD71C4 /* TodoCompletionTests.swift in Sources */,
 				F325DB5E85A378D954EA9376 /* TodoDisplayOrderTests.swift in Sources */,
+				C8B200000000000000000004 /* TodoListDisplayOrderTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -88,25 +88,26 @@ struct FutureView: View {
     }
 
     private var todoContent: some View {
-        ScrollView {
+        let orderedTodos = store.todos.todosOrderedForList()
+
+        return ScrollView {
             LazyVStack(alignment: .leading, spacing: AppTheme.todoRowSpacing) {
-                ForEach(store.todos.filter { !$0.completed }) { todo in
-                    HStack(spacing: 4) {
-                        TodoCheckButton(todo: todo) {
-                            Task { await store.toggleTodo(todo) }
-                        }
-                        .disabled(store.pendingTodoIDs.contains(todo.id))
-                        Text(todo.title)
-                            .font(AppTheme.titleFont())
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                ForEach(orderedTodos) { todo in
+                    TodoListRow(
+                        todo: todo,
+                        disabled: store.pendingTodoIDs.contains(todo.id)
+                    ) { completed in
+                        await store.setTodoCompletion(todo, completed: completed)
                     }
                 }
-                if store.todos.allSatisfy(\.completed) {
+
+                if orderedTodos.isEmpty {
                     ContentUnavailableView("清单空空的", systemImage: "checklist")
                         .frame(maxWidth: .infinity)
                         .padding(.top, 100)
                 }
             }
+            .animation(pageAnimation, value: orderedTodos.map(\.id))
             .padding(.horizontal, AppTheme.horizontalPadding)
             .padding(.bottom, 80)
         }
