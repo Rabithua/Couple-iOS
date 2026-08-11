@@ -39,8 +39,8 @@ actor SyncV1Transport: SyncTransport {
             case .server(_, "OPERATION_ID_REUSED", _): throw SyncTransportError.operationIdReused
             case .server(_, "SYNC_TOMBSTONE_CONFLICT", _): throw SyncTransportError.tombstoneConflict
             case .server(_, "SYNC_DEVICE_REUSED", _): throw SyncTransportError.deviceReused
-            case .server(_, "VALIDATION_ERROR", let message),
-                 .server(_, "CONFLICT", let message):
+            case .server(_, "CONFLICT", _): throw SyncTransportError.liveConflict
+            case .server(_, "VALIDATION_ERROR", let message):
                 throw SyncTransportError.rejected(message)
             case .server(404, _, _):
                 try await store.markAttachmentsForReconciliation(
@@ -315,7 +315,10 @@ struct SyncV1Response: Decodable, Sendable {
                     authoritativeClock: try authoritativeHlc.timestamp(),
                     mode: mode == "snapshot" ? .snapshot : .incremental,
                     shouldAdoptAuthoritativeClock: acks.contains(where: \.clockAdjusted)
-                )
+                ),
+                requiresAuthoritativeBootstrap: acks.contains {
+                    $0.status == "superseded" || !$0.ignoredGroups.isEmpty
+                }
             )
         }
     }
