@@ -81,6 +81,17 @@ struct RemoteEntityChange: Equatable, Sendable {
 struct SyncExchange: Equatable, Sendable {
     let acknowledgedOperationIds: Set<String>
     let page: PullPage
+    let requiresAuthoritativeBootstrap: Bool
+
+    init(
+        acknowledgedOperationIds: Set<String>,
+        page: PullPage,
+        requiresAuthoritativeBootstrap: Bool = false
+    ) {
+        self.acknowledgedOperationIds = acknowledgedOperationIds
+        self.page = page
+        self.requiresAuthoritativeBootstrap = requiresAuthoritativeBootstrap
+    }
 }
 
 struct PullPage: Equatable, Sendable {
@@ -116,6 +127,7 @@ enum SyncTransportError: LocalizedError, Equatable, Sendable {
     case operationIdReused
     case tombstoneConflict
     case deviceReused
+    case liveConflict
     case rejected(String)
 
     var errorDescription: String? {
@@ -124,6 +136,7 @@ enum SyncTransportError: LocalizedError, Equatable, Sendable {
         case .operationIdReused: "同步操作标识已被用于不同内容"
         case .tombstoneConflict: "服务器已删除该内容，正在获取最终状态"
         case .deviceReused: "此安装的同步设备标识与服务器记录冲突"
+        case .liveConflict: "服务器已有同标识内容，正在获取权威状态"
         case .rejected(let message): message
         }
     }
@@ -152,6 +165,8 @@ protocol SyncStore: AnyObject, Sendable {
     func cancelSending(operationIds: [String], now: Date) async throws
     func syncCursor() async throws -> String?
     func resetSyncCursor() async throws
+    func rotateDeviceIdentifierForReuse() async throws
+    func rejectLiveConflict(operationIds: [String], message: String, now: Date) async throws
     func discardTombstonedOperations() async throws -> Int
     func applyRemotePage(_ page: PullPage, now: Date) async throws
 }
@@ -236,6 +251,8 @@ actor SyncCoordinator {
         var cursor: String?
         var sendingIds: [String] = []
         var restartedSnapshot = false
+        var rotatedReusedDevice = false
+        var operationLimit = batchSize
         var exchangeCount = 0
         do {
             cursor = try await store.syncCursor()
@@ -244,7 +261,7 @@ actor SyncCoordinator {
                 exchangeCount += 1
                 guard exchangeCount <= 1_000 else { return .failed("同步分页超过安全上限") }
 
-                let operations = try await store.pendingOperations(limit: batchSize, now: .now)
+                let operations = try await store.pendingOperations(limit: operationLimit, now: .now)
                 sendingIds = operations.map(\.operationId)
                 if !sendingIds.isEmpty {
                     try await store.markSending(operationIds: sendingIds, now: .now)
@@ -265,6 +282,34 @@ actor SyncCoordinator {
                     try await store.resetSyncCursor()
                     cursor = nil
                     restartedSnapshot = true
+                    continue
+                } catch SyncTransportError.deviceReused where !rotatedReusedDevice {
+                    if !sendingIds.isEmpty {
+                        try await store.cancelSending(operationIds: sendingIds, now: .now)
+                    }
+                    sendingIds = []
+                    try await store.rotateDeviceIdentifierForReuse()
+                    cursor = nil
+                    restartedSnapshot = false
+                    rotatedReusedDevice = true
+                    continue
+                } catch SyncTransportError.liveConflict where operations.count > 1 {
+                    if !sendingIds.isEmpty {
+                        try await store.cancelSending(operationIds: sendingIds, now: .now)
+                    }
+                    sendingIds = []
+                    operationLimit = 1
+                    continue
+                } catch SyncTransportError.liveConflict where operations.count == 1 {
+                    try await store.rejectLiveConflict(
+                        operationIds: sendingIds,
+                        message: SyncTransportError.liveConflict.localizedDescription,
+                        now: .now
+                    )
+                    sendingIds = []
+                    try await store.resetSyncCursor()
+                    cursor = nil
+                    restartedSnapshot = false
                     continue
                 } catch SyncTransportError.tombstoneConflict {
                     if !sendingIds.isEmpty {
@@ -310,6 +355,12 @@ actor SyncCoordinator {
 
                 try await store.applyRemotePage(exchange.page, now: .now)
                 cursor = exchange.page.nextCursor
+                if exchange.requiresAuthoritativeBootstrap {
+                    try await store.resetSyncCursor()
+                    cursor = nil
+                    restartedSnapshot = false
+                    continue
+                }
                 if exchange.page.hasMore { continue }
                 if operations.isEmpty { return .success }
             }
@@ -344,8 +395,8 @@ actor SyncCoordinator {
 private extension SyncTransportError {
     var isNonRetryable: Bool {
         switch self {
-        case .operationIdReused, .deviceReused, .rejected: true
-        case .invalidCursor, .tombstoneConflict: false
+        case .operationIdReused, .rejected: true
+        case .invalidCursor, .tombstoneConflict, .deviceReused, .liveConflict: false
         }
     }
 }

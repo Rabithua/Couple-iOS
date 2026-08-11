@@ -9,7 +9,7 @@ enum CalendarOccurrenceExpander {
     ) -> [CalendarEvent] {
         canonicalEvents.flatMap { event in
             guard event.yearly else {
-                return event.startTime < end && (event.endTime ?? event.startTime) >= start ? [event] : []
+                return event.startTime <= end && (event.endTime ?? event.startTime) >= start ? [event] : []
             }
             return yearlyOccurrences(event, from: start, to: end, calendar: calendar)
         }
@@ -27,21 +27,29 @@ enum CalendarOccurrenceExpander {
             eventCalendar.timeZone = timezone
         }
         let sourceComponents = eventCalendar.dateComponents(
-            [.month, .day, .hour, .minute, .second],
+            [.year, .month, .day, .hour, .minute, .second],
             from: source.startTime
         )
-        let startYear = eventCalendar.component(.year, from: start) - 1
-        let endYear = eventCalendar.component(.year, from: end) + 1
+        guard let sourceYear = sourceComponents.year,
+              let sourceMonth = sourceComponents.month,
+              let sourceDay = sourceComponents.day else { return [] }
+        let rangeStartYear = eventCalendar.component(.year, from: start)
+        let startYear = max(sourceYear, rangeStartYear - 1)
+        let endYear = eventCalendar.component(.year, from: end)
+        guard startYear <= endYear else { return [] }
         let duration = source.endTime?.timeIntervalSince(source.startTime)
 
         return (startYear...endYear).compactMap { year in
             var components = sourceComponents
             components.year = year
+            if sourceMonth == 2, sourceDay == 29, !isLeapYear(year) {
+                components.day = 28
+            }
             guard let occurrenceStart = eventCalendar.date(from: components),
-                  occurrenceStart >= start,
-                  occurrenceStart < end else { return nil }
+                  occurrenceStart <= end else { return nil }
             let occurrenceEnd = duration.map { occurrenceStart.addingTimeInterval($0) }
-            let occurrenceKey = "\(source.id)#\(occurrenceStart.dateOnlyString)"
+            guard occurrenceEnd ?? occurrenceStart >= start else { return nil }
+            let occurrenceKey = "\(source.id)~\(year)"
             return CalendarEvent(
                 id: occurrenceKey,
                 coupleId: source.coupleId,
@@ -61,5 +69,9 @@ enum CalendarOccurrenceExpander {
                 recurrenceSourceId: source.id
             )
         }
+    }
+
+    private static func isLeapYear(_ year: Int) -> Bool {
+        year.isMultiple(of: 400) || (year.isMultiple(of: 4) && !year.isMultiple(of: 100))
     }
 }

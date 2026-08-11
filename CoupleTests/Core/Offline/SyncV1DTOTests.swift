@@ -150,6 +150,7 @@ final class SyncV1DTOTests: XCTestCase {
         XCTAssertEqual(exchange.page.changes.first?.kind, .delete)
         XCTAssertEqual(exchange.page.changes.first?.reason, "visibilityRevoked")
         XCTAssertTrue(exchange.page.changes.first?.fields.isEmpty == true)
+        XCTAssertTrue(exchange.requiresAuthoritativeBootstrap)
     }
 
     func testCreateRejectsIncompleteFieldGroupsBeforeNetwork() {

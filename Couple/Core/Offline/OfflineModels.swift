@@ -560,6 +560,7 @@ enum OfflineSchema {
 }
 
 protocol LocalSyncLifecycle: AnyObject {
+    var fieldClocksData: Data { get set }
     var tombstoneClockData: Data? { get set }
     var isTombstoned: Bool { get set }
     var isDirty: Bool { get set }

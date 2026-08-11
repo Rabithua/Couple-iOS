@@ -809,6 +809,33 @@ final class OfflineStore: SyncStore {
         try context.save()
     }
 
+    func rotateDeviceIdentifierForReuse() async throws {
+        let state = try deviceState()
+        state.deviceId = UUID().uuidString.lowercased()
+        state.lastWallTimeMilliseconds = 0
+        state.counter = 0
+        state.serverOffsetMilliseconds = 0
+        state.updatedAt = .now
+        try await resetSyncCursor()
+    }
+
+    func rejectLiveConflict(operationIds: [String], message: String, now: Date) async throws {
+        let ids = Set(operationIds)
+        let emptyClocks = try Self.encode([String: HybridLogicalTimestamp]())
+        for operation in try context.fetch(FetchDescriptor<OutboxEntity>()) where ids.contains(operation.operationId) {
+            operation.nextRetryAt = nil
+            operation.lastError = message
+            operation.state = OutboxState.rejected.rawValue
+            operation.updatedAt = now
+            try resetFieldClocks(
+                entityType: SyncEntityType(rawValue: operation.entityType),
+                entityId: operation.entityId,
+                to: emptyClocks
+            )
+        }
+        try context.save()
+    }
+
     func discardTombstonedOperations() async throws -> Int {
         let operations = try context.fetch(FetchDescriptor<OutboxEntity>())
         var affected: [(String, String)] = []
@@ -1854,6 +1881,31 @@ final class OfflineStore: SyncStore {
 
     private func todoEntity(id: String) throws -> LocalTodoEntity? {
         try context.fetch(FetchDescriptor<LocalTodoEntity>()).first(where: { $0.id == id })
+    }
+
+    private func resetFieldClocks(
+        entityType: SyncEntityType?,
+        entityId: String,
+        to clocks: Data
+    ) throws {
+        let entity: (any LocalSyncLifecycle)? = switch entityType {
+        case .todo: try todoEntity(id: entityId)
+        case .anniversary:
+            try context.fetch(FetchDescriptor<LocalAnniversaryEntity>())
+                .first(where: { $0.id == entityId })
+        case .calendarEvent:
+            try context.fetch(FetchDescriptor<LocalCalendarEventEntity>())
+                .first(where: { $0.id == entityId })
+        case .memory:
+            try context.fetch(FetchDescriptor<LocalMemoryEntity>())
+                .first(where: { $0.id == entityId })
+        case .timeline:
+            try context.fetch(FetchDescriptor<LocalTimelineEntity>())
+                .first(where: { $0.id == entityId })
+        case .attachment, nil: nil
+        }
+        entity?.fieldClocksData = clocks
+        entity?.isDirty = false
     }
 
     private func setClock(
