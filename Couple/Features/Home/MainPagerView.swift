@@ -8,7 +8,9 @@ struct MainPagerView: View {
     @State private var route: MainPagerRoute
     @State private var showingComposer = false
     @State private var showingSettings = false
-    @State private var photoCarouselFrame = CGRect.zero
+    @State private var photoCarouselGestureActive = false
+    @State private var pageSwipeStartedInPhotoCarousel = false
+    @State private var isTrackingPageSwipe = false
     @State private var pageSwipePresentationGate = PageSwipePresentationGate()
 
     init(arguments: [String] = ProcessInfo.processInfo.arguments) {
@@ -36,7 +38,10 @@ struct MainPagerView: View {
                 MainPagerPage(isActive: route == .now, size: proxy.size) {
                     NowView(
                         showComposer: presentComposer,
-                        showSettings: presentSettings
+                        showSettings: presentSettings,
+                        setPhotoCarouselGestureActive: { active in
+                            photoCarouselGestureActive = active
+                        }
                     )
                 }
 
@@ -57,9 +62,6 @@ struct MainPagerView: View {
         .coordinateSpace(name: "mainPager")
         .contentShape(Rectangle())
         .simultaneousGesture(pageSwipeGesture)
-        .onPreferenceChange(PhotoCarouselFramePreferenceKey.self) { frame in
-            photoCarouselFrame = frame
-        }
         .task(id: route) {
             await loadActivePastNotes()
         }
@@ -83,12 +85,16 @@ struct MainPagerView: View {
     }
 
     private var pageSwipeGesture: some Gesture {
-        DragGesture(minimumDistance: 20)
+        DragGesture(minimumDistance: 20, coordinateSpace: .named("mainPager"))
             .onChanged(trackPageSwipe)
             .onEnded(finishPageSwipe)
     }
 
     private func trackPageSwipe(_ value: DragGesture.Value) {
+        if !isTrackingPageSwipe {
+            isTrackingPageSwipe = true
+            pageSwipeStartedInPhotoCarousel = photoCarouselGestureActive
+        }
         pageSwipePresentationGate.update(
             horizontal: value.translation.width,
             vertical: value.translation.height
@@ -98,6 +104,8 @@ struct MainPagerView: View {
     private func finishPageSwipe(_ value: DragGesture.Value) {
         pageSwipePresentationGate.finish()
         handlePageSwipe(value)
+        isTrackingPageSwipe = false
+        pageSwipeStartedInPhotoCarousel = false
     }
 
     private func handlePageSwipe(_ value: DragGesture.Value) {
@@ -108,7 +116,7 @@ struct MainPagerView: View {
         guard abs(horizontal) > abs(vertical) * 1.2 else { return }
         guard abs(horizontal) >= 36 || abs(projectedHorizontal) >= 80 else { return }
 
-        if route == .now, photoCarouselFrame.contains(value.startLocation) {
+        if route == .now, pageSwipeStartedInPhotoCarousel {
             return
         }
 

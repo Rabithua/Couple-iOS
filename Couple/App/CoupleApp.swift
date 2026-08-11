@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct CoupleApp: App {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var store = AppStore()
     @State private var haptics = AppHaptics()
 
@@ -11,6 +12,9 @@ struct CoupleApp: App {
                 .environment(store)
                 .appHapticsHost(haptics)
                 .task { await store.start() }
+                .onChange(of: scenePhase) { _, newPhase in
+                    if newPhase == .active { store.handleForeground() }
+                }
                 .appHapticFeedback(
                     .error,
                     trigger: store.errorMessage,

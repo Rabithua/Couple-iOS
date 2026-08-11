@@ -44,20 +44,18 @@ struct FutureView: View {
                     selection: mode,
                     select: selectMode
                 )
-                Button(
-                    mode == .list ? "添加清单" : "添加日程",
-                    systemImage: "plus",
-                    action: presentNewItem
-                )
-                .labelStyle(.iconOnly)
+                Button(action: presentNewItem) {
+                    Image(systemName: "plus")
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(TapOnlyPrimitiveButtonStyle())
                 .font(.title2.bold())
                 .foregroundStyle(AppTheme.muted)
-                .frame(width: 44, height: 44)
-                .buttonStyle(.plain)
+                .accessibilityLabel(mode == .list ? "添加清单" : "添加日程")
                 .accessibilityIdentifier("futureAddButton")
             }
             .padding(.horizontal, AppTheme.horizontalPadding)
-            .accessibilityIdentifier("futureNavigationBar")
         }
         .screenBackground()
         .sheet(isPresented: $showingNewTodo) { NewTodoView() }
@@ -139,4 +137,11 @@ struct FutureView: View {
 private struct SelectedEventDate: Identifiable {
     let id = UUID()
     let date: Date
+}
+
+private struct TapOnlyPrimitiveButtonStyle: PrimitiveButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .onTapGesture { configuration.trigger() }
+    }
 }

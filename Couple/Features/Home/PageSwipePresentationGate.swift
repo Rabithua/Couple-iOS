@@ -3,10 +3,9 @@ import Foundation
 @MainActor
 final class PageSwipePresentationGate {
     private var isTrackingHorizontalDrag = false
-    private var suppressionEnd = Date.distantPast
 
     var suppressesPresentation: Bool {
-        isTrackingHorizontalDrag || Date.now < suppressionEnd
+        isTrackingHorizontalDrag
     }
 
     func update(horizontal: CGFloat, vertical: CGFloat) {
@@ -16,9 +15,6 @@ final class PageSwipePresentationGate {
     }
 
     func finish() {
-        if isTrackingHorizontalDrag {
-            suppressionEnd = Date.now.addingTimeInterval(0.3)
-        }
         isTrackingHorizontalDrag = false
     }
 }

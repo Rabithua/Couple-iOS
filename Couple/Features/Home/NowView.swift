@@ -1,17 +1,11 @@
 import SwiftUI
 
-struct PhotoCarouselFramePreferenceKey: PreferenceKey {
-    static let defaultValue = CGRect.zero
-
-    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
-        value = nextValue()
-    }
-}
-
 struct NowView: View {
     @Environment(AppStore.self) private var store
+    @GestureState private var photoCarouselGestureActive = false
     let showComposer: () -> Void
     let showSettings: () -> Void
+    let setPhotoCarouselGestureActive: (Bool) -> Void
 
     private var memberNames: String {
         let names = store.relationship?.members.map(\.displayName) ?? []
@@ -80,6 +74,7 @@ struct NowView: View {
                             .overlay { Rectangle().stroke(Color.white, lineWidth: 3) }
                             .shadow(color: .black.opacity(0.2), radius: 14, y: 4)
                             .rotationEffect(.degrees(-1))
+                            .accessibilityIdentifier("featuredPhoto-\(index)")
                     }
                     if featuredAttachments.isEmpty {
                         ForEach(0..<4, id: \.self) { index in
@@ -97,13 +92,12 @@ struct NowView: View {
             .scrollIndicators(.hidden)
             .scrollClipDisabled()
             .contentMargins(.horizontal, AppTheme.heroPhotoScrollMargin, for: .scrollContent)
-            .background {
-                GeometryReader { proxy in
-                    Color.clear.preference(
-                        key: PhotoCarouselFramePreferenceKey.self,
-                        value: proxy.frame(in: .named("mainPager"))
-                    )
-                }
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 5)
+                    .updating($photoCarouselGestureActive) { _, active, _ in active = true }
+            )
+            .onChange(of: photoCarouselGestureActive) { _, active in
+                setPhotoCarouselGestureActive(active)
             }
             .accessibilityIdentifier("featuredPhotoCarousel")
 
