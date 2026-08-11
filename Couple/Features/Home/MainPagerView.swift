@@ -65,6 +65,7 @@ struct MainPagerView: View {
             .simultaneousGesture(mainGesture(in: proxy.size))
         }
         .clipped()
+        .ignoresSafeArea(.container, edges: .bottom)
         .coordinateSpace(name: "mainPager")
         .task(id: route) {
             await loadActivePastNotes()
