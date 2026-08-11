@@ -7,7 +7,7 @@ final class ConnectivityMonitor: @unchecked Sendable {
 
     init() {
         monitor = NWPathMonitor()
-        queue = DispatchQueue(label: "ink.rote.couple.connectivity")
+        queue = DispatchQueue(label: "com.oursince.couple.connectivity")
     }
 
     func statusStream() -> AsyncStream<Bool> {

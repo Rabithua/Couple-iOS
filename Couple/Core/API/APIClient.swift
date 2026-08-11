@@ -38,7 +38,7 @@ private struct APIErrorEnvelope: Decodable {
 }
 
 actor APIClient {
-    static let productionBaseURL = URL(string: "https://couple-server.rote.ink/v1/api")!
+    static let productionBaseURL = URL(string: "https://oursince.com/v1/api")!
 
     let baseURL: URL
     private let session: any HTTPSession

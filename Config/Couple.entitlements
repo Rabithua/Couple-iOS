@@ -4,8 +4,7 @@
 <dict>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>webcredentials:couple-server.rote.ink</string>
+		<string>webcredentials:oursince.com</string>
 	</array>
 </dict>
 </plist>
-

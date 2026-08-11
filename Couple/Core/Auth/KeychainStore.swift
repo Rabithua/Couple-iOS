@@ -11,7 +11,7 @@ struct KeychainStore: Sendable {
     private let persistenceEnabled: Bool
 
     init(
-        service: String = "ink.rote.couple.session",
+        service: String = "com.oursince.couple.session",
         persistenceEnabled: Bool = true
     ) {
         self.service = service

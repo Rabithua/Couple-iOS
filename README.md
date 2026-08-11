@@ -25,10 +25,10 @@
 - PhotosUI
 - XcodeGen（项目文件也已提交，可直接打开）
 
-最低系统版本为 iOS 17，应用 Bundle ID 为 `ink.rote.couple`。默认 API 地址：
+最低系统版本为 iOS 17，应用 Bundle ID 为 `com.oursince.couple`。默认 API 地址：
 
 ```text
-https://couple-server.rote.ink/v1/api
+https://oursince.com/v1/api
 ```
 
 ## 本地运行
@@ -65,7 +65,7 @@ xcodebuild \
 iOS Target 已包含：
 
 ```text
-webcredentials:couple-server.rote.ink
+webcredentials:oursince.com
 ```
 
 正式设备上的 Passkey 还要求 API 域名通过 HTTPS 返回 Apple App Site Association 文件：
@@ -73,12 +73,12 @@ webcredentials:couple-server.rote.ink
 ```json
 {
   "webcredentials": {
-    "apps": ["APPLE_TEAM_ID.ink.rote.couple"]
+    "apps": ["SSK4KVR5FN.com.oursince.couple"]
   }
 }
 ```
 
-路径必须是 `/.well-known/apple-app-site-association`，响应不能重定向，并应使用 `application/json`。把 `APPLE_TEAM_ID` 替换为实际 Apple Developer Team ID 后，再用该 Team 完成签名。
+路径必须是 `/.well-known/apple-app-site-association`，响应不能重定向，并应使用 `application/json`。应用须使用 Team `SSK4KVR5FN` 完成签名。
 
 ## 设计截图
 

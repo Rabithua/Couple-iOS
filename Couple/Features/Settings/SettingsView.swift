@@ -54,7 +54,7 @@ struct SettingsView: View {
                 }
 
                 Section("连接") {
-                    LabeledContent("服务器", value: "couple-server.rote.ink")
+                    LabeledContent("服务器", value: "oursince.com")
                     LabeledContent("登录", value: store.isDemo ? "预览模式" : "Passkey")
                 }
 
