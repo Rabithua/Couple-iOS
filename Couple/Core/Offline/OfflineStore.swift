@@ -278,10 +278,27 @@ final class OfflineStore: SyncStore {
     func toggleTodo(id: String, completedBy: String?, now: Date = .now) throws -> Todo {
         guard let entity = try todoEntity(id: id) else { throw OfflineStoreError.missingEntity(.todo, id) }
         guard !entity.isTombstoned else { throw OfflineStoreError.missingEntity(.todo, id) }
+        return try setTodoCompletion(
+            id: id,
+            completed: !entity.completed,
+            completedBy: completedBy,
+            now: now
+        )
+    }
+
+    func setTodoCompletion(
+        id: String,
+        completed: Bool,
+        completedBy: String?,
+        now: Date = .now
+    ) throws -> Todo {
+        guard let entity = try todoEntity(id: id) else { throw OfflineStoreError.missingEntity(.todo, id) }
+        guard !entity.isTombstoned else { throw OfflineStoreError.missingEntity(.todo, id) }
+        guard entity.completed != completed else { return mapTodo(entity) }
         let hlc = try nextHLC(at: now)
-        entity.completed.toggle()
-        entity.completedAt = entity.completed ? now : nil
-        entity.completedBy = entity.completed ? completedBy : nil
+        entity.completed = completed
+        entity.completedAt = completed ? now : nil
+        entity.completedBy = completed ? completedBy : nil
         entity.updatedAt = now
         entity.isDirty = true
         try setClock(hlc, group: "completion", on: entity)

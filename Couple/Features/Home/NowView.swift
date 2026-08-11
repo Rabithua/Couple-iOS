@@ -147,14 +147,11 @@ struct NowView: View {
     private var todoSection: some View {
         VStack(alignment: .leading, spacing: AppTheme.todoRowSpacing) {
             ForEach(activeTodos) { todo in
-                HStack(spacing: 4) {
-                    TodoCheckButton(todo: todo) {
-                        Task { await store.toggleTodo(todo) }
-                    }
-                    .disabled(store.pendingTodoIDs.contains(todo.id))
-                    Text(todo.title)
-                        .font(AppTheme.titleFont())
-                        .lineLimit(1)
+                DeferredTodoCompletionRow(
+                    todo: todo,
+                    disabled: store.pendingTodoIDs.contains(todo.id)
+                ) {
+                    await store.setTodoCompletion(todo, completed: true)
                 }
             }
             if activeTodos.isEmpty {
@@ -162,6 +159,7 @@ struct NowView: View {
                     .font(AppTheme.titleFont())
             }
         }
+        .animation(.smooth(duration: 0.3), value: activeTodos.map(\.id))
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, AppTheme.horizontalPadding)
     }

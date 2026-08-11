@@ -26,21 +26,36 @@ struct AssociationArrow: View {
 struct TodoCheckButton: View {
     @Environment(AppHaptics.self) private var haptics
     let todo: Todo
+    let isChecked: Bool
     let action: () -> Void
+
+    init(todo: Todo, isChecked: Bool? = nil, action: @escaping () -> Void) {
+        self.todo = todo
+        self.isChecked = isChecked ?? todo.completed
+        self.action = action
+    }
 
     var body: some View {
         Button(action: toggleTodo) {
-            Image(systemName: todo.completed ? "checkmark.square" : "square")
+            Image(systemName: isChecked ? "checkmark.square" : "square")
                 .font(.title2)
                 .contentTransition(.symbolEffect(.replace))
         }
         .buttonStyle(.plain)
         .frame(width: AppTheme.todoControlSize, height: AppTheme.todoControlSize)
-        .accessibilityLabel(todo.completed ? "重新打开\(todo.title)" : "完成\(todo.title)")
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityHint(isChecked && todo.completed == false ? "再次轻点可取消" : "")
     }
 
     private func toggleTodo() {
-        haptics.play(todo.completed ? .selection : .success)
+        haptics.play(isChecked ? .selection : .success)
         action()
+    }
+
+    private var accessibilityLabel: String {
+        if isChecked {
+            return todo.completed ? "重新打开\(todo.title)" : "取消完成\(todo.title)"
+        }
+        return "完成\(todo.title)"
     }
 }

@@ -240,20 +240,33 @@ final class AppStore {
     }
 
     func toggleTodo(_ todo: Todo) async {
-        guard pendingTodoIDs.insert(todo.id).inserted else { return }
+        _ = await setTodoCompletion(todo, completed: !todo.completed)
+    }
+
+    @discardableResult
+    func setTodoCompletion(_ todo: Todo, completed: Bool) async -> Bool {
+        guard pendingTodoIDs.insert(todo.id).inserted else { return false }
         defer { pendingTodoIDs.remove(todo.id) }
         if isDemo {
-            guard let index = todos.firstIndex(where: { $0.id == todo.id }) else { return }
-            todos[index].completed.toggle()
-            todos[index].completedAt = todos[index].completed ? .now : nil
-            return
+            guard let index = todos.firstIndex(where: { $0.id == todo.id }) else { return false }
+            todos[index].completed = completed
+            todos[index].completedAt = completed ? .now : nil
+            todos[index].completedBy = completed ? currentUser?.id : nil
+            return true
         }
         do {
-            _ = try offlineStore?.toggleTodo(id: todo.id, completedBy: currentUser?.id)
+            guard let offlineStore else { return false }
+            _ = try offlineStore.setTodoCompletion(
+                id: todo.id,
+                completed: completed,
+                completedBy: currentUser?.id
+            )
             try await loadLocalContent()
             triggerSyncAfterWrite()
+            return todos.first(where: { $0.id == todo.id })?.completed == completed
         } catch {
             errorMessage = error.localizedDescription
+            return false
         }
     }
 
