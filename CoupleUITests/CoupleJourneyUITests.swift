@@ -201,6 +201,10 @@ final class CoupleJourneyUITests: XCTestCase {
         app.swipeRight()
         composeButton = app.buttons["composeMemoryButton"]
         XCTAssertTrue(composeButton.waitForExistence(timeout: 3))
+        composeButton.tap()
+        XCTAssertTrue(app.navigationBars["记录此刻"].waitForExistence(timeout: 3))
+        app.buttons["取消"].tap()
+        XCTAssertTrue(composeButton.waitForExistence(timeout: 3))
 
         let composeTarget = app.coordinate(
             withNormalizedOffset: CGVector(

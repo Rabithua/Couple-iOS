@@ -14,12 +14,14 @@ struct MainPagerGestureStateTests {
             translation: CGSize(width: -20, height: -8),
             startLocation: startLocation,
             containerSize: containerSize,
+            bottomSafeAreaInset: 34,
             route: .now
         )
         state.update(
             translation: CGSize(width: -140, height: -48),
             startLocation: startLocation,
             containerSize: containerSize,
+            bottomSafeAreaInset: 34,
             route: .now
         )
 
@@ -37,6 +39,7 @@ struct MainPagerGestureStateTests {
             translation: CGSize(width: 3, height: -20),
             startLocation: startLocation,
             containerSize: containerSize,
+            bottomSafeAreaInset: 34,
             route: .now
         )
         #expect(state.intent == .compose)
@@ -49,6 +52,7 @@ struct MainPagerGestureStateTests {
             ),
             startLocation: startLocation,
             containerSize: containerSize,
+            bottomSafeAreaInset: 34,
             route: .now
         )
 
@@ -64,6 +68,7 @@ struct MainPagerGestureStateTests {
             translation: CGSize(width: 2, height: -40),
             startLocation: CGPoint(x: 195, y: 500),
             containerSize: containerSize,
+            bottomSafeAreaInset: 34,
             route: .now
         )
 
@@ -77,8 +82,9 @@ struct MainPagerGestureStateTests {
 
         state.update(
             translation: CGSize(width: 2, height: -80),
-            startLocation: CGPoint(x: 195, y: 840),
+            startLocation: CGPoint(x: 195, y: 814),
             containerSize: containerSize,
+            bottomSafeAreaInset: 34,
             route: .now
         )
 
@@ -94,6 +100,7 @@ struct MainPagerGestureStateTests {
             translation: CGSize(width: 2, height: -40),
             startLocation: CGPoint(x: 195, y: 800),
             containerSize: containerSize,
+            bottomSafeAreaInset: 34,
             route: .futureCalendar
         )
 
@@ -110,6 +117,7 @@ struct MainPagerGestureStateTests {
             translation: CGSize(width: -13, height: -12),
             startLocation: startLocation,
             containerSize: containerSize,
+            bottomSafeAreaInset: 34,
             route: .now
         )
         #expect(state.intent == .undecided)
@@ -118,6 +126,7 @@ struct MainPagerGestureStateTests {
             translation: CGSize(width: -32, height: -15),
             startLocation: startLocation,
             containerSize: containerSize,
+            bottomSafeAreaInset: 34,
             route: .now
         )
 

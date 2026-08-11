@@ -13,7 +13,7 @@ struct MainPagerView: View {
     @State private var isTrackingMainGesture = false
     @State private var mainGestureState = MainPagerGestureState()
     @State private var composerPresentedForCurrentGesture = false
-    @State private var suppressComposerTap = false
+    @State private var suppressComposerTapForCurrentEvent = false
 
     init(arguments: [String] = ProcessInfo.processInfo.arguments) {
         let initialRoute: MainPagerRoute
@@ -64,7 +64,12 @@ struct MainPagerView: View {
             )
             .animation(pageAnimation, value: route.sectionIndex)
             .contentShape(Rectangle())
-            .simultaneousGesture(mainGesture(in: proxy.size))
+            .simultaneousGesture(
+                mainGesture(
+                    in: proxy.size,
+                    bottomSafeAreaInset: proxy.safeAreaInsets.bottom
+                )
+            )
         }
         .clipped()
         .ignoresSafeArea(.container, edges: .bottom)
@@ -117,17 +122,32 @@ struct MainPagerView: View {
             : 0
     }
 
-    private func mainGesture(in containerSize: CGSize) -> some Gesture {
+    private func mainGesture(
+        in containerSize: CGSize,
+        bottomSafeAreaInset: CGFloat
+    ) -> some Gesture {
         DragGesture(minimumDistance: 8, coordinateSpace: .named("mainPager"))
             .onChanged { value in
-                trackMainGesture(value, containerSize: containerSize)
+                trackMainGesture(
+                    value,
+                    containerSize: containerSize,
+                    bottomSafeAreaInset: bottomSafeAreaInset
+                )
             }
             .onEnded { value in
-                finishMainGesture(value, containerSize: containerSize)
+                finishMainGesture(
+                    value,
+                    containerSize: containerSize,
+                    bottomSafeAreaInset: bottomSafeAreaInset
+                )
             }
     }
 
-    private func trackMainGesture(_ value: DragGesture.Value, containerSize: CGSize) {
+    private func trackMainGesture(
+        _ value: DragGesture.Value,
+        containerSize: CGSize,
+        bottomSafeAreaInset: CGFloat
+    ) {
         if !isTrackingMainGesture {
             isTrackingMainGesture = true
             pageSwipeStartedInPhotoCarousel = photoCarouselGestureActive
@@ -137,17 +157,23 @@ struct MainPagerView: View {
             translation: value.translation,
             startLocation: value.startLocation,
             containerSize: containerSize,
+            bottomSafeAreaInset: bottomSafeAreaInset,
             route: route
         )
 
         presentComposerIfThresholdReached()
     }
 
-    private func finishMainGesture(_ value: DragGesture.Value, containerSize: CGSize) {
+    private func finishMainGesture(
+        _ value: DragGesture.Value,
+        containerSize: CGSize,
+        bottomSafeAreaInset: CGFloat
+    ) {
         mainGestureState.update(
             translation: value.translation,
             startLocation: value.startLocation,
             containerSize: containerSize,
+            bottomSafeAreaInset: bottomSafeAreaInset,
             route: route
         )
 
@@ -200,7 +226,10 @@ struct MainPagerView: View {
     }
 
     private func presentComposer() {
-        guard !suppressComposerTap else { return }
+        guard !suppressComposerTapForCurrentEvent else {
+            suppressComposerTapForCurrentEvent = false
+            return
+        }
         haptics.play(.tap)
         showingComposer = true
     }
@@ -216,10 +245,9 @@ struct MainPagerView: View {
     }
 
     private func suppressComposerTapAfterPageSwipe() {
-        suppressComposerTap = true
-        Task {
-            try? await Task.sleep(for: .milliseconds(250))
-            suppressComposerTap = false
+        suppressComposerTapForCurrentEvent = true
+        DispatchQueue.main.async {
+            suppressComposerTapForCurrentEvent = false
         }
     }
 

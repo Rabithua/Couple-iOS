@@ -15,7 +15,6 @@ struct MainPagerGestureState: Equatable {
     private static let pageAxisRatio: CGFloat = 1.2
     private static let composeAxisRatio: CGFloat = 1.45
     private static let composeRegionHeight: CGFloat = 104
-    private static let composeSystemGestureExclusionHeight: CGFloat = 24
 
     private(set) var intent: Intent = .undecided
     private(set) var composeProgress: CGFloat = 0
@@ -30,6 +29,7 @@ struct MainPagerGestureState: Equatable {
         translation: CGSize,
         startLocation: CGPoint,
         containerSize: CGSize,
+        bottomSafeAreaInset: CGFloat,
         route: MainPagerRoute
     ) {
         if intent == .compose {
@@ -60,6 +60,7 @@ struct MainPagerGestureState: Equatable {
             translation: translation,
             startLocation: startLocation,
             containerSize: containerSize,
+            bottomSafeAreaInset: bottomSafeAreaInset,
             route: route
         ) {
             intent = .compose
@@ -80,11 +81,12 @@ struct MainPagerGestureState: Equatable {
         translation: CGSize,
         startLocation: CGPoint,
         containerSize: CGSize,
+        bottomSafeAreaInset: CGFloat,
         route: MainPagerRoute
     ) -> Bool {
         guard route == .now else { return false }
         guard startLocation.y >= containerSize.height - Self.composeRegionHeight else { return false }
-        guard startLocation.y <= containerSize.height - Self.composeSystemGestureExclusionHeight else {
+        guard startLocation.y <= containerSize.height - bottomSafeAreaInset else {
             return false
         }
         guard translation.height < 0 else { return false }
