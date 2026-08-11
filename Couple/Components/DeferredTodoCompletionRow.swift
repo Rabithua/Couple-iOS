@@ -39,10 +39,9 @@ struct DeferredTodoCompletionRow: View {
                         .accessibilityHidden(true)
                 }
         }
-        .mask(alignment: .trailing) {
-            Rectangle()
-                .scaleEffect(x: 1 - dismissalProgress, anchor: .trailing)
-        }
+        .compositingGroup()
+        .opacity(1 - dismissalProgress)
+        .offset(x: reduceMotion ? 0 : -AppTheme.todoCompletionExitOffset * dismissalProgress)
         .onDisappear {
             completionTask?.cancel()
         }
@@ -79,10 +78,8 @@ struct DeferredTodoCompletionRow: View {
                 try await Task.sleep(for: AppTheme.todoCompletionHoldDuration)
                 guard Task.isCancelled == false else { return }
 
-                if reduceMotion == false {
-                    withAnimation(exitAnimation) {
-                        dismissalProgress = 1
-                    }
+                withAnimation(exitAnimation) {
+                    dismissalProgress = 1
                 }
 
                 try await Task.sleep(for: AppTheme.todoCompletionExitDuration)
@@ -125,7 +122,7 @@ struct DeferredTodoCompletionRow: View {
     }
 
     private var exitAnimation: Animation {
-        .smooth(duration: 0.4)
+        reduceMotion ? .easeOut(duration: 0.4) : .smooth(duration: 0.4)
     }
 
     private var restoreAnimation: Animation {

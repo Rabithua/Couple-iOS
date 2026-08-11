@@ -16,6 +16,7 @@ enum AppTheme {
     static let todoCompletionStrikeDelay: Duration = .milliseconds(140)
     static let todoCompletionHoldDuration: Duration = .milliseconds(1_460)
     static let todoCompletionExitDuration: Duration = .milliseconds(400)
+    static let todoCompletionExitOffset: CGFloat = 18
     static let todoCompletionStrikeHeight: CGFloat = 6
     static let todoCompletionStrikeWidth: CGFloat = 2
     static let contentTop: CGFloat = 75
