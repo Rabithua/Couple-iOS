@@ -2,6 +2,26 @@ import XCTest
 
 @MainActor
 final class CoupleJourneyUITests: XCTestCase {
+    func testFutureAddButtonPresentsImmediately() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-future"]
+        app.launch()
+
+        let addButton = app.buttons["futureAddButton"]
+        XCTAssertTrue(addButton.waitForExistence(timeout: 5))
+        addButton.tap()
+        XCTAssertTrue(app.navigationBars["新日程"].waitForExistence(timeout: 2))
+        XCTAssertEqual(app.navigationBars.matching(identifier: "新日程").count, 1)
+        app.buttons["取消"].tap()
+
+        app.buttons["清单"].tap()
+        XCTAssertTrue(app.buttons["清单"].isSelected)
+        app.buttons["futureAddButton"].tap()
+        XCTAssertTrue(app.navigationBars["新清单"].waitForExistence(timeout: 2))
+        XCTAssertEqual(app.navigationBars.matching(identifier: "新清单").count, 1)
+    }
+
     func testFutureHorizontalSwipesDoNotOpenComposer() {
         continueAfterFailure = false
         let app = XCUIApplication()
@@ -66,6 +86,9 @@ final class CoupleJourneyUITests: XCTestCase {
         let photoStart = photoCarousel.coordinate(withNormalizedOffset: CGVector(dx: 0.82, dy: 0.5))
         let photoEnd = photoCarousel.coordinate(withNormalizedOffset: CGVector(dx: 0.18, dy: 0.5))
         photoStart.press(forDuration: 0.05, thenDragTo: photoEnd)
+        let carouselMarker = app.descendants(matching: .any)["featuredPhoto-0"]
+        XCTAssertTrue(carouselMarker.waitForExistence(timeout: 2))
+        let preservedCarouselX = carouselMarker.frame.minX
         XCTAssertTrue(app.staticTexts["在一起"].exists)
         XCTAssertTrue(photoCarousel.isHittable)
         XCTAssertFalse(app.buttons["日历"].isHittable)
@@ -83,6 +106,7 @@ final class CoupleJourneyUITests: XCTestCase {
 
         app.swipeLeft()
         XCTAssertTrue(app.staticTexts["在一起"].waitForExistence(timeout: 3))
+        XCTAssertEqual(carouselMarker.frame.minX, preservedCarouselX, accuracy: 4)
         app.swipeRight()
         XCTAssertTrue(allScroll.waitForExistence(timeout: 3))
         XCTAssertTrue(allScroll.isHittable)

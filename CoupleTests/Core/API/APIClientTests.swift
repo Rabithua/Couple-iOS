@@ -76,6 +76,32 @@ struct APIClientTests {
         await client.clearSession()
     }
 
+    @Test("Transient refresh failure preserves the offline session", .tags(.networking))
+    func transientRefreshFailurePreservesOfflineSession() async throws {
+        let baseURL = try #require(URL(string: "https://example.com/v1/api"))
+        let keychain = KeychainStore(
+            service: "couple-tests-\(UUID().uuidString)",
+            persistenceEnabled: false
+        )
+        let session = MockHTTPSession(stubs: [
+            .init(
+                pathSuffix: "/auth/refresh",
+                statusCode: 503,
+                data: Data(#"{"code":"UNAVAILABLE","message":"try later"}"#.utf8)
+            )
+        ])
+        let client = APIClient(baseURL: baseURL, session: session, keychain: keychain)
+        try await client.install(tokens: Self.initialTokens)
+
+        let error = await #expect(throws: APIError.self) {
+            try await client.refreshSession()
+        }
+
+        #expect(error == .server(status: 503, code: "UNAVAILABLE", message: "try later"))
+        #expect(await client.hasStoredSession)
+        await client.clearSession()
+    }
+
     private static let initialTokens = TokenPair(
         accessToken: "old-access",
         refreshToken: "old-refresh"

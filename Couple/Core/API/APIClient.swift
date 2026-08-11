@@ -196,8 +196,11 @@ actor APIClient {
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw APIError.invalidResponse }
         guard (200..<300).contains(http.statusCode) else {
-            clearSession()
-            return false
+            if [400, 401, 403].contains(http.statusCode) {
+                clearSession()
+                return false
+            }
+            throw parseServerError(data: data, status: http.statusCode)
         }
 
         do {

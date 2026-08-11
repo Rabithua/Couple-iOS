@@ -6,6 +6,8 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var startedOn: Date
     @State private var showingNewAnniversary = false
+    @State private var showingUnsyncedSignOut = false
+    @State private var pendingSignOutCount = 0
     @State private var isSaving = false
     @State private var localError: String?
 
@@ -77,6 +79,13 @@ struct SettingsView: View {
                 get: { localError != nil },
                 set: { if !$0 { localError = nil } }
             )) { Button("好", role: .cancel, action: acknowledgeError) } message: { Text(localError ?? "") }
+            .alert("还有 \(pendingSignOutCount) 项尚未同步", isPresented: $showingUnsyncedSignOut) {
+                Button("先同步") { beginSyncThenSignOut() }
+                Button("丢弃并退出", role: .destructive) { beginDiscardingAndSignOut() }
+                Button("取消", role: .cancel) {}
+            } message: {
+                Text("可以先同步后退出；只有选择丢弃，才会删除待同步操作和待上传照片。")
+            }
         }
     }
 
@@ -92,10 +101,39 @@ struct SettingsView: View {
 
     private func beginSigningOut() {
         haptics.play(.warning)
+        switch store.signOutDisposition() {
+        case .ready:
+            Task {
+                if await store.signOutIfSafe() {
+                    haptics.play(.success)
+                    dismiss()
+                }
+            }
+        case .requiresDecision(let count):
+            pendingSignOutCount = count
+            showingUnsyncedSignOut = true
+        }
+    }
+
+    private func beginSyncThenSignOut() {
         Task {
-            await store.signOut()
-            haptics.play(.success)
-            dismiss()
+            if await store.syncThenSignOut() {
+                haptics.play(.success)
+                dismiss()
+            } else {
+                localError = "尚有内容未能同步，请检查网络后重试，或选择丢弃并退出。"
+            }
+        }
+    }
+
+    private func beginDiscardingAndSignOut() {
+        Task {
+            if await store.discardChangesAndSignOut() {
+                haptics.play(.success)
+                dismiss()
+            } else {
+                localError = "无法清理本地待同步内容，请重试。"
+            }
         }
     }
 

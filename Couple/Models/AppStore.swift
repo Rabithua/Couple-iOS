@@ -19,11 +19,23 @@ struct SelectedPhoto: Identifiable, Sendable {
     let height: Int
 }
 
+enum SignOutDisposition: Equatable, Sendable {
+    case ready
+    case requiresDecision(Int)
+}
+
 @MainActor
 @Observable
 final class AppStore {
     let api: APIClient
     private let passkeys: PasskeyService
+    private(set) var offlineStore: OfflineStore?
+    private var syncCoordinator: SyncCoordinator?
+    private var connectivityMonitor: ConnectivityMonitor?
+    private var connectivityTask: Task<Void, Never>?
+    private var retryTask: Task<Void, Never>?
+    private var retryAttempt = 0
+    private var localStoreInitializationError: Error?
 
     var phase: SessionPhase = .launching
     var currentUser: User?
@@ -38,6 +50,7 @@ final class AppStore {
     var selectedNoteQuery: NoteQuery = .all
     var isBusy = false
     var isRefreshing = false
+    var isSyncing = false
     var errorMessage: String?
     private(set) var pendingTodoIDs: Set<String> = []
     private(set) var isDemo: Bool
@@ -45,12 +58,27 @@ final class AppStore {
     init(
         api: APIClient = APIClient(),
         passkeys: PasskeyService = PasskeyService(),
+        offlineStore suppliedOfflineStore: OfflineStore? = nil,
+        syncTransport suppliedSyncTransport: (any SyncTransport)? = nil,
         environment: [String: String] = ProcessInfo.processInfo.environment,
         arguments: [String] = ProcessInfo.processInfo.arguments
     ) {
         self.api = api
         self.passkeys = passkeys
-        self.isDemo = environment["COUPLE_DEMO_MODE"] == "1" || arguments.contains("-ui-testing-demo")
+        let demo = environment["COUPLE_DEMO_MODE"] == "1" || arguments.contains("-ui-testing-demo")
+        self.isDemo = demo
+
+        guard !demo else { return }
+        do {
+            let local = try suppliedOfflineStore ?? OfflineStore.makeLive()
+            offlineStore = local
+            syncCoordinator = SyncCoordinator(
+                store: local,
+                transport: suppliedSyncTransport ?? SyncV1Transport(api: api, store: local)
+            )
+        } catch {
+            localStoreInitializationError = error
+        }
     }
 
     func start() async {
@@ -59,24 +87,47 @@ final class AppStore {
             phase = .main
             return
         }
+        guard localStoreInitializationError == nil, let offlineStore else {
+            errorMessage = localStoreInitializationError?.localizedDescription ?? "本地数据库无法打开"
+            phase = .signedOut
+            return
+        }
+
+        let hasStoredSession = await api.hasStoredSession
+        guard hasStoredSession else {
+            phase = .signedOut
+            return
+        }
+
+        if let cached = try? offlineStore.cachedSession() {
+            currentUser = cached.user
+            relationship = cached.relationship
+            home = cached.home
+            if cached.relationship.members.count >= 2 {
+                try? await loadLocalContent()
+                phase = .main
+            } else {
+                phase = .pairing
+            }
+        }
 
         do {
-            guard await api.hasStoredSession, try await api.refreshSession() else {
+            guard try await api.refreshSession() else {
                 phase = .signedOut
                 return
             }
-            currentUser = try await api.me()
-            relationship = try await api.relationshipStatus()
-            if relationship?.members.count ?? 0 < 2 {
-                phase = .pairing
-            } else {
-                phase = .main
-                await refreshContent()
-            }
+            let user = try await api.me()
+            let relationship = try await api.relationshipStatus()
+            try await finishAuthentication(user: user, relationship: relationship, trigger: .launch)
+        } catch is CancellationError {
+            return
         } catch {
-            await api.clearSession()
-            errorMessage = error.localizedDescription
-            phase = .signedOut
+            if phase == .main {
+                scheduleRetry()
+            } else {
+                errorMessage = error.localizedDescription
+                phase = .signedOut
+            }
         }
     }
 
@@ -97,9 +148,8 @@ final class AppStore {
                 credential: credential
             )
             try await api.install(tokens: auth.tokens)
-            currentUser = auth.user
-            relationship = try await api.relationshipStatus()
-            phase = .pairing
+            let relationship = try await api.relationshipStatus()
+            try await finishAuthentication(user: auth.user, relationship: relationship, trigger: .login)
         }
     }
 
@@ -112,14 +162,8 @@ final class AppStore {
                 credential: credential
             )
             try await api.install(tokens: auth.tokens)
-            currentUser = auth.user
-            relationship = try await api.relationshipStatus()
-            if relationship?.members.count ?? 0 < 2 {
-                phase = .pairing
-            } else {
-                phase = .main
-                await refreshContent()
-            }
+            let relationship = try await api.relationshipStatus()
+            try await finishAuthentication(user: auth.user, relationship: relationship, trigger: .login)
         }
     }
 
@@ -127,20 +171,23 @@ final class AppStore {
         await runBusy {
             _ = try await api.createInvite()
             relationship = try await api.relationshipStatus()
+            try persistSession()
         }
     }
 
     func acceptInvite(_ code: String) async {
         await runBusy {
             _ = try await api.acceptInvite(code: code.uppercased())
-            relationship = try await api.relationshipStatus()
-            phase = .main
-            await refreshContent()
+            let status = try await api.relationshipStatus()
+            guard let currentUser else { throw APIError.missingSession }
+            try await finishAuthentication(user: currentUser, relationship: status, trigger: .login)
         }
     }
 
     func continueWithoutPartner() async {
         phase = .main
+        try? persistSession()
+        beginConnectivityObservation()
         await refreshContent()
     }
 
@@ -149,32 +196,35 @@ final class AppStore {
             loadSampleData(keepingTodoState: true)
             return
         }
+        guard !isRefreshing else { return }
         isRefreshing = true
         defer { isRefreshing = false }
 
         do {
-            let calendar = Calendar.current
-            let from = calendar.date(byAdding: .month, value: -1, to: Date()) ?? Date()
-            let to = calendar.date(byAdding: .month, value: 12, to: Date()) ?? Date()
-            async let homeResult = api.home()
-            async let notesResult = api.notes(query: .all)
-            async let todosResult = api.todos(filter: "all")
-            async let anniversariesResult = api.anniversaries()
-            async let calendarResult = api.calendar(from: from, to: to)
-
-            home = try await homeResult
-            let fetchedNotes = try await notesResult.items
-            notes = fetchedNotes
-            cachedPastNotes = [.all: fetchedNotes]
-            pastNotes = fetchedNotes.filter { matches($0, query: selectedNoteQuery) }
-            todos = try await todosResult
-            anniversaries = try await anniversariesResult
-            calendarEvents = try await calendarResult
+            try await loadLocalContent()
+            let result = await synchronize(trigger: .manual, surfaceError: false)
+            if case .failed = result, try await localDomainIsEmpty() {
+                try await bootstrapFromLegacyAPI()
+                try await loadLocalContent()
+            }
+            do {
+                home = try await api.home()
+                if let home { try offlineStore?.updateCachedHome(home) }
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                if case .failed = result { throw error }
+            }
         } catch is CancellationError {
             return
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    func handleForeground() {
+        guard phase == .main, !isDemo else { return }
+        Task { _ = await synchronize(trigger: .foreground, surfaceError: false) }
     }
 
     func pastNotes(for query: NoteQuery) -> [Note] {
@@ -183,56 +233,26 @@ final class AppStore {
 
     func selectNotes(_ query: NoteQuery, forceReload: Bool = false) async {
         selectedNoteQuery = query
-        if !forceReload, let cachedNotes = cachedPastNotes[query] {
-            pastNotes = cachedNotes
-            return
-        }
-        if isDemo {
-            let filteredNotes = filteredSampleNotes(query)
-            cachedPastNotes[query] = filteredNotes
-            pastNotes = filteredNotes
-            return
-        }
-        do {
-            let fetchedNotes = try await api.notes(query: query).items
-            cachedPastNotes[query] = fetchedNotes
-            if selectedNoteQuery == query {
-                pastNotes = fetchedNotes
-            }
-            if query == .all {
-                notes = fetchedNotes
-            }
-        } catch is CancellationError {
-            return
-        } catch {
-            errorMessage = error.localizedDescription
-        }
+        if forceReload { await refreshContent() }
+        let filtered = notes.filter { matches($0, query: query) }
+        cachedPastNotes[query] = filtered
+        pastNotes = filtered
     }
 
     func toggleTodo(_ todo: Todo) async {
         guard pendingTodoIDs.insert(todo.id).inserted else { return }
         defer { pendingTodoIDs.remove(todo.id) }
-        guard let index = todos.firstIndex(where: { $0.id == todo.id }) else { return }
-
-        let original = todos[index]
-        let completed = !original.completed
-        todos[index].completed = completed
-        todos[index].completedAt = completed ? Date.now : nil
-        guard !isDemo else { return }
-        do {
-            let updated = try await api.setTodo(todo.id, completed: completed)
-            if let currentIndex = todos.firstIndex(where: { $0.id == todo.id }) {
-                todos[currentIndex] = updated
-            }
-        } catch is CancellationError {
-            if let currentIndex = todos.firstIndex(where: { $0.id == todo.id }) {
-                todos[currentIndex] = original
-            }
+        if isDemo {
+            guard let index = todos.firstIndex(where: { $0.id == todo.id }) else { return }
+            todos[index].completed.toggle()
+            todos[index].completedAt = todos[index].completed ? .now : nil
             return
+        }
+        do {
+            _ = try offlineStore?.toggleTodo(id: todo.id, completedBy: currentUser?.id)
+            try await loadLocalContent()
+            triggerSyncAfterWrite()
         } catch {
-            if let currentIndex = todos.firstIndex(where: { $0.id == todo.id }) {
-                todos[currentIndex] = original
-            }
             errorMessage = error.localizedDescription
         }
     }
@@ -257,14 +277,16 @@ final class AppStore {
             todos.insert(todo, at: 0)
             return
         }
-        let request = CreateTodoRequest(
+        let identity = try localIdentity()
+        _ = try offlineStore?.createTodo(
+            coupleId: identity.coupleId,
+            ownerId: identity.userId,
             title: title,
-            note: nil,
-            dueTime: dueDate?.apiISOString,
-            visibility: visibility,
-            reminderOffset: dueDate == nil ? nil : 60
+            dueDate: dueDate,
+            visibility: visibility
         )
-        todos.insert(try await api.createTodo(request), at: 0)
+        try await loadLocalContent()
+        triggerSyncAfterWrite()
     }
 
     func addAnniversary(title: String, date: Date, annual: Bool, visibility: Visibility) async throws {
@@ -277,30 +299,32 @@ final class AppStore {
             anniversaries.append(item)
             return
         }
-        let request = CreateAnniversaryRequest(
+        let identity = try localIdentity()
+        _ = try offlineStore?.createAnniversary(
+            coupleId: identity.coupleId,
+            ownerId: identity.userId,
             title: title,
-            date: date.dateOnlyString,
+            date: date,
             annual: annual,
-            visibility: visibility,
-            reminderOffset: 1_440
+            visibility: visibility
         )
-        anniversaries.append(try await api.createAnniversary(request))
+        try await loadLocalContent()
+        triggerSyncAfterWrite()
     }
 
     func addCalendarEvent(title: String, start: Date, end: Date?, allDay: Bool) async throws {
         if isDemo { return }
-        let request = CreateCalendarEventRequest(
+        let identity = try localIdentity()
+        _ = try offlineStore?.createCalendarEvent(
+            coupleId: identity.coupleId,
+            ownerId: identity.userId,
             title: title,
-            description: nil,
-            allDay: allDay,
-            startTime: start.apiISOString,
-            endTime: end?.apiISOString,
-            timezone: TimeZone.current.identifier,
-            yearly: false,
-            visibility: .shared,
-            reminderOffset: 60
+            start: start,
+            end: end,
+            allDay: allDay
         )
-        calendarEvents.append(try await api.createCalendarEvent(request))
+        try await loadLocalContent()
+        triggerSyncAfterWrite()
     }
 
     func addMemory(
@@ -328,36 +352,20 @@ final class AppStore {
             insertIntoPastNoteCaches(note)
             return
         }
-
-        var attachmentIds: [String] = []
-        for photo in photos {
-            let upload = try await api.requestUpload(
-                PresignedUploadRequest(
-                    filename: photo.filename,
-                    mimeType: photo.mimeType,
-                    size: photo.data.count,
-                    width: photo.width,
-                    height: photo.height,
-                    durationMs: nil
-                )
-            )
-            guard let url = URL(string: upload.presignedUrl) else { throw APIError.invalidResponse }
-            try await api.upload(photo.data, to: url, mimeType: photo.mimeType)
-            let finalized = try await api.finalizeUpload(objectKey: upload.objectKey)
-            attachmentIds.append(finalized.id)
-        }
-
-        let note = try await api.createNote(
-            CreateNoteRequest(
-                content: content,
-                visibility: visibility,
-                anniversaryId: anniversaryId,
-                todoId: todoId,
-                attachmentIds: attachmentIds
-            )
+        let identity = try localIdentity()
+        _ = try await offlineStore?.createMemory(
+            coupleId: identity.coupleId,
+            ownerId: identity.userId,
+            content: content,
+            photos: photos,
+            anniversaryId: anniversaryId,
+            anniversaryTitle: anniversaries.first(where: { $0.id == anniversaryId })?.title,
+            todoId: todoId,
+            todoTitle: todos.first(where: { $0.id == todoId })?.title,
+            visibility: visibility
         )
-        notes.insert(note, at: 0)
-        insertIntoPastNoteCaches(note)
+        try await loadLocalContent()
+        triggerSyncAfterWrite()
     }
 
     func updateCouple(startedOn: Date) async throws {
@@ -368,9 +376,213 @@ final class AppStore {
         )
         relationship = try await api.relationshipStatus()
         home = try await api.home()
+        try persistSession()
+    }
+
+    func signOutDisposition() -> SignOutDisposition {
+        guard !isDemo else { return .ready }
+        let count = (try? offlineStore?.unsyncedCount()) ?? 0
+        return count > 0 ? .requiresDecision(count) : .ready
+    }
+
+    func signOutIfSafe() async -> Bool {
+        guard signOutDisposition() == .ready else { return false }
+        return await performSignOut(discardLocalChanges: false)
+    }
+
+    func syncThenSignOut() async -> Bool {
+        let result = await synchronize(trigger: .manual, surfaceError: true)
+        guard result == .success, signOutDisposition() == .ready else { return false }
+        return await performSignOut(discardLocalChanges: false)
+    }
+
+    func discardChangesAndSignOut() async -> Bool {
+        await performSignOut(discardLocalChanges: true)
     }
 
     func signOut() async {
+        _ = await signOutIfSafe()
+    }
+
+    private func finishAuthentication(
+        user: User,
+        relationship: RelationshipStatus,
+        trigger: SyncTrigger
+    ) async throws {
+        currentUser = user
+        self.relationship = relationship
+        try persistSession()
+        if relationship.members.count < 2 {
+            phase = .pairing
+            return
+        }
+        try await loadLocalContent()
+        phase = .main
+        beginConnectivityObservation()
+        let result = await synchronize(trigger: trigger, surfaceError: false)
+        if case .failed = result, try await localDomainIsEmpty() {
+            try await bootstrapFromLegacyAPI()
+            try await loadLocalContent()
+        }
+        if let latestHome = try? await api.home() {
+            home = latestHome
+            try? offlineStore?.updateCachedHome(latestHome)
+        }
+    }
+
+    private func synchronize(trigger: SyncTrigger, surfaceError: Bool) async -> SyncRunResult {
+        guard let syncCoordinator, !isDemo else { return .success }
+        isSyncing = true
+        let result = await syncCoordinator.trigger(trigger)
+        isSyncing = false
+        switch result {
+        case .success:
+            retryAttempt = 0
+            retryTask?.cancel()
+            retryTask = nil
+            try? await loadLocalContent()
+        case .failed(let message):
+            if surfaceError { errorMessage = message }
+            scheduleRetry()
+        case .cancelled:
+            break
+        }
+        return result
+    }
+
+    private func scheduleRetry() {
+        guard retryTask == nil, phase == .main else { return }
+        retryAttempt += 1
+        let delay = min(pow(2, Double(min(retryAttempt, 10))), 3_600)
+        retryTask = Task { [weak self] in
+            do {
+                try await Task.sleep(for: .seconds(delay))
+                guard let self else { return }
+                self.retryTask = nil
+                _ = await self.synchronize(trigger: .retry, surfaceError: false)
+            } catch {}
+        }
+    }
+
+    private func triggerSyncAfterWrite() {
+        Task { [weak self] in
+            guard let self else { return }
+            _ = await self.synchronize(trigger: .manual, surfaceError: false)
+        }
+    }
+
+    private func beginConnectivityObservation() {
+        connectivityTask?.cancel()
+        connectivityMonitor?.cancel()
+        let monitor = ConnectivityMonitor()
+        connectivityMonitor = monitor
+        connectivityTask = Task { [weak self] in
+            var previous: Bool?
+            for await connected in monitor.statusStream() {
+                guard !Task.isCancelled, let self else { return }
+                if connected, previous == false {
+                    _ = await self.synchronize(trigger: .networkRestored, surfaceError: false)
+                }
+                previous = connected
+            }
+        }
+    }
+
+    private func loadLocalContent() async throws {
+        guard let snapshot = try await offlineStore?.loadSnapshot() else { return }
+        notes = snapshot.notes
+        todos = snapshot.todos
+        anniversaries = snapshot.anniversaries
+        let calendar = Calendar.current
+        let start = calendar.date(byAdding: .month, value: -1, to: .now) ?? .now
+        let end = calendar.date(byAdding: .month, value: 13, to: .now) ?? .now
+        calendarEvents = CalendarOccurrenceExpander.expand(
+            canonicalEvents: snapshot.canonicalCalendarEvents,
+            from: start,
+            to: end
+        )
+        rebuildPastNoteCaches()
+    }
+
+    private func localDomainIsEmpty() async throws -> Bool {
+        guard let snapshot = try await offlineStore?.loadSnapshot() else { return true }
+        return snapshot.notes.isEmpty
+            && snapshot.todos.isEmpty
+            && snapshot.anniversaries.isEmpty
+            && snapshot.canonicalCalendarEvents.isEmpty
+            && snapshot.timelineEntries.isEmpty
+    }
+
+    private func bootstrapFromLegacyAPI() async throws {
+        guard let offlineStore else { return }
+        let calendar = Calendar.current
+        let from = calendar.date(byAdding: .month, value: -1, to: Date()) ?? Date()
+        let to = calendar.date(byAdding: .month, value: 13, to: Date()) ?? Date()
+        async let homeResult = api.home()
+        async let todosResult = api.todos(filter: "all")
+        async let anniversariesResult = api.anniversaries()
+        async let calendarResult = api.calendar(from: from, to: to)
+        let allNotes = try await fetchAllLegacyNotes()
+        let latestHome = try await homeResult
+        try offlineStore.bootstrap(
+            notes: allNotes,
+            todos: try await todosResult,
+            anniversaries: try await anniversariesResult,
+            calendarEvents: try await calendarResult,
+            timelineEntries: [latestHome.latestTimelineEntry].compactMap { $0 }
+        )
+        home = latestHome
+        try offlineStore.updateCachedHome(latestHome)
+    }
+
+    private func fetchAllLegacyNotes() async throws -> [Note] {
+        var result: [Note] = []
+        var cursor: String?
+        var pages = 0
+        repeat {
+            pages += 1
+            guard pages <= 1_000 else { throw APIError.invalidResponse }
+            let page = try await api.notes(query: .all, cursor: cursor)
+            result.append(contentsOf: page.items)
+            cursor = page.nextCursor
+        } while cursor != nil
+        return result
+    }
+
+    private func persistSession() throws {
+        guard let currentUser, let relationship else { return }
+        try offlineStore?.saveSession(user: currentUser, relationship: relationship, home: home)
+    }
+
+    private func localIdentity() throws -> (coupleId: String, userId: String) {
+        guard let coupleId = relationship?.couple?.id, let userId = currentUser?.id else {
+            throw APIError.missingSession
+        }
+        guard offlineStore != nil else {
+            throw localStoreInitializationError ?? APIError.invalidResponse
+        }
+        return (coupleId, userId)
+    }
+
+    private func performSignOut(discardLocalChanges: Bool) async -> Bool {
+        retryTask?.cancel()
+        retryTask = nil
+        connectivityTask?.cancel()
+        connectivityTask = nil
+        connectivityMonitor?.cancel()
+        connectivityMonitor = nil
+        await syncCoordinator?.cancel()
+        do {
+            if discardLocalChanges {
+                try await offlineStore?.discardPendingMutationsAndLocalData()
+            } else if signOutDisposition() == .ready {
+                try offlineStore?.clearSynchronizedLocalDataForSignOut()
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+            beginConnectivityObservation()
+            return false
+        }
         await api.logOut()
         currentUser = nil
         relationship = nil
@@ -379,8 +591,11 @@ final class AppStore {
         pastNotes = []
         cachedPastNotes = [:]
         todos = []
+        anniversaries = []
+        calendarEvents = []
         pendingTodoIDs = []
         phase = .signedOut
+        return true
     }
 
     private func runBusy(_ operation: () async throws -> Void) async {
@@ -403,20 +618,20 @@ final class AppStore {
         relationship = SampleData.relationship
         home = SampleData.home
         notes = SampleData.notes
-        cachedPastNotes = [
-            .all: filteredSampleNotes(.all),
-            .photos: filteredSampleNotes(.photos),
-            .anniversaries: filteredSampleNotes(.anniversaries),
-            .completedTodos: filteredSampleNotes(.completedTodos)
-        ]
-        pastNotes = cachedPastNotes[selectedNoteQuery] ?? []
+        rebuildPastNoteCaches()
         if !keepingTodoState || todos.isEmpty { todos = SampleData.todos }
         anniversaries = [SampleData.anniversary]
         calendarEvents = SampleData.events
     }
 
-    private func filteredSampleNotes(_ query: NoteQuery) -> [Note] {
-        SampleData.notes.filter { matches($0, query: query) }
+    private func rebuildPastNoteCaches() {
+        cachedPastNotes = [
+            .all: notes.filter { matches($0, query: .all) },
+            .photos: notes.filter { matches($0, query: .photos) },
+            .anniversaries: notes.filter { matches($0, query: .anniversaries) },
+            .completedTodos: notes.filter { matches($0, query: .completedTodos) },
+        ]
+        pastNotes = cachedPastNotes[selectedNoteQuery] ?? []
     }
 
     private func insertIntoPastNoteCaches(_ note: Note) {

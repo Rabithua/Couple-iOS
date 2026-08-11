@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import Couple
 
@@ -36,5 +37,56 @@ struct AppStoreTests {
         #expect(photoNotes.allSatisfy { $0.attachments.contains(where: \.isImage) })
         #expect(store.pastNotes.allSatisfy { $0.todoId != nil })
         #expect(store.pastNotes(for: .photos) == photoNotes)
+    }
+
+    @Test("Cached SwiftData content opens while refresh is offline")
+    func cachedContentOpensBeforeNetworkRefresh() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appending(path: "AppStoreOfflineTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let offline = try OfflineStore.makeInMemory(attachmentRoot: root)
+        try offline.saveSession(
+            user: SampleData.user,
+            relationship: SampleData.relationship,
+            home: SampleData.home
+        )
+        try offline.bootstrap(
+            notes: SampleData.notes,
+            todos: SampleData.todos,
+            anniversaries: [SampleData.anniversary],
+            calendarEvents: SampleData.events
+        )
+        let api = APIClient(
+            baseURL: URL(string: "https://offline.invalid/v1/api")!,
+            session: AlwaysOfflineHTTPSession(),
+            keychain: KeychainStore(
+                service: "couple-tests-\(UUID().uuidString)",
+                persistenceEnabled: false
+            )
+        )
+        try await api.install(tokens: TokenPair(accessToken: "access", refreshToken: "refresh"))
+        let store = AppStore(
+            api: api,
+            offlineStore: offline,
+            environment: [:],
+            arguments: ["CoupleTests"]
+        )
+
+        await store.start()
+
+        #expect(store.phase == .main)
+        #expect(store.todos == SampleData.todos)
+        #expect(Set(store.notes.map(\.id)) == Set(SampleData.notes.map(\.id)))
+        await api.clearSession()
+    }
+}
+
+private actor AlwaysOfflineHTTPSession: HTTPSession {
+    func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+        throw URLError(.notConnectedToInternet)
+    }
+
+    func upload(for request: URLRequest, from bodyData: Data) async throws -> (Data, URLResponse) {
+        throw URLError(.notConnectedToInternet)
     }
 }
