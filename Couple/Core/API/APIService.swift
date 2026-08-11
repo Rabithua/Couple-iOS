@@ -1,6 +1,6 @@
 import Foundation
 
-enum NoteQuery: Sendable {
+enum NoteQuery: Hashable, Sendable {
     case all
     case photos
     case anniversaries

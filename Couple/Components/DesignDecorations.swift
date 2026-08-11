@@ -30,10 +30,11 @@ struct TodoCheckButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: todo.completed ? "checkmark.square" : "square")
-                .font(.system(size: 24, weight: .medium))
+                .font(.title2)
                 .contentTransition(.symbolEffect(.replace))
         }
         .buttonStyle(.plain)
+        .frame(width: AppTheme.todoControlSize, height: AppTheme.todoControlSize)
         .accessibilityLabel(todo.completed ? "重新打开\(todo.title)" : "完成\(todo.title)")
     }
 }

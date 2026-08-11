@@ -7,9 +7,19 @@ struct KeychainStore: Sendable {
         case refreshToken
     }
 
-    private let service = "ink.rote.couple.session"
+    private let service: String
+    private let persistenceEnabled: Bool
+
+    init(
+        service: String = "ink.rote.couple.session",
+        persistenceEnabled: Bool = true
+    ) {
+        self.service = service
+        self.persistenceEnabled = persistenceEnabled
+    }
 
     func value(for key: Key) -> String? {
+        guard persistenceEnabled else { return nil }
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -25,6 +35,7 @@ struct KeychainStore: Sendable {
     }
 
     func set(_ value: String, for key: Key) throws {
+        guard persistenceEnabled else { return }
         let data = Data(value.utf8)
         let base: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -48,6 +59,7 @@ struct KeychainStore: Sendable {
     }
 
     func remove(_ key: Key) {
+        guard persistenceEnabled else { return }
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -73,4 +85,3 @@ enum KeychainError: LocalizedError {
         }
     }
 }
-

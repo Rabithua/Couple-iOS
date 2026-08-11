@@ -30,6 +30,8 @@ final class AppStore {
     var relationship: RelationshipStatus?
     var home: HomeData?
     var notes: [Note] = []
+    var pastNotes: [Note] = []
+    private var cachedPastNotes: [NoteQuery: [Note]] = [:]
     var todos: [Todo] = []
     var anniversaries: [Anniversary] = []
     var calendarEvents: [CalendarEvent] = []
@@ -37,6 +39,7 @@ final class AppStore {
     var isBusy = false
     var isRefreshing = false
     var errorMessage: String?
+    private(set) var pendingTodoIDs: Set<String> = []
     private(set) var isDemo: Bool
 
     init(
@@ -154,46 +157,82 @@ final class AppStore {
             let from = calendar.date(byAdding: .month, value: -1, to: Date()) ?? Date()
             let to = calendar.date(byAdding: .month, value: 12, to: Date()) ?? Date()
             async let homeResult = api.home()
-            async let notesResult = api.notes(query: selectedNoteQuery)
+            async let notesResult = api.notes(query: .all)
             async let todosResult = api.todos(filter: "all")
             async let anniversariesResult = api.anniversaries()
             async let calendarResult = api.calendar(from: from, to: to)
 
             home = try await homeResult
-            notes = try await notesResult.items
+            let fetchedNotes = try await notesResult.items
+            notes = fetchedNotes
+            cachedPastNotes = [.all: fetchedNotes]
+            pastNotes = fetchedNotes.filter { matches($0, query: selectedNoteQuery) }
             todos = try await todosResult
             anniversaries = try await anniversariesResult
             calendarEvents = try await calendarResult
+        } catch is CancellationError {
+            return
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
-    func selectNotes(_ query: NoteQuery) async {
+    func pastNotes(for query: NoteQuery) -> [Note] {
+        cachedPastNotes[query] ?? notes.filter { matches($0, query: query) }
+    }
+
+    func selectNotes(_ query: NoteQuery, forceReload: Bool = false) async {
         selectedNoteQuery = query
+        if !forceReload, let cachedNotes = cachedPastNotes[query] {
+            pastNotes = cachedNotes
+            return
+        }
         if isDemo {
-            notes = filteredSampleNotes(query)
+            let filteredNotes = filteredSampleNotes(query)
+            cachedPastNotes[query] = filteredNotes
+            pastNotes = filteredNotes
             return
         }
         do {
-            notes = try await api.notes(query: query).items
+            let fetchedNotes = try await api.notes(query: query).items
+            cachedPastNotes[query] = fetchedNotes
+            if selectedNoteQuery == query {
+                pastNotes = fetchedNotes
+            }
+            if query == .all {
+                notes = fetchedNotes
+            }
+        } catch is CancellationError {
+            return
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
     func toggleTodo(_ todo: Todo) async {
-        let index = todos.firstIndex(where: { $0.id == todo.id })
-        if let index {
-            todos[index].completed.toggle()
-            todos[index].completedAt = todos[index].completed ? Date() : nil
-        }
+        guard pendingTodoIDs.insert(todo.id).inserted else { return }
+        defer { pendingTodoIDs.remove(todo.id) }
+        guard let index = todos.firstIndex(where: { $0.id == todo.id }) else { return }
+
+        let original = todos[index]
+        let completed = !original.completed
+        todos[index].completed = completed
+        todos[index].completedAt = completed ? Date.now : nil
         guard !isDemo else { return }
         do {
-            let updated = try await api.setTodo(todo.id, completed: !todo.completed)
-            if let index { todos[index] = updated }
+            let updated = try await api.setTodo(todo.id, completed: completed)
+            if let currentIndex = todos.firstIndex(where: { $0.id == todo.id }) {
+                todos[currentIndex] = updated
+            }
+        } catch is CancellationError {
+            if let currentIndex = todos.firstIndex(where: { $0.id == todo.id }) {
+                todos[currentIndex] = original
+            }
+            return
         } catch {
-            if let index { todos[index] = todo }
+            if let currentIndex = todos.firstIndex(where: { $0.id == todo.id }) {
+                todos[currentIndex] = original
+            }
             errorMessage = error.localizedDescription
         }
     }
@@ -286,6 +325,7 @@ final class AppStore {
                 attachments: []
             )
             notes.insert(note, at: 0)
+            insertIntoPastNoteCaches(note)
             return
         }
 
@@ -317,6 +357,7 @@ final class AppStore {
             )
         )
         notes.insert(note, at: 0)
+        insertIntoPastNoteCaches(note)
     }
 
     func updateCouple(startedOn: Date) async throws {
@@ -335,7 +376,10 @@ final class AppStore {
         relationship = nil
         home = nil
         notes = []
+        pastNotes = []
+        cachedPastNotes = [:]
         todos = []
+        pendingTodoIDs = []
         phase = .signedOut
     }
 
@@ -347,6 +391,8 @@ final class AppStore {
             try await operation()
         } catch let error as ASAuthorizationError where error.code == .canceled {
             return
+        } catch is CancellationError {
+            return
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -356,18 +402,36 @@ final class AppStore {
         currentUser = SampleData.user
         relationship = SampleData.relationship
         home = SampleData.home
-        notes = filteredSampleNotes(selectedNoteQuery)
+        notes = SampleData.notes
+        cachedPastNotes = [
+            .all: filteredSampleNotes(.all),
+            .photos: filteredSampleNotes(.photos),
+            .anniversaries: filteredSampleNotes(.anniversaries),
+            .completedTodos: filteredSampleNotes(.completedTodos)
+        ]
+        pastNotes = cachedPastNotes[selectedNoteQuery] ?? []
         if !keepingTodoState || todos.isEmpty { todos = SampleData.todos }
         anniversaries = [SampleData.anniversary]
         calendarEvents = SampleData.events
     }
 
     private func filteredSampleNotes(_ query: NoteQuery) -> [Note] {
+        SampleData.notes.filter { matches($0, query: query) }
+    }
+
+    private func insertIntoPastNoteCaches(_ note: Note) {
+        for query in Array(cachedPastNotes.keys) where matches(note, query: query) {
+            cachedPastNotes[query, default: []].insert(note, at: 0)
+        }
+        pastNotes = pastNotes(for: selectedNoteQuery)
+    }
+
+    private func matches(_ note: Note, query: NoteQuery) -> Bool {
         switch query {
-        case .all: SampleData.notes
-        case .photos: SampleData.notes.filter { !$0.attachments.isEmpty }
-        case .anniversaries: SampleData.notes.filter { $0.anniversaryId != nil }
-        case .completedTodos: SampleData.notes.filter { $0.todoId != nil }
+        case .all: true
+        case .photos: note.attachments.contains(where: \.isImage)
+        case .anniversaries: note.anniversaryId != nil
+        case .completedTodos: note.todoId != nil
         }
     }
 }

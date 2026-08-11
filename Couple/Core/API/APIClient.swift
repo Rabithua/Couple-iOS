@@ -1,5 +1,12 @@
 import Foundation
 
+protocol HTTPSession: Sendable {
+    func data(for request: URLRequest) async throws -> (Data, URLResponse)
+    func upload(for request: URLRequest, from bodyData: Data) async throws -> (Data, URLResponse)
+}
+
+extension URLSession: HTTPSession {}
+
 enum HTTPMethod: String, Sendable {
     case get = "GET"
     case post = "POST"
@@ -34,14 +41,15 @@ actor APIClient {
     static let productionBaseURL = URL(string: "https://couple-server.rote.ink/v1/api")!
 
     let baseURL: URL
-    private let session: URLSession
+    private let session: any HTTPSession
     private let keychain: KeychainStore
     private var accessToken: String?
     private var refreshToken: String?
+    private var refreshTask: Task<Bool, Error>?
 
     init(
         baseURL: URL = APIClient.productionBaseURL,
-        session: URLSession = .shared,
+        session: any HTTPSession = URLSession.shared,
         keychain: KeychainStore = KeychainStore()
     ) {
         self.baseURL = baseURL
@@ -131,12 +139,16 @@ actor APIClient {
     }
 
     func authorizedData(at path: String) async throws -> Data {
+        try await authorizedData(at: path, mayRefresh: true)
+    }
+
+    private func authorizedData(at path: String, mayRefresh: Bool) async throws -> Data {
         var request = URLRequest(url: try makeURL(path: path, query: []))
         request.setValue("Bearer \(try requireAccessToken())", forHTTPHeaderField: "Authorization")
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw APIError.invalidResponse }
-        if http.statusCode == 401, try await refreshSession() {
-            return try await authorizedData(at: path)
+        if http.statusCode == 401, mayRefresh, try await refreshSession() {
+            return try await authorizedData(at: path, mayRefresh: false)
         }
         guard (200..<300).contains(http.statusCode) else {
             throw parseServerError(data: data, status: http.statusCode)
@@ -158,7 +170,21 @@ actor APIClient {
 
     @discardableResult
     func refreshSession() async throws -> Bool {
+        if let refreshTask {
+            return try await refreshTask.value
+        }
         guard let refreshToken else { return false }
+
+        let task = Task {
+            try await performRefresh(using: refreshToken)
+        }
+        refreshTask = task
+        defer { refreshTask = nil }
+
+        return try await task.value
+    }
+
+    private func performRefresh(using refreshToken: String) async throws -> Bool {
         let body = try Self.encoder.encode(["refreshToken": refreshToken])
         let request = try makeRequest(
             path: "/auth/refresh",
@@ -176,7 +202,10 @@ actor APIClient {
 
         do {
             let envelope = try Self.decoder.decode(APIEnvelope<AuthResult>.self, from: data)
-            guard envelope.code.isSuccess else { return false }
+            guard envelope.code.isSuccess else {
+                clearSession()
+                return false
+            }
             try install(tokens: envelope.data.tokens)
             return true
         } catch {

@@ -3,52 +3,62 @@ import SwiftUI
 enum FutureMode: String, CaseIterable, Hashable {
     case calendar = "日历"
     case list = "清单"
+
+    var pageIndex: Int {
+        self == .calendar ? 0 : 1
+    }
 }
 
 struct FutureView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(AppStore.self) private var store
-    @State private var mode: FutureMode = .calendar
+    let mode: FutureMode
+    let selectMode: (FutureMode) -> Void
+    let shouldSuppressPresentation: () -> Bool
     @State private var showingNewTodo = false
     @State private var selectedEventDate: SelectedEventDate?
 
     private let months = CalendarMonth.make(startingAt: Date(), count: 12)
 
     var body: some View {
-        VStack(spacing: 23) {
+        DesignNavigationContainer {
+            GeometryReader { proxy in
+                HStack(spacing: 0) {
+                    MainPagerPage(isActive: mode == .calendar, size: proxy.size) {
+                        calendarContent
+                    }
+
+                    MainPagerPage(isActive: mode == .list, size: proxy.size) {
+                        todoContent
+                    }
+                }
+                .offset(x: -CGFloat(mode.pageIndex) * proxy.size.width)
+                .animation(pageAnimation, value: mode)
+            }
+            .clipped()
+        } navigationBar: {
             ZStack(alignment: .trailing) {
                 DesignTabBar(
                     items: FutureMode.allCases.map { ($0, $0.rawValue) },
-                    selection: $mode
+                    selection: mode,
+                    select: selectMode
                 )
-                Button {
-                    if mode == .list {
-                        showingNewTodo = true
-                    } else {
-                        selectedEventDate = SelectedEventDate(date: Date())
-                    }
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(AppTheme.muted)
-                        .frame(width: 44, height: 44)
-                }
+                Button(
+                    mode == .list ? "添加清单" : "添加日程",
+                    systemImage: "plus",
+                    action: presentNewItem
+                )
+                .labelStyle(.iconOnly)
+                .font(.title2.bold())
+                .foregroundStyle(AppTheme.muted)
+                .frame(width: 44, height: 44)
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("futureAddButton")
             }
             .padding(.horizontal, AppTheme.horizontalPadding)
-
-            Group {
-                if mode == .calendar {
-                    calendarContent
-                } else {
-                    todoContent
-                }
-            }
-            .transition(.opacity.combined(with: .scale(scale: 0.99)))
+            .accessibilityIdentifier("futureNavigationBar")
         }
-        .padding(.top, AppTheme.topPadding)
         .screenBackground()
-        .sensoryFeedback(.selection, trigger: mode)
         .sheet(isPresented: $showingNewTodo) { NewTodoView() }
         .sheet(item: $selectedEventDate) { selection in
             NewCalendarEventView(initialDate: selection.date)
@@ -62,7 +72,7 @@ struct FutureView: View {
                     CalendarMonthView(
                         month: month,
                         events: store.calendarEvents,
-                        selectDate: { selectedEventDate = SelectedEventDate(date: $0) }
+                        selectDate: selectCalendarDate
                     )
                 }
             }
@@ -70,17 +80,20 @@ struct FutureView: View {
             .padding(.bottom, 80)
         }
         .scrollIndicators(.hidden)
+        .contentMargins(.top, AppTheme.navigationBarHeight, for: .scrollContent)
         .refreshable { await store.refreshContent() }
+        .accessibilityIdentifier("futureCalendarScroll")
     }
 
     private var todoContent: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 10) {
+            LazyVStack(alignment: .leading, spacing: AppTheme.todoRowSpacing) {
                 ForEach(store.todos.filter { !$0.completed }) { todo in
                     HStack(spacing: 4) {
                         TodoCheckButton(todo: todo) {
                             Task { await store.toggleTodo(todo) }
                         }
+                        .disabled(store.pendingTodoIDs.contains(todo.id))
                         Text(todo.title)
                             .font(AppTheme.titleFont())
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -96,7 +109,27 @@ struct FutureView: View {
             .padding(.bottom, 80)
         }
         .scrollIndicators(.hidden)
+        .contentMargins(.top, AppTheme.navigationBarHeight, for: .scrollContent)
         .refreshable { await store.refreshContent() }
+        .accessibilityIdentifier("futureListScroll")
+    }
+
+    private var pageAnimation: Animation? {
+        reduceMotion ? nil : .smooth(duration: 0.32)
+    }
+
+    private func presentNewItem() {
+        guard !shouldSuppressPresentation() else { return }
+        if mode == .list {
+            showingNewTodo = true
+        } else {
+            selectedEventDate = SelectedEventDate(date: Date())
+        }
+    }
+
+    private func selectCalendarDate(_ date: Date) {
+        guard !shouldSuppressPresentation() else { return }
+        selectedEventDate = SelectedEventDate(date: date)
     }
 }
 

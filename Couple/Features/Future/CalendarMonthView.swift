@@ -16,7 +16,7 @@ struct CalendarMonthView: View {
             LazyVGrid(columns: columns, spacing: 0) {
                 ForEach(weekdaySymbols, id: \.self) { symbol in
                     Text(symbol)
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .font(.caption.bold())
                         .foregroundStyle(AppTheme.muted)
                         .frame(height: 22)
                 }
@@ -26,7 +26,7 @@ struct CalendarMonthView: View {
                         Button { selectDate(day) } label: {
                             VStack(spacing: 2) {
                                 Text("\(Calendar.current.component(.day, from: day))")
-                                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                                    .font(.body.bold())
                                 Circle()
                                     .fill(hasEvent(on: day) ? Color.primary.opacity(0.45) : .clear)
                                     .frame(width: 3, height: 3)

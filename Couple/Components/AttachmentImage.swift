@@ -1,16 +1,44 @@
+import Foundation
 import SwiftUI
 import UIKit
 
 actor AttachmentImageCache {
     static let shared = AttachmentImageCache()
-    private var memory: [String: Data] = [:]
+    private let memory = NSCache<NSString, NSData>()
+    private var inFlight: [String: Task<Data, Error>] = [:]
+
+    init() {
+        memory.countLimit = 100
+        memory.totalCostLimit = 64 * 1_024 * 1_024
+    }
 
     func data(for attachment: Attachment, api: APIClient) async throws -> Data? {
-        if let cached = memory[attachment.id] { return cached }
+        if let cached = memory.object(forKey: attachment.id as NSString) {
+            return cached as Data
+        }
         guard let path = attachment.url else { return nil }
-        let data = try await api.authorizedData(at: path)
-        memory[attachment.id] = data
-        return data
+        if let task = inFlight[attachment.id] {
+            return try await task.value
+        }
+
+        let task = Task {
+            try await api.authorizedData(at: path)
+        }
+        inFlight[attachment.id] = task
+
+        do {
+            let data = try await task.value
+            inFlight[attachment.id] = nil
+            memory.setObject(
+                data as NSData,
+                forKey: attachment.id as NSString,
+                cost: data.count
+            )
+            return data
+        } catch {
+            inFlight[attachment.id] = nil
+            throw error
+        }
     }
 }
 
@@ -18,7 +46,7 @@ struct AttachmentImage: View {
     let attachment: Attachment
     var contentMode: ContentMode = .fill
     @Environment(AppStore.self) private var store
-    @State private var data: Data?
+    @State private var image: UIImage?
     @State private var failed = false
 
     var body: some View {
@@ -27,7 +55,7 @@ struct AttachmentImage: View {
                 Image(asset)
                     .resizable()
                     .aspectRatio(contentMode: contentMode)
-            } else if let data, let image = UIImage(data: data) {
+            } else if let image {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: contentMode)
@@ -44,8 +72,18 @@ struct AttachmentImage: View {
         .clipped()
         .task(id: attachment.id) {
             guard attachment.demoAssetName == nil else { return }
+            image = nil
+            failed = false
             do {
-                data = try await AttachmentImageCache.shared.data(for: attachment, api: store.api)
+                guard let data = try await AttachmentImageCache.shared.data(for: attachment, api: store.api),
+                      let decodedImage = UIImage(data: data) else {
+                    failed = true
+                    return
+                }
+                try Task.checkCancellation()
+                image = decodedImage
+            } catch is CancellationError {
+                return
             } catch {
                 failed = true
             }
@@ -53,4 +91,3 @@ struct AttachmentImage: View {
         .accessibilityLabel(attachment.filename)
     }
 }
-

@@ -69,7 +69,7 @@ struct PairingView: View {
     private func inviteCard(_ invite: CoupleInvite) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(invite.code)
-                .font(.system(size: 36, weight: .bold, design: .monospaced))
+                .font(.largeTitle.monospaced().bold())
                 .textSelection(.enabled)
                 .accessibilityLabel("邀请码 \(invite.code)")
             Text("有效期至 \(invite.expiresAt.formatted(date: .abbreviated, time: .shortened))")

@@ -23,7 +23,7 @@ struct AppRootView: View {
     private var launchView: some View {
         VStack(spacing: 12) {
             Image(systemName: "heart.fill")
-                .font(.system(size: 30, weight: .semibold))
+                .font(.title.bold())
                 .symbolEffect(.pulse)
             ProgressView()
                 .controlSize(.small)
@@ -33,4 +33,3 @@ struct AppRootView: View {
         .accessibilityLabel("正在载入")
     }
 }
-

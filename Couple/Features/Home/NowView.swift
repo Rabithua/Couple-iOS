@@ -1,5 +1,13 @@
 import SwiftUI
 
+struct PhotoCarouselFramePreferenceKey: PreferenceKey {
+    static let defaultValue = CGRect.zero
+
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        value = nextValue()
+    }
+}
+
 struct NowView: View {
     @Environment(AppStore.self) private var store
     let showComposer: () -> Void
@@ -36,6 +44,9 @@ struct NowView: View {
 
             pullToCompose
         }
+        .overlay(alignment: .top) {
+            DesignTopEdgeBackground(length: AppTheme.homeTopFadeLength)
+        }
         .screenBackground()
     }
 
@@ -43,7 +54,7 @@ struct NowView: View {
         VStack(alignment: .leading, spacing: 4) {
             Button(action: showSettings) {
                 Text(memberNames)
-                    .font(.system(size: 12, weight: .light))
+                    .font(.caption)
                     .foregroundStyle(AppTheme.muted)
             }
             .buttonStyle(.plain)
@@ -51,7 +62,7 @@ struct NowView: View {
 
             HStack(spacing: 4) {
                 Image(systemName: "calendar")
-                    .font(.system(size: 24, weight: .semibold))
+                    .font(.title2.bold())
                 Text("在一起")
                     .font(AppTheme.titleFont())
                 Text("\(store.home?.daysTogether ?? 0)")
@@ -62,12 +73,12 @@ struct NowView: View {
             }
 
             ScrollView(.horizontal) {
-                HStack(alignment: .bottom, spacing: 6) {
+                HStack(alignment: .bottom, spacing: AppTheme.heroPhotoSpacing) {
                     ForEach(Array(featuredAttachments.enumerated()), id: \.element.id) { index, attachment in
                         AttachmentImage(attachment: attachment)
                             .frame(width: heroWidth(for: index), height: 120)
                             .overlay { Rectangle().stroke(Color.white, lineWidth: 3) }
-                            .shadow(color: .black.opacity(0.25), radius: 22, y: 6)
+                            .shadow(color: .black.opacity(0.2), radius: 14, y: 4)
                             .rotationEffect(.degrees(-1))
                     }
                     if featuredAttachments.isEmpty {
@@ -76,18 +87,28 @@ struct NowView: View {
                                 .fill(Color(.systemGray5))
                                 .frame(width: heroWidth(for: index), height: 120)
                                 .overlay { Rectangle().stroke(Color.white, lineWidth: 3) }
-                                .shadow(color: .black.opacity(0.18), radius: 18, y: 6)
+                                .shadow(color: .black.opacity(0.16), radius: 12, y: 4)
                                 .rotationEffect(.degrees(-1))
                         }
                     }
                 }
-                .padding(.vertical, 4)
+                .padding(.vertical, 10)
             }
             .scrollIndicators(.hidden)
-            .contentMargins(.horizontal, 0, for: .scrollContent)
+            .scrollClipDisabled()
+            .contentMargins(.horizontal, AppTheme.heroPhotoScrollMargin, for: .scrollContent)
+            .background {
+                GeometryReader { proxy in
+                    Color.clear.preference(
+                        key: PhotoCarouselFramePreferenceKey.self,
+                        value: proxy.frame(in: .named("mainPager"))
+                    )
+                }
+            }
+            .accessibilityIdentifier("featuredPhotoCarousel")
 
             Text("每天都是独一无二纪念日，庆祝一下吧 🎉")
-                .font(.system(size: 12))
+                .font(.caption)
                 .foregroundStyle(AppTheme.muted)
         }
         .padding(.horizontal, AppTheme.horizontalPadding)
@@ -110,7 +131,7 @@ struct NowView: View {
                     AssociationArrow(height: 45)
                     VStack(alignment: .leading, spacing: 4) {
                         Text((Date.fromDateOnly(anniversary.nextOccurrence ?? anniversary.date) ?? Date()).chineseDateTime)
-                            .font(.system(size: 12))
+                            .font(.caption)
                             .foregroundStyle(AppTheme.muted)
                         Label(anniversary.title, systemImage: "birthday.cake.fill")
                             .font(AppTheme.titleFont())
@@ -128,12 +149,13 @@ struct NowView: View {
     }
 
     private var todoSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: AppTheme.todoRowSpacing) {
             ForEach(activeTodos) { todo in
                 HStack(spacing: 4) {
                     TodoCheckButton(todo: todo) {
                         Task { await store.toggleTodo(todo) }
                     }
+                    .disabled(store.pendingTodoIDs.contains(todo.id))
                     Text(todo.title)
                         .font(AppTheme.titleFont())
                         .lineLimit(1)
@@ -152,9 +174,9 @@ struct NowView: View {
         Button(action: showComposer) {
             VStack(spacing: 4) {
                 Text("上拉记录此刻")
-                    .font(.system(size: 16))
+                    .font(.body)
                 Image(systemName: "chevron.up.2")
-                    .font(.system(size: 18, weight: .light))
+                    .font(.body)
             }
             .foregroundStyle(AppTheme.muted)
             .frame(width: 120, height: 64)

@@ -92,8 +92,14 @@ struct ComposeMemoryView: View {
                 }
             }
             .overlay { if isSaving { ProgressView().controlSize(.large) } }
-            .onChange(of: selectedItems) { _, items in
-                Task { await load(items) }
+            .task(id: selectedItems) {
+                do {
+                    photos = try await load(selectedItems)
+                } catch is CancellationError {
+                    return
+                } catch {
+                    localError = error.localizedDescription
+                }
             }
             .alert("保存失败", isPresented: Binding(
                 get: { localError != nil },
@@ -110,10 +116,11 @@ struct ComposeMemoryView: View {
         !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !photos.isEmpty
     }
 
-    private func load(_ items: [PhotosPickerItem]) async {
+    private func load(_ items: [PhotosPickerItem]) async throws -> [SelectedPhoto] {
         var loaded: [SelectedPhoto] = []
         for item in items {
-            guard let data = try? await item.loadTransferable(type: Data.self),
+            try Task.checkCancellation()
+            guard let data = try await item.loadTransferable(type: Data.self),
                   let image = UIImage(data: data) else { continue }
             let type = item.supportedContentTypes.first ?? .jpeg
             loaded.append(
@@ -126,7 +133,7 @@ struct ComposeMemoryView: View {
                 )
             )
         }
-        photos = loaded
+        return loaded
     }
 
     private func save() async {
