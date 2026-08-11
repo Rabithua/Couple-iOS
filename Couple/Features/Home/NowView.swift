@@ -5,6 +5,7 @@ struct NowView: View {
     @Environment(AppStore.self) private var store
     @GestureState private var photoCarouselGestureActive = false
     let composePullProgress: CGFloat
+    let isActive: Bool
     let showComposer: () -> Void
     let showSettings: () -> Void
     let setPhotoCarouselGestureActive: (Bool) -> Void
@@ -165,26 +166,11 @@ struct NowView: View {
     }
 
     private var pullToCompose: some View {
-        Button(action: showComposer) {
-            VStack(spacing: 4) {
-                Text(composePullProgress >= 1 ? "松开记录此刻" : "上拉记录此刻")
-                    .font(.body)
-                Image(systemName: "chevron.up.2")
-                    .font(.body)
-            }
-            .foregroundStyle(AppTheme.muted)
-            .frame(width: 120, height: 64)
-            .contentShape(Rectangle())
-            .offset(y: reduceMotion ? 0 : -composePullProgress * 10)
-            .opacity(0.65 + composePullProgress * 0.35)
-            .contentTransition(.opacity)
-            .animation(.easeOut(duration: 0.14), value: composePullProgress >= 1)
-        }
-        .buttonStyle(.plain)
-        .padding(.bottom, 10)
-        .accessibilityLabel("记录此刻")
-        .accessibilityHint("轻点或从页面底部上拉")
-        .accessibilityIdentifier("composeMemoryButton")
+        ComposePullPrompt(
+            progress: composePullProgress,
+            isActive: isActive,
+            action: showComposer
+        )
     }
 
     private func heroWidth(for index: Int) -> CGFloat {

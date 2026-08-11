@@ -71,6 +71,21 @@ struct MainPagerGestureStateTests {
         #expect(state.shouldPresentComposer == false)
     }
 
+    @Test("Upward drags from the system gesture edge are ignored")
+    func pullFromSystemGestureEdgeIsIgnored() {
+        var state = MainPagerGestureState()
+
+        state.update(
+            translation: CGSize(width: 2, height: -80),
+            startLocation: CGPoint(x: 195, y: 840),
+            containerSize: containerSize,
+            route: .now
+        )
+
+        #expect(state.intent == .ignored)
+        #expect(state.shouldPresentComposer == false)
+    }
+
     @Test("Upward drags on other pages never reveal the composer")
     func pullOutsideNowIsIgnored() {
         var state = MainPagerGestureState()
