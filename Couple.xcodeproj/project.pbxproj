@@ -23,6 +23,7 @@
 		419F2E16BC943623B6CDEE8B /* AppHaptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6300E503D7463C62D9897D82 /* AppHaptics.swift */; };
 		4F7E70AA36D8D52E1E87462F /* NowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31475F86AC39EF3B94050D5E /* NowView.swift */; };
 		55BF5D05D162644DB032EB6E /* OfflineModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 862492117B1F02A0757AD9D4 /* OfflineModels.swift */; };
+		5744B0F6700EF8FEC5F3BD9B /* TodoCompletionStrike.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BABCD37148C166C49F4ED67 /* TodoCompletionStrike.swift */; };
 		58326B25C993CD986092B2AA /* OfflineSyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE2ECDEDCFB3D956F1518170 /* OfflineSyncTests.swift */; };
 		599AC49C54505C142871D1F7 /* DateSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC2C36B0FC87FE8DD80A4C77 /* DateSupport.swift */; };
 		5C0043E59EB5E55E05A7DB3E /* DesignTopEdgeBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8F1C53D0FDBEB509E809E1 /* DesignTopEdgeBackground.swift */; };
@@ -114,6 +115,7 @@
 		6E15C236C8EDF6B1B9903587 /* FutureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FutureView.swift; sourceTree = "<group>"; };
 		79B2058D10B1619A09A3B483 /* MainPagerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainPagerView.swift; sourceTree = "<group>"; };
 		7A81E42508F7E7D0194DD054 /* SyncCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncCore.swift; sourceTree = "<group>"; };
+		7BABCD37148C166C49F4ED67 /* TodoCompletionStrike.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoCompletionStrike.swift; sourceTree = "<group>"; };
 		7D4DFD3C9B314DFF0448D5EC /* MainPagerGestureStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainPagerGestureStateTests.swift; sourceTree = "<group>"; };
 		862492117B1F02A0757AD9D4 /* OfflineModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineModels.swift; sourceTree = "<group>"; };
 		866943AD76A71CCBB22D0F38 /* DesignNavigationContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignNavigationContainer.swift; sourceTree = "<group>"; };
@@ -256,6 +258,7 @@
 				A9C27A244961E86B2E0B0510 /* DesignTabBar.swift */,
 				4B8F1C53D0FDBEB509E809E1 /* DesignTopEdgeBackground.swift */,
 				BA03DF9BC1CC5105C17BCC9E /* PhotoFlowLayout.swift */,
+				7BABCD37148C166C49F4ED67 /* TodoCompletionStrike.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -589,6 +592,7 @@
 				E4003FD6B3C8C7E22658C499 /* SettingsView.swift in Sources */,
 				C8029A9F3E617AF01677C912 /* SyncCore.swift in Sources */,
 				B9B0F1229A94B3B8237AB9F4 /* SyncV1Transport.swift in Sources */,
+				5744B0F6700EF8FEC5F3BD9B /* TodoCompletionStrike.swift in Sources */,
 				065A75575DE29369DFFEFFAB /* TodoDisplayOrder.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

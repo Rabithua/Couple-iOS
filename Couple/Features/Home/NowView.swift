@@ -159,7 +159,7 @@ struct NowView: View {
                     .font(AppTheme.titleFont())
             }
         }
-        .animation(.smooth(duration: 0.3), value: activeTodos.map(\.id))
+        .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: activeTodos.map(\.id))
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, AppTheme.horizontalPadding)
     }

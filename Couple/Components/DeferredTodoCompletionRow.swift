@@ -24,18 +24,25 @@ struct DeferredTodoCompletionRow: View {
             Text(todo.title)
                 .font(AppTheme.titleFont())
                 .lineLimit(1)
-                .foregroundStyle(isCompleting ? Color.secondary : Color.primary)
                 .overlay {
-                    Rectangle()
-                        .fill(Color.primary.opacity(0.55))
-                        .frame(height: 1.5)
-                        .scaleEffect(x: displayedStrikeProgress, anchor: .leading)
-                        .opacity(isCompleting ? 1 : 0)
+                    TodoCompletionStrike()
+                        .trim(from: 0, to: displayedStrikeProgress)
+                        .stroke(
+                            Color.primary,
+                            style: StrokeStyle(
+                                lineWidth: AppTheme.todoCompletionStrikeWidth,
+                                lineCap: .round,
+                                lineJoin: .round
+                            )
+                        )
+                        .frame(height: AppTheme.todoCompletionStrikeHeight)
                         .accessibilityHidden(true)
                 }
         }
-        .opacity(1 - dismissalProgress)
-        .offset(x: reduceMotion ? 0 : AppTheme.todoCompletionExitOffset * dismissalProgress)
+        .mask(alignment: .trailing) {
+            Rectangle()
+                .scaleEffect(x: 1 - dismissalProgress, anchor: .trailing)
+        }
         .onDisappear {
             completionTask?.cancel()
         }
@@ -72,8 +79,10 @@ struct DeferredTodoCompletionRow: View {
                 try await Task.sleep(for: AppTheme.todoCompletionHoldDuration)
                 guard Task.isCancelled == false else { return }
 
-                withAnimation(exitAnimation) {
-                    dismissalProgress = 1
+                if reduceMotion == false {
+                    withAnimation(exitAnimation) {
+                        dismissalProgress = 1
+                    }
                 }
 
                 try await Task.sleep(for: AppTheme.todoCompletionExitDuration)
@@ -116,7 +125,7 @@ struct DeferredTodoCompletionRow: View {
     }
 
     private var exitAnimation: Animation {
-        reduceMotion ? .easeOut(duration: 0.2) : .smooth(duration: 0.4)
+        .smooth(duration: 0.4)
     }
 
     private var restoreAnimation: Animation {
