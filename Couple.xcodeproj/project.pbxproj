@@ -20,8 +20,9 @@
 		3CADA5F144CA5455F43B02E4 /* PastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33D4839F23CF0F830401E804 /* PastView.swift */; };
 		402E857575BFA75588152F86 /* NewTodoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3950B5B300C206EBA7D6F45B /* NewTodoView.swift */; };
 		419F2E16BC943623B6CDEE8B /* AppHaptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6300E503D7463C62D9897D82 /* AppHaptics.swift */; };
-		4DE9F603808687E12063C312 /* PageSwipePresentationGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5B438512CA079AD1C26C373 /* PageSwipePresentationGate.swift */; };
 		4F7E70AA36D8D52E1E87462F /* NowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31475F86AC39EF3B94050D5E /* NowView.swift */; };
+		C8A100000000000000000002 /* MainPagerGestureState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A100000000000000000001 /* MainPagerGestureState.swift */; };
+		C8A100000000000000000004 /* MainPagerGestureStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A100000000000000000003 /* MainPagerGestureStateTests.swift */; };
 		55BF5D05D162644DB032EB6E /* OfflineModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 862492117B1F02A0757AD9D4 /* OfflineModels.swift */; };
 		58326B25C993CD986092B2AA /* OfflineSyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE2ECDEDCFB3D956F1518170 /* OfflineSyncTests.swift */; };
 		599AC49C54505C142871D1F7 /* DateSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC2C36B0FC87FE8DD80A4C77 /* DateSupport.swift */; };
@@ -122,11 +123,12 @@
 		C01E5C1B960A82340825CA2B /* CalendarOccurrenceExpander.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarOccurrenceExpander.swift; sourceTree = "<group>"; };
 		C2E621C211BFD180A01C07A6 /* CoupleCoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoupleCoreTests.swift; sourceTree = "<group>"; };
 		C97B0B1BE123B2CDABD8416F /* HybridLogicalClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HybridLogicalClock.swift; sourceTree = "<group>"; };
+		C8A100000000000000000001 /* MainPagerGestureState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainPagerGestureState.swift; sourceTree = "<group>"; };
+		C8A100000000000000000003 /* MainPagerGestureStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainPagerGestureStateTests.swift; sourceTree = "<group>"; };
 		CBA1470A8FC37173BB13D2F0 /* ConnectivityMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectivityMonitor.swift; sourceTree = "<group>"; };
 		CBAEBE3F1822BF9165EEB90F /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		D1371DF5827C01B18C3292ED /* AppHapticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHapticsTests.swift; sourceTree = "<group>"; };
 		D22BDF968357311A06F19C02 /* MainPagerPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainPagerPage.swift; sourceTree = "<group>"; };
-		D5B438512CA079AD1C26C373 /* PageSwipePresentationGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageSwipePresentationGate.swift; sourceTree = "<group>"; };
 		D6C4CDD170E0CF0620452769 /* AttachmentImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentImage.swift; sourceTree = "<group>"; };
 		DA12ABDCC12F47B0103421D7 /* SyncV1DTOTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncV1DTOTests.swift; sourceTree = "<group>"; };
 		E48EA09FE1EA460E19604BE4 /* Couple.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Couple.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -279,11 +281,11 @@
 		7ECAC3F5E174304DBEB8BA73 /* Home */ = {
 			isa = PBXGroup;
 			children = (
+				C8A100000000000000000001 /* MainPagerGestureState.swift */,
 				D22BDF968357311A06F19C02 /* MainPagerPage.swift */,
 				AD3FB7ACAC3C260B3FDE3EE9 /* MainPagerRoute.swift */,
 				79B2058D10B1619A09A3B483 /* MainPagerView.swift */,
 				31475F86AC39EF3B94050D5E /* NowView.swift */,
-				D5B438512CA079AD1C26C373 /* PageSwipePresentationGate.swift */,
 			);
 			path = Home;
 			sourceTree = "<group>";
@@ -345,6 +347,22 @@
 			path = Utilities;
 			sourceTree = "<group>";
 		};
+		C8A100000000000000000005 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				C8A100000000000000000006 /* Home */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		C8A100000000000000000006 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				C8A100000000000000000003 /* MainPagerGestureStateTests.swift */,
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
 		A3870AE8460D949563064634 /* App */ = {
 			isa = PBXGroup;
 			children = (
@@ -400,6 +418,7 @@
 			isa = PBXGroup;
 			children = (
 				8CB1487BFA9C930538C99AA4 /* Core */,
+				C8A100000000000000000005 /* Features */,
 				9672BE264C96D4EEFB3AE581 /* Models */,
 				C2E621C211BFD180A01C07A6 /* CoupleCoreTests.swift */,
 			);
@@ -538,6 +557,7 @@
 				360A604E289ACEC73CC7CEF7 /* HybridLogicalClock.swift in Sources */,
 				894840224FEE7C33559C1844 /* KeychainStore.swift in Sources */,
 				F33A98681E32E3F5146A3BC1 /* MainPagerPage.swift in Sources */,
+				C8A100000000000000000002 /* MainPagerGestureState.swift in Sources */,
 				B7F01E0497053EFBC833D789 /* MainPagerRoute.swift in Sources */,
 				BF07FAB9E9E4BA3152BB2A5F /* MainPagerView.swift in Sources */,
 				84BF597583B0C3D2BFD80982 /* NewAnniversaryView.swift in Sources */,
@@ -546,7 +566,6 @@
 				4F7E70AA36D8D52E1E87462F /* NowView.swift in Sources */,
 				55BF5D05D162644DB032EB6E /* OfflineModels.swift in Sources */,
 				3B39692EB3FF3E55873ABADD /* OfflineStore.swift in Sources */,
-				4DE9F603808687E12063C312 /* PageSwipePresentationGate.swift in Sources */,
 				71563E98015D90C644CF9E7E /* PairingView.swift in Sources */,
 				8254270C07806F1CDEF8856E /* PasskeyService.swift in Sources */,
 				998B471ADAA4E5155F2EA1BD /* PastPageView.swift in Sources */,
@@ -576,6 +595,7 @@
 				8386EF3028DBBAC3D7E56EC5 /* AppHapticsTests.swift in Sources */,
 				B4AADBB2B8E4899F389FCB00 /* AppStoreTests.swift in Sources */,
 				A1956724BAA6C906CF61D659 /* CoupleCoreTests.swift in Sources */,
+				C8A100000000000000000004 /* MainPagerGestureStateTests.swift in Sources */,
 				58326B25C993CD986092B2AA /* OfflineSyncTests.swift in Sources */,
 				E38BB36A3D77587B744FEE90 /* SyncV1DTOTests.swift in Sources */,
 				F325DB5E85A378D954EA9376 /* TodoDisplayOrderTests.swift in Sources */,

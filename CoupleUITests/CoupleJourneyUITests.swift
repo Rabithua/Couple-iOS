@@ -22,7 +22,7 @@ final class CoupleJourneyUITests: XCTestCase {
         XCTAssertEqual(app.navigationBars.matching(identifier: "新清单").count, 1)
     }
 
-    func testFutureHorizontalSwipesDoNotOpenComposer() {
+    func testFutureHorizontalSwipesDoNotOpenNewItem() {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing-demo", "-ui-testing-future"]
@@ -69,6 +69,38 @@ final class CoupleJourneyUITests: XCTestCase {
         app.buttons["添加日程"].tap()
         XCTAssertTrue(app.navigationBars["新日程"].waitForExistence(timeout: 3))
         app.buttons["取消"].tap()
+    }
+
+    func testNowCalendarRoundTripsDoNotOpenNewEvent() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-now"]
+        app.launch()
+
+        XCTAssertTrue(app.staticTexts["在一起"].waitForExistence(timeout: 5))
+
+        for verticalPosition in [0.52, 0.66, 0.8] {
+            let start = app.coordinate(
+                withNormalizedOffset: CGVector(dx: 0.9, dy: verticalPosition)
+            )
+            let end = app.coordinate(
+                withNormalizedOffset: CGVector(dx: 0.1, dy: verticalPosition)
+            )
+            start.press(
+                forDuration: 0.05,
+                thenDragTo: end,
+                withVelocity: .slow,
+                thenHoldForDuration: 0
+            )
+
+            XCTAssertTrue(app.buttons["日历"].waitForExistence(timeout: 3))
+            XCTAssertTrue(app.buttons["日历"].isSelected)
+            XCTAssertFalse(app.navigationBars["新日程"].waitForExistence(timeout: 1))
+
+            app.swipeRight()
+            XCTAssertTrue(app.staticTexts["在一起"].waitForExistence(timeout: 3))
+            XCTAssertFalse(app.navigationBars["新日程"].exists)
+        }
     }
 
     func testPastNowFutureJourneyAndComposer() {
@@ -137,5 +169,54 @@ final class CoupleJourneyUITests: XCTestCase {
         app.swipeLeft()
         XCTAssertTrue(app.buttons["清单"].isSelected)
         XCTAssertTrue(app.staticTexts["一起去灵隐寺还愿吧"].waitForExistence(timeout: 3))
+    }
+
+    func testNowBottomGestureSeparatesPageSwipeFromComposePull() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-now"]
+        app.launch()
+
+        var composeButton = app.buttons["composeMemoryButton"]
+        XCTAssertTrue(composeButton.waitForExistence(timeout: 5))
+
+        let diagonalPageTarget = app.coordinate(
+            withNormalizedOffset: CGVector(
+                dx: 0.05,
+                dy: max((composeButton.frame.midY - 40) / app.frame.height, 0.1)
+            )
+        )
+        composeButton.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .press(
+                forDuration: 0.05,
+                thenDragTo: diagonalPageTarget,
+                withVelocity: .slow,
+                thenHoldForDuration: 0
+            )
+
+        XCTAssertFalse(app.navigationBars["记录此刻"].exists)
+        XCTAssertTrue(app.buttons["日历"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["日历"].isSelected)
+
+        app.swipeRight()
+        composeButton = app.buttons["composeMemoryButton"]
+        XCTAssertTrue(composeButton.waitForExistence(timeout: 3))
+
+        let composeTarget = app.coordinate(
+            withNormalizedOffset: CGVector(
+                dx: composeButton.frame.midX / app.frame.width,
+                dy: max((composeButton.frame.midY - 90) / app.frame.height, 0.1)
+            )
+        )
+        composeButton.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .press(
+                forDuration: 0.05,
+                thenDragTo: composeTarget,
+                withVelocity: .slow,
+                thenHoldForDuration: 0
+            )
+
+        XCTAssertTrue(app.navigationBars["记录此刻"].waitForExistence(timeout: 3))
+        XCTAssertEqual(app.navigationBars.matching(identifier: "记录此刻").count, 1)
     }
 }

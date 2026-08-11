@@ -37,6 +37,7 @@ enum PastFilter: String, CaseIterable, Hashable {
 struct PastView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let filter: PastFilter
+    let pageDragOffset: CGFloat
     let selectFilter: (PastFilter) -> Void
 
     var body: some View {
@@ -59,7 +60,10 @@ struct PastView: View {
                         PastPageView(filter: .all)
                     }
                 }
-                .offset(x: -CGFloat(filter.pageIndex) * proxy.size.width)
+                .offset(
+                    x: -CGFloat(filter.pageIndex) * proxy.size.width
+                        + pageDragOffset
+                )
                 .animation(pageAnimation, value: filter)
             }
             .clipped()

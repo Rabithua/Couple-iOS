@@ -3,7 +3,6 @@ import SwiftUI
 struct CalendarMonthView: View {
     let month: CalendarMonth
     let events: [CalendarEvent]
-    let selectDate: (Date) -> Void
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
     private let weekdaySymbols = ["日", "一", "二", "三", "四", "五", "六"]
@@ -23,19 +22,15 @@ struct CalendarMonthView: View {
 
                 ForEach(Array(month.days.enumerated()), id: \.offset) { _, day in
                     if let day {
-                        Button { selectDate(day) } label: {
-                            VStack(spacing: 2) {
-                                Text("\(Calendar.current.component(.day, from: day))")
-                                    .font(.body.bold())
-                                Circle()
-                                    .fill(hasEvent(on: day) ? Color.primary.opacity(0.45) : .clear)
-                                    .frame(width: 3, height: 3)
-                            }
-                            .foregroundStyle(AppTheme.muted)
-                            .frame(maxWidth: .infinity, minHeight: 50)
-                            .contentShape(Rectangle())
+                        VStack(spacing: 2) {
+                            Text("\(Calendar.current.component(.day, from: day))")
+                                .font(.body.bold())
+                            Circle()
+                                .fill(hasEvent(on: day) ? Color.primary.opacity(0.45) : .clear)
+                                .frame(width: 3, height: 3)
                         }
-                        .buttonStyle(.plain)
+                        .foregroundStyle(AppTheme.muted)
+                        .frame(maxWidth: .infinity, minHeight: 50)
                         .accessibilityLabel(day.formatted(date: .complete, time: .omitted))
                     } else {
                         Color.clear.frame(height: 50)

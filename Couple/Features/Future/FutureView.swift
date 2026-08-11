@@ -14,8 +14,8 @@ struct FutureView: View {
     @Environment(AppHaptics.self) private var haptics
     @Environment(AppStore.self) private var store
     let mode: FutureMode
+    let pageDragOffset: CGFloat
     let selectMode: (FutureMode) -> Void
-    let shouldSuppressPresentation: () -> Bool
     @State private var showingNewTodo = false
     @State private var selectedEventDate: SelectedEventDate?
 
@@ -33,7 +33,10 @@ struct FutureView: View {
                         todoContent
                     }
                 }
-                .offset(x: -CGFloat(mode.pageIndex) * proxy.size.width)
+                .offset(
+                    x: -CGFloat(mode.pageIndex) * proxy.size.width
+                        + pageDragOffset
+                )
                 .animation(pageAnimation, value: mode)
             }
             .clipped()
@@ -44,15 +47,16 @@ struct FutureView: View {
                     selection: mode,
                     select: selectMode
                 )
-                Button(action: presentNewItem) {
-                    Image(systemName: "plus")
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(TapOnlyPrimitiveButtonStyle())
+
+                Button(
+                    mode == .list ? "添加清单" : "添加日程",
+                    systemImage: "plus",
+                    action: presentNewItem
+                )
+                .labelStyle(.iconOnly)
                 .font(.title2.bold())
                 .foregroundStyle(AppTheme.muted)
-                .accessibilityLabel(mode == .list ? "添加清单" : "添加日程")
+                .frame(width: 44, height: 44)
                 .accessibilityIdentifier("futureAddButton")
             }
             .padding(.horizontal, AppTheme.horizontalPadding)
@@ -70,8 +74,7 @@ struct FutureView: View {
                 ForEach(months) { month in
                     CalendarMonthView(
                         month: month,
-                        events: store.calendarEvents,
-                        selectDate: selectCalendarDate
+                        events: store.calendarEvents
                     )
                 }
             }
@@ -118,7 +121,6 @@ struct FutureView: View {
     }
 
     private func presentNewItem() {
-        guard !shouldSuppressPresentation() else { return }
         haptics.play(.tap)
         if mode == .list {
             showingNewTodo = true
@@ -126,22 +128,9 @@ struct FutureView: View {
             selectedEventDate = SelectedEventDate(date: Date())
         }
     }
-
-    private func selectCalendarDate(_ date: Date) {
-        guard !shouldSuppressPresentation() else { return }
-        haptics.play(.tap)
-        selectedEventDate = SelectedEventDate(date: date)
-    }
 }
 
 private struct SelectedEventDate: Identifiable {
     let id = UUID()
     let date: Date
-}
-
-private struct TapOnlyPrimitiveButtonStyle: PrimitiveButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .onTapGesture { configuration.trigger() }
-    }
 }

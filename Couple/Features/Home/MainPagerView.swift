@@ -10,8 +10,9 @@ struct MainPagerView: View {
     @State private var showingSettings = false
     @State private var photoCarouselGestureActive = false
     @State private var pageSwipeStartedInPhotoCarousel = false
-    @State private var isTrackingPageSwipe = false
-    @State private var pageSwipePresentationGate = PageSwipePresentationGate()
+    @State private var isTrackingMainGesture = false
+    @State private var mainGestureState = MainPagerGestureState()
+    @State private var composeThresholdHapticPlayed = false
 
     init(arguments: [String] = ProcessInfo.processInfo.arguments) {
         let initialRoute: MainPagerRoute
@@ -31,12 +32,14 @@ struct MainPagerView: View {
                 MainPagerPage(isActive: route.isPast, size: proxy.size) {
                     PastView(
                         filter: route.pastFilter ?? .all,
+                        pageDragOffset: innerPageDragOffset,
                         selectFilter: selectPastFilter
                     )
                 }
 
                 MainPagerPage(isActive: route == .now, size: proxy.size) {
                     NowView(
+                        composePullProgress: mainGestureState.composeProgress,
                         showComposer: presentComposer,
                         showSettings: presentSettings,
                         setPhotoCarouselGestureActive: { active in
@@ -48,20 +51,21 @@ struct MainPagerView: View {
                 MainPagerPage(isActive: route.isFuture, size: proxy.size) {
                     FutureView(
                         mode: route.futureMode ?? .calendar,
-                        selectMode: selectFutureMode,
-                        shouldSuppressPresentation: {
-                            pageSwipePresentationGate.suppressesPresentation
-                        }
+                        pageDragOffset: innerPageDragOffset,
+                        selectMode: selectFutureMode
                     )
                 }
             }
-            .offset(x: -CGFloat(route.sectionIndex) * proxy.size.width)
+            .offset(
+                x: -CGFloat(route.sectionIndex) * proxy.size.width
+                    + outerPageDragOffset
+            )
             .animation(pageAnimation, value: route.sectionIndex)
+            .contentShape(Rectangle())
+            .simultaneousGesture(mainGesture(in: proxy.size))
         }
         .clipped()
         .coordinateSpace(name: "mainPager")
-        .contentShape(Rectangle())
-        .simultaneousGesture(pageSwipeGesture)
         .task(id: route) {
             await loadActivePastNotes()
         }
@@ -84,27 +88,92 @@ struct MainPagerView: View {
         return Date.fromDateOnly(rawDate) ?? .now
     }
 
-    private var pageSwipeGesture: some Gesture {
-        DragGesture(minimumDistance: 20, coordinateSpace: .named("mainPager"))
-            .onChanged(trackPageSwipe)
-            .onEnded(finishPageSwipe)
+    private var outerPageDragOffset: CGFloat {
+        pageDragOffset(forSameSection: false)
     }
 
-    private func trackPageSwipe(_ value: DragGesture.Value) {
-        if !isTrackingPageSwipe {
-            isTrackingPageSwipe = true
+    private var innerPageDragOffset: CGFloat {
+        pageDragOffset(forSameSection: true)
+    }
+
+    private func pageDragOffset(forSameSection sameSection: Bool) -> CGFloat {
+        guard mainGestureState.intent == .page else { return 0 }
+        let sourceRoute = mainGestureState.pageSourceRoute ?? route
+        guard !(sourceRoute == .now && pageSwipeStartedInPhotoCarousel) else { return 0 }
+
+        let translation = mainGestureState.pageTranslation
+        guard translation != 0 else { return 0 }
+
+        let direction = translation < 0 ? 1 : -1
+        guard let destination = MainPagerRoute(rawValue: sourceRoute.rawValue + direction) else {
+            return sameSection ? translation * 0.16 : 0
+        }
+
+        return (destination.sectionIndex == sourceRoute.sectionIndex) == sameSection
+            ? translation
+            : 0
+    }
+
+    private func mainGesture(in containerSize: CGSize) -> some Gesture {
+        DragGesture(minimumDistance: 8, coordinateSpace: .named("mainPager"))
+            .onChanged { value in
+                trackMainGesture(value, containerSize: containerSize)
+            }
+            .onEnded { value in
+                finishMainGesture(value, containerSize: containerSize)
+            }
+    }
+
+    private func trackMainGesture(_ value: DragGesture.Value, containerSize: CGSize) {
+        if !isTrackingMainGesture {
+            isTrackingMainGesture = true
             pageSwipeStartedInPhotoCarousel = photoCarouselGestureActive
         }
-        pageSwipePresentationGate.update(
-            horizontal: value.translation.width,
-            vertical: value.translation.height
+
+        mainGestureState.update(
+            translation: value.translation,
+            startLocation: value.startLocation,
+            containerSize: containerSize,
+            route: route
         )
+
+        if mainGestureState.intent != .page,
+           mainGestureState.composeProgress >= 1,
+           !composeThresholdHapticPlayed {
+            composeThresholdHapticPlayed = true
+            haptics.play(.selection)
+        }
     }
 
-    private func finishPageSwipe(_ value: DragGesture.Value) {
-        pageSwipePresentationGate.finish()
-        handlePageSwipe(value)
-        isTrackingPageSwipe = false
+    private func finishMainGesture(_ value: DragGesture.Value, containerSize: CGSize) {
+        mainGestureState.update(
+            translation: value.translation,
+            startLocation: value.startLocation,
+            containerSize: containerSize,
+            route: route
+        )
+
+        let intent = mainGestureState.intent
+        let shouldPresentComposer = mainGestureState.shouldPresentComposer
+
+        if intent == .page {
+            handlePageSwipe(value)
+        } else if shouldPresentComposer, route == .now {
+            if !composeThresholdHapticPlayed {
+                haptics.play(.selection)
+            }
+            showingComposer = true
+        }
+
+        if shouldPresentComposer {
+            mainGestureState.reset()
+        } else {
+            withAnimation(pageAnimation) {
+                mainGestureState.reset()
+            }
+        }
+        composeThresholdHapticPlayed = false
+        isTrackingMainGesture = false
         pageSwipeStartedInPhotoCarousel = false
     }
 
