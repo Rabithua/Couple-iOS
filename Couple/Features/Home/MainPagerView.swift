@@ -3,6 +3,7 @@ import SwiftUI
 @MainActor
 struct MainPagerView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(AppHaptics.self) private var haptics
     @Environment(AppStore.self) private var store
     @State private var route: MainPagerRoute
     @State private var showingComposer = false
@@ -34,8 +35,8 @@ struct MainPagerView: View {
 
                 MainPagerPage(isActive: route == .now, size: proxy.size) {
                     NowView(
-                        showComposer: { showingComposer = true },
-                        showSettings: { showingSettings = true }
+                        showComposer: presentComposer,
+                        showSettings: presentSettings
                     )
                 }
 
@@ -62,18 +63,23 @@ struct MainPagerView: View {
         .task(id: route) {
             await loadActivePastNotes()
         }
-        .sensoryFeedback(.selection, trigger: route)
+        .appHapticFeedback(.selection, trigger: route)
         .background(Color(.systemBackground).ignoresSafeArea())
         .sheet(isPresented: $showingComposer) {
             ComposeMemoryView()
         }
         .sheet(isPresented: $showingSettings) {
-            SettingsView()
+            SettingsView(startedOn: relationshipStartedOn)
         }
     }
 
     private var pageAnimation: Animation? {
         reduceMotion ? nil : .smooth(duration: 0.32)
+    }
+
+    private var relationshipStartedOn: Date {
+        guard let rawDate = store.relationship?.couple?.startedOn else { return .now }
+        return Date.fromDateOnly(rawDate) ?? .now
     }
 
     private var pageSwipeGesture: some Gesture {
@@ -121,6 +127,16 @@ struct MainPagerView: View {
 
     private func selectFutureMode(_ mode: FutureMode) {
         route = .future(mode)
+    }
+
+    private func presentComposer() {
+        haptics.play(.tap)
+        showingComposer = true
+    }
+
+    private func presentSettings() {
+        haptics.play(.tap)
+        showingSettings = true
     }
 
     private func loadActivePastNotes() async {

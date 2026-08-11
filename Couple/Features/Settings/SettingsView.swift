@@ -1,12 +1,17 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @Environment(AppHaptics.self) private var haptics
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
-    @State private var startedOn = Date()
+    @State private var startedOn: Date
     @State private var showingNewAnniversary = false
     @State private var isSaving = false
     @State private var localError: String?
+
+    init(startedOn: Date = .now) {
+        _startedOn = State(initialValue: startedOn)
+    }
 
     var body: some View {
         NavigationStack {
@@ -16,7 +21,8 @@ struct SettingsView: View {
                         Label(member.displayName, systemImage: "person.crop.circle")
                     }
                     DatePicker("在一起的日期", selection: $startedOn, displayedComponents: .date)
-                    Button("保存日期") { Task { await saveDate() } }
+                        .appHapticFeedback(.selection, trigger: startedOn)
+                    Button("保存日期", action: beginSavingDate)
                         .disabled(isSaving || store.isDemo)
                 }
 
@@ -40,7 +46,7 @@ struct SettingsView: View {
                             Image(systemName: "birthday.cake.fill")
                         }
                     }
-                    Button("添加纪念日", systemImage: "plus") { showingNewAnniversary = true }
+                    Button("添加纪念日", systemImage: "plus", action: presentNewAnniversary)
                 } header: {
                     Text("纪念日")
                 }
@@ -51,35 +57,55 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Button("退出登录", role: .destructive) {
-                        Task {
-                            await store.signOut()
-                            dismiss()
-                        }
-                    }
+                    Button("退出登录", role: .destructive, action: beginSigningOut)
                 }
             }
             .navigationTitle("设置")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("完成") { dismiss() }
+                    Button("完成", action: finish)
                 }
             }
-            .task { loadStartedOn() }
             .sheet(isPresented: $showingNewAnniversary) { NewAnniversaryView() }
+            .appHapticFeedback(
+                .error,
+                trigger: localError,
+                condition: AppHaptics.whenPresent
+            )
             .alert("保存失败", isPresented: Binding(
                 get: { localError != nil },
                 set: { if !$0 { localError = nil } }
-            )) { Button("好", role: .cancel) {} } message: { Text(localError ?? "") }
+            )) { Button("好", role: .cancel, action: acknowledgeError) } message: { Text(localError ?? "") }
         }
     }
 
-    private func loadStartedOn() {
-        if let raw = store.relationship?.couple?.startedOn,
-           let date = Date.fromDateOnly(raw) {
-            startedOn = date
+    private func beginSavingDate() {
+        haptics.play(.tap)
+        Task { await saveDate() }
+    }
+
+    private func presentNewAnniversary() {
+        haptics.play(.tap)
+        showingNewAnniversary = true
+    }
+
+    private func beginSigningOut() {
+        haptics.play(.warning)
+        Task {
+            await store.signOut()
+            haptics.play(.success)
+            dismiss()
         }
+    }
+
+    private func finish() {
+        haptics.play(.tap)
+        dismiss()
+    }
+
+    private func acknowledgeError() {
+        haptics.play(.tap)
     }
 
     private func saveDate() async {
@@ -87,6 +113,7 @@ struct SettingsView: View {
         defer { isSaving = false }
         do {
             try await store.updateCouple(startedOn: startedOn)
+            haptics.play(.success)
         } catch {
             localError = error.localizedDescription
         }

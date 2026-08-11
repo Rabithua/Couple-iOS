@@ -23,7 +23,7 @@ struct NowView: View {
     }
 
     private var activeTodos: [Todo] {
-        Array(store.todos.filter { !$0.completed }.prefix(4))
+        store.todos.incompleteTodosOrderedByDueTime(limit: 4)
     }
 
     var body: some View {

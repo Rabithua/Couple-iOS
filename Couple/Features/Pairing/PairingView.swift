@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct PairingView: View {
+    @Environment(AppHaptics.self) private var haptics
     @Environment(AppStore.self) private var store
     @State private var inviteCode = ""
 
@@ -18,9 +19,7 @@ struct PairingView: View {
                     if let invite = store.relationship?.pendingInvite {
                         inviteCard(invite)
                     } else {
-                        Button {
-                            Task { await store.createInvite() }
-                        } label: {
+                        Button(action: beginCreatingInvite) {
                             Label("生成邀请码", systemImage: "link.badge.plus")
                                 .frame(maxWidth: .infinity)
                         }
@@ -42,9 +41,7 @@ struct PairingView: View {
                             .padding()
                             .background(Color(.secondarySystemBackground), in: .rect(cornerRadius: 14))
 
-                        Button {
-                            Task { await store.acceptInvite(inviteCode) }
-                        } label: {
+                        Button(action: beginAcceptingInvite) {
                             Text("加入共同空间").frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
@@ -52,18 +49,46 @@ struct PairingView: View {
                         .disabled(inviteCode.trimmingCharacters(in: .whitespacesAndNewlines).count < 8)
                     }
 
-                    Button("暂时先进入") {
-                        Task { await store.continueWithoutPartner() }
-                    }
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity)
+                    Button("暂时先进入", action: beginContinuingWithoutPartner)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
                 }
                 .padding(24)
             }
             .overlay { if store.isBusy { ProgressView().controlSize(.large) } }
         }
         .screenBackground()
+    }
+
+    private func beginCreatingInvite() {
+        haptics.play(.tap)
+        Task {
+            await store.createInvite()
+            if store.relationship?.pendingInvite != nil {
+                haptics.play(.success)
+            }
+        }
+    }
+
+    private func beginAcceptingInvite() {
+        haptics.play(.tap)
+        Task {
+            await store.acceptInvite(inviteCode)
+            if store.phase == .main {
+                haptics.play(.success)
+            }
+        }
+    }
+
+    private func beginContinuingWithoutPartner() {
+        haptics.play(.tap)
+        Task {
+            await store.continueWithoutPartner()
+            if store.phase == .main {
+                haptics.play(.success)
+            }
+        }
     }
 
     private func inviteCard(_ invite: CoupleInvite) -> some View {

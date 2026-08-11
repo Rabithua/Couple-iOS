@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct AuthView: View {
+    @Environment(AppHaptics.self) private var haptics
     @Environment(AppStore.self) private var store
     @State private var displayName = ""
     @State private var showingRegistration = false
@@ -23,9 +24,7 @@ struct AuthView: View {
                 Spacer()
 
                 VStack(spacing: 12) {
-                    Button {
-                        Task { await store.signIn() }
-                    } label: {
+                    Button(action: beginSignIn) {
                         Label("使用 Passkey 登录", systemImage: "person.badge.key.fill")
                             .frame(maxWidth: .infinity)
                     }
@@ -34,15 +33,13 @@ struct AuthView: View {
                     .disabled(store.isBusy)
                     .accessibilityIdentifier("signInButton")
 
-                    Button("第一次使用？创建空间") {
-                        showingRegistration = true
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.large)
-                    .frame(maxWidth: .infinity)
-                    .disabled(store.isBusy)
+                    Button("第一次使用？创建空间", action: presentRegistration)
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .frame(maxWidth: .infinity)
+                        .disabled(store.isBusy)
 
-                    Button("预览设计与交互") { store.enterPreview() }
+                    Button("预览设计与交互", action: enterPreview)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .padding(.top, 8)
@@ -84,22 +81,55 @@ struct AuthView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消", systemImage: "xmark") { showingRegistration = false }
+                    Button("取消", systemImage: "xmark", action: dismissRegistration)
                         .labelStyle(.iconOnly)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("创建", systemImage: "checkmark") {
-                        Task {
-                            await store.register(displayName: displayName.trimmingCharacters(in: .whitespacesAndNewlines))
-                            if store.phase != .signedOut { showingRegistration = false }
-                        }
-                    }
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.borderedProminent)
-                    .disabled(displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || store.isBusy)
+                    Button("创建", systemImage: "checkmark", action: beginRegistration)
+                        .labelStyle(.iconOnly)
+                        .buttonStyle(.borderedProminent)
+                        .disabled(displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || store.isBusy)
                 }
             }
         }
         .presentationDetents([.medium])
+    }
+
+    private func beginSignIn() {
+        haptics.play(.tap)
+        Task {
+            await store.signIn()
+            if store.phase != .signedOut {
+                haptics.play(.success)
+            }
+        }
+    }
+
+    private func presentRegistration() {
+        haptics.play(.tap)
+        showingRegistration = true
+    }
+
+    private func dismissRegistration() {
+        haptics.play(.tap)
+        showingRegistration = false
+    }
+
+    private func beginRegistration() {
+        haptics.play(.tap)
+        Task {
+            await store.register(
+                displayName: displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+            )
+            if store.phase != .signedOut {
+                haptics.play(.success)
+                showingRegistration = false
+            }
+        }
+    }
+
+    private func enterPreview() {
+        haptics.play(.tap)
+        store.enterPreview()
     }
 }

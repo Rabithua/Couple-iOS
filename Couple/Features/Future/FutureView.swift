@@ -11,6 +11,7 @@ enum FutureMode: String, CaseIterable, Hashable {
 
 struct FutureView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(AppHaptics.self) private var haptics
     @Environment(AppStore.self) private var store
     let mode: FutureMode
     let selectMode: (FutureMode) -> Void
@@ -120,6 +121,7 @@ struct FutureView: View {
 
     private func presentNewItem() {
         guard !shouldSuppressPresentation() else { return }
+        haptics.play(.tap)
         if mode == .list {
             showingNewTodo = true
         } else {
@@ -129,6 +131,7 @@ struct FutureView: View {
 
     private func selectCalendarDate(_ date: Date) {
         guard !shouldSuppressPresentation() else { return }
+        haptics.play(.tap)
         selectedEventDate = SelectedEventDate(date: date)
     }
 }

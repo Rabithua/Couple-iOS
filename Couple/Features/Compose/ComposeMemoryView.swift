@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 import UIKit
 
 struct ComposeMemoryView: View {
+    @Environment(AppHaptics.self) private var haptics
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var content = ""
@@ -32,6 +33,7 @@ struct ComposeMemoryView: View {
                     ) {
                         Label(photoCount == 0 ? "选择照片" : "已选择 \(photoCount) 张", systemImage: "photo.on.rectangle.angled")
                     }
+                    .appHapticFeedback(.selection, trigger: selectedItems)
 
                     if !photos.isEmpty {
                         ScrollView(.horizontal) {
@@ -58,12 +60,14 @@ struct ComposeMemoryView: View {
                             Text(item.title).tag(String?.some(item.id))
                         }
                     }
+                    .appHapticFeedback(.selection, trigger: anniversaryId)
                     Picker("共同清单", selection: $todoId) {
                         Text("不关联").tag(String?.none)
                         ForEach(store.todos) { item in
                             Text(item.title).tag(String?.some(item.id))
                         }
                     }
+                    .appHapticFeedback(.selection, trigger: todoId)
                 }
 
                 Section {
@@ -72,26 +76,30 @@ struct ComposeMemoryView: View {
                             Text(option.title).tag(option)
                         }
                     }
+                    .appHapticFeedback(.selection, trigger: visibility)
                 }
             }
             .navigationTitle("记录此刻")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消", systemImage: "xmark") { dismiss() }
+                    Button("取消", systemImage: "xmark", action: cancel)
                         .labelStyle(.iconOnly)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存", systemImage: "checkmark") {
-                        Task { await save() }
-                    }
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.borderedProminent)
-                    .disabled(!isValid || isSaving)
-                    .accessibilityIdentifier("saveMemoryButton")
+                    Button("保存", systemImage: "checkmark", action: beginSaving)
+                        .labelStyle(.iconOnly)
+                        .buttonStyle(.borderedProminent)
+                        .disabled(!isValid || isSaving)
+                        .accessibilityIdentifier("saveMemoryButton")
                 }
             }
             .overlay { if isSaving { ProgressView().controlSize(.large) } }
+            .appHapticFeedback(
+                .error,
+                trigger: localError,
+                condition: AppHaptics.whenPresent
+            )
             .task(id: selectedItems) {
                 do {
                     photos = try await load(selectedItems)
@@ -105,7 +113,7 @@ struct ComposeMemoryView: View {
                 get: { localError != nil },
                 set: { if !$0 { localError = nil } }
             )) {
-                Button("好", role: .cancel) { localError = nil }
+                Button("好", role: .cancel, action: dismissError)
             } message: {
                 Text(localError ?? "")
             }
@@ -114,6 +122,21 @@ struct ComposeMemoryView: View {
 
     private var isValid: Bool {
         !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !photos.isEmpty
+    }
+
+    private func cancel() {
+        haptics.play(.tap)
+        dismiss()
+    }
+
+    private func beginSaving() {
+        haptics.play(.tap)
+        Task { await save() }
+    }
+
+    private func dismissError() {
+        haptics.play(.tap)
+        localError = nil
     }
 
     private func load(_ items: [PhotosPickerItem]) async throws -> [SelectedPhoto] {
@@ -147,6 +170,7 @@ struct ComposeMemoryView: View {
                 todoId: todoId,
                 visibility: visibility
             )
+            haptics.play(.success)
             dismiss()
         } catch {
             localError = error.localizedDescription

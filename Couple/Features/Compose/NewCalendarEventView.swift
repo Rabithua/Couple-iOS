@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct NewCalendarEventView: View {
+    @Environment(AppHaptics.self) private var haptics
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     let initialDate: Date
@@ -23,28 +24,50 @@ struct NewCalendarEventView: View {
                 Section { TextField("日程名称", text: $title) }
                 Section {
                     Toggle("全天", isOn: $allDay)
+                        .appHapticFeedback(.selection, trigger: allDay)
                     DatePicker("开始", selection: $start, displayedComponents: allDay ? .date : [.date, .hourAndMinute])
+                        .appHapticFeedback(.selection, trigger: start)
                     DatePicker("结束", selection: $end, in: start..., displayedComponents: allDay ? .date : [.date, .hourAndMinute])
+                        .appHapticFeedback(.selection, trigger: end)
                 }
             }
             .navigationTitle("新日程")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消", systemImage: "xmark") { dismiss() }.labelStyle(.iconOnly)
+                    Button("取消", systemImage: "xmark", action: cancel).labelStyle(.iconOnly)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存", systemImage: "checkmark") { Task { await save() } }
+                    Button("保存", systemImage: "checkmark", action: beginSaving)
                         .labelStyle(.iconOnly)
                         .buttonStyle(.borderedProminent)
                         .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving)
                 }
             }
+            .appHapticFeedback(
+                .error,
+                trigger: errorMessage,
+                condition: AppHaptics.whenPresent
+            )
             .alert("保存失败", isPresented: Binding(
                 get: { errorMessage != nil },
                 set: { if !$0 { errorMessage = nil } }
-            )) { Button("好", role: .cancel) {} } message: { Text(errorMessage ?? "") }
+            )) { Button("好", role: .cancel, action: acknowledgeError) } message: { Text(errorMessage ?? "") }
         }
+    }
+
+    private func cancel() {
+        haptics.play(.tap)
+        dismiss()
+    }
+
+    private func beginSaving() {
+        haptics.play(.tap)
+        Task { await save() }
+    }
+
+    private func acknowledgeError() {
+        haptics.play(.tap)
     }
 
     private func save() async {
@@ -57,10 +80,10 @@ struct NewCalendarEventView: View {
                 end: end,
                 allDay: allDay
             )
+            haptics.play(.success)
             dismiss()
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 }
-

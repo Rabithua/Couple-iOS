@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct NewAnniversaryView: View {
+    @Environment(AppHaptics.self) private var haptics
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var title = ""
@@ -16,32 +17,54 @@ struct NewAnniversaryView: View {
                 Section { TextField("纪念日名称", text: $title) }
                 Section {
                     DatePicker("日期", selection: $date, displayedComponents: .date)
+                        .appHapticFeedback(.selection, trigger: date)
                     Toggle("每年纪念", isOn: $annual)
+                        .appHapticFeedback(.selection, trigger: annual)
                 }
                 Section {
                     Picker("谁可以看", selection: $visibility) {
                         ForEach(Visibility.allCases, id: \.self) { Text($0.title).tag($0) }
                     }
+                    .appHapticFeedback(.selection, trigger: visibility)
                 }
             }
             .navigationTitle("新纪念日")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消", systemImage: "xmark") { dismiss() }.labelStyle(.iconOnly)
+                    Button("取消", systemImage: "xmark", action: cancel).labelStyle(.iconOnly)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存", systemImage: "checkmark") { Task { await save() } }
+                    Button("保存", systemImage: "checkmark", action: beginSaving)
                         .labelStyle(.iconOnly)
                         .buttonStyle(.borderedProminent)
                         .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving)
                 }
             }
+            .appHapticFeedback(
+                .error,
+                trigger: errorMessage,
+                condition: AppHaptics.whenPresent
+            )
             .alert("保存失败", isPresented: Binding(
                 get: { errorMessage != nil },
                 set: { if !$0 { errorMessage = nil } }
-            )) { Button("好", role: .cancel) {} } message: { Text(errorMessage ?? "") }
+            )) { Button("好", role: .cancel, action: acknowledgeError) } message: { Text(errorMessage ?? "") }
         }
+    }
+
+    private func cancel() {
+        haptics.play(.tap)
+        dismiss()
+    }
+
+    private func beginSaving() {
+        haptics.play(.tap)
+        Task { await save() }
+    }
+
+    private func acknowledgeError() {
+        haptics.play(.tap)
     }
 
     private func save() async {
@@ -54,6 +77,7 @@ struct NewAnniversaryView: View {
                 annual: annual,
                 visibility: visibility
             )
+            haptics.play(.success)
             dismiss()
         } catch {
             errorMessage = error.localizedDescription
