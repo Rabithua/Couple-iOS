@@ -37,4 +37,9 @@ extension View {
     func screenBackground() -> some View {
         background(Color(.systemBackground).ignoresSafeArea())
     }
+
+    func appProminentButtonStyle() -> some View {
+        buttonStyle(.borderedProminent)
+            .foregroundStyle(Color(.systemBackground))
+    }
 }

@@ -28,7 +28,7 @@ struct AuthView: View {
                         Label("使用 Passkey 登录", systemImage: "person.badge.key.fill")
                             .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.borderedProminent)
+                    .appProminentButtonStyle()
                     .controlSize(.large)
                     .disabled(store.isBusy)
                     .accessibilityIdentifier("signInButton")
@@ -87,7 +87,7 @@ struct AuthView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("创建", systemImage: "checkmark", action: beginRegistration)
                         .labelStyle(.iconOnly)
-                        .buttonStyle(.borderedProminent)
+                        .appProminentButtonStyle()
                         .disabled(displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || store.isBusy)
                 }
             }

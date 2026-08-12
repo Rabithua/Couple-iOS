@@ -17,7 +17,6 @@ struct AppRootView: View {
             }
         }
         .animation(.smooth(duration: 0.35), value: store.phase)
-        .preferredColorScheme(.light)
     }
 
     private var launchView: some View {
