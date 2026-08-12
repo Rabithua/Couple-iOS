@@ -29,6 +29,7 @@ struct MainPagerGestureState: Equatable {
         translation: CGSize,
         startLocation: CGPoint,
         containerSize: CGSize,
+        bottomSafeAreaInset: CGFloat,
         route: MainPagerRoute
     ) {
         if intent == .compose {
@@ -59,6 +60,7 @@ struct MainPagerGestureState: Equatable {
             translation: translation,
             startLocation: startLocation,
             containerSize: containerSize,
+            bottomSafeAreaInset: bottomSafeAreaInset,
             route: route
         ) {
             intent = .compose
@@ -79,10 +81,14 @@ struct MainPagerGestureState: Equatable {
         translation: CGSize,
         startLocation: CGPoint,
         containerSize: CGSize,
+        bottomSafeAreaInset: CGFloat,
         route: MainPagerRoute
     ) -> Bool {
         guard route == .now else { return false }
         guard startLocation.y >= containerSize.height - Self.composeRegionHeight else { return false }
+        guard startLocation.y <= containerSize.height - bottomSafeAreaInset else {
+            return false
+        }
         guard translation.height < 0 else { return false }
         return abs(translation.height) > abs(translation.width) * Self.composeAxisRatio
     }

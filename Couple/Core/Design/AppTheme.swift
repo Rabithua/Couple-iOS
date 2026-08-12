@@ -11,6 +11,7 @@ enum AppTheme {
     static let navigationBackdropOverlap: CGFloat = 112
     static let heroPhotoSpacing: CGFloat = 14
     static let heroPhotoScrollMargin: CGFloat = 8
+    static let composePromptBottomPadding: CGFloat = 38
     static let todoControlSize: CGFloat = 38
     static let todoRowSpacing: CGFloat = 0
     static let todoCompletionStrikeDelay: Duration = .milliseconds(140)
