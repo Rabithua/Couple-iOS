@@ -89,7 +89,7 @@ struct ComposeMemoryView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("保存", systemImage: "checkmark", action: beginSaving)
                         .labelStyle(.iconOnly)
-                        .buttonStyle(.borderedProminent)
+                        .appProminentButtonStyle()
                         .disabled(!isValid || isSaving)
                         .accessibilityIdentifier("saveMemoryButton")
                 }

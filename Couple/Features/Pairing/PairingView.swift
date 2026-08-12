@@ -23,7 +23,7 @@ struct PairingView: View {
                             Label("生成邀请码", systemImage: "link.badge.plus")
                                 .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.borderedProminent)
+                        .appProminentButtonStyle()
                         .controlSize(.large)
                     }
 
