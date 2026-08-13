@@ -34,6 +34,7 @@ struct MainPagerView: View {
                     PastView(
                         filter: route.pastFilter ?? .all,
                         pageDragOffset: innerPageDragOffset,
+                        verticalScrollingDisabled: verticalScrollingDisabled,
                         selectFilter: selectPastFilter
                     )
                 }
@@ -42,6 +43,7 @@ struct MainPagerView: View {
                     NowView(
                         composePullProgress: mainGestureState.composeProgress,
                         isActive: route == .now,
+                        verticalScrollingDisabled: verticalScrollingDisabled,
                         showComposer: presentComposer,
                         showSettings: presentSettings,
                         setPhotoCarouselGestureActive: { active in
@@ -54,6 +56,7 @@ struct MainPagerView: View {
                     FutureView(
                         mode: route.futureMode ?? .calendar,
                         pageDragOffset: innerPageDragOffset,
+                        verticalScrollingDisabled: verticalScrollingDisabled,
                         selectMode: selectFutureMode
                     )
                 }
@@ -102,6 +105,10 @@ struct MainPagerView: View {
 
     private var innerPageDragOffset: CGFloat {
         pageDragOffset(forSameSection: true)
+    }
+
+    private var verticalScrollingDisabled: Bool {
+        mainGestureState.intent == .page && !pageSwipeStartedInPhotoCarousel
     }
 
     private func pageDragOffset(forSameSection sameSection: Bool) -> CGFloat {
@@ -197,17 +204,17 @@ struct MainPagerView: View {
     }
 
     private func handlePageSwipe(_ value: DragGesture.Value) {
-        let horizontal = value.translation.width
-        let vertical = value.translation.height
-        let projectedHorizontal = value.predictedEndTranslation.width
-
-        guard abs(horizontal) > abs(vertical) * 1.2 else { return }
-        guard abs(horizontal) >= 36 || abs(projectedHorizontal) >= 80 else { return }
+        guard mainGestureState.shouldCommitPageSwipe(
+            translation: value.translation,
+            predictedEndTranslation: value.predictedEndTranslation
+        ) else { return }
 
         if route == .now, pageSwipeStartedInPhotoCarousel {
             return
         }
 
+        let horizontal = value.translation.width
+        let projectedHorizontal = value.predictedEndTranslation.width
         let directionSource = abs(projectedHorizontal) > abs(horizontal)
             ? projectedHorizontal
             : horizontal

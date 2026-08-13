@@ -12,7 +12,9 @@ struct MainPagerGestureState: Equatable {
 
     private static let intentDecisionDistance: CGFloat = 12
     private static let ambiguousDecisionDistance: CGFloat = 24
-    private static let pageAxisRatio: CGFloat = 1.2
+    private static let pageAxisRatio: CGFloat = 1.6
+    private static let pageCommitDistance: CGFloat = 36
+    private static let projectedPageCommitDistance: CGFloat = 80
     private static let composeAxisRatio: CGFloat = 1.45
     private static let composeRegionHeight: CGFloat = 104
 
@@ -23,6 +25,20 @@ struct MainPagerGestureState: Equatable {
 
     var shouldPresentComposer: Bool {
         intent == .compose && composeProgress >= 1
+    }
+
+    func shouldCommitPageSwipe(
+        translation: CGSize,
+        predictedEndTranslation: CGSize
+    ) -> Bool {
+        guard intent == .page else { return false }
+
+        let horizontal = abs(translation.width)
+        let vertical = abs(translation.height)
+        guard horizontal > vertical * Self.pageAxisRatio else { return false }
+
+        return horizontal >= Self.pageCommitDistance
+            || abs(predictedEndTranslation.width) >= Self.projectedPageCommitDistance
     }
 
     mutating func update(

@@ -3,6 +3,7 @@ import SwiftUI
 struct PastPageView: View {
     @Environment(AppStore.self) private var store
     let filter: PastFilter
+    let scrollingDisabled: Bool
 
     var body: some View {
         let notes = store.pastNotes(for: filter.query)
@@ -24,6 +25,7 @@ struct PastPageView: View {
             .padding(.bottom, 60)
         }
         .scrollIndicators(.hidden)
+        .scrollDisabled(scrollingDisabled)
         .contentMargins(.top, AppTheme.navigationBarHeight, for: .scrollContent)
         .refreshable { await store.selectNotes(filter.query, forceReload: true) }
         .accessibilityIdentifier(filter.scrollIdentifier)
