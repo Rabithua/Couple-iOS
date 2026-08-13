@@ -197,17 +197,17 @@ struct MainPagerView: View {
     }
 
     private func handlePageSwipe(_ value: DragGesture.Value) {
-        let horizontal = value.translation.width
-        let vertical = value.translation.height
-        let projectedHorizontal = value.predictedEndTranslation.width
-
-        guard abs(horizontal) > abs(vertical) * 1.2 else { return }
-        guard abs(horizontal) >= 36 || abs(projectedHorizontal) >= 80 else { return }
+        guard mainGestureState.shouldCommitPageSwipe(
+            translation: value.translation,
+            predictedEndTranslation: value.predictedEndTranslation
+        ) else { return }
 
         if route == .now, pageSwipeStartedInPhotoCarousel {
             return
         }
 
+        let horizontal = value.translation.width
+        let projectedHorizontal = value.predictedEndTranslation.width
         let directionSource = abs(projectedHorizontal) > abs(horizontal)
             ? projectedHorizontal
             : horizontal
