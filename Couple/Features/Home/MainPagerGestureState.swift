@@ -54,7 +54,15 @@ struct MainPagerGestureState: Equatable {
         }
 
         if intent == .page {
-            pageTranslation = translation.width
+            let horizontal = abs(translation.width)
+            let vertical = abs(translation.height)
+            if vertical > horizontal * Self.pageAxisRatio {
+                intent = .ignored
+                pageTranslation = 0
+                pageSourceRoute = nil
+            } else {
+                pageTranslation = translation.width
+            }
             return
         }
 

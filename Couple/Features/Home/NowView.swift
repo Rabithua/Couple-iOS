@@ -6,7 +6,6 @@ struct NowView: View {
     @GestureState private var photoCarouselGestureActive = false
     let composePullProgress: CGFloat
     let isActive: Bool
-    let verticalScrollingDisabled: Bool
     let showComposer: () -> Void
     let showSettings: () -> Void
     let setPhotoCarouselGestureActive: (Bool) -> Void
@@ -38,7 +37,6 @@ struct NowView: View {
                 .padding(.top, AppTheme.topPadding)
             }
             .scrollIndicators(.hidden)
-            .scrollDisabled(verticalScrollingDisabled)
             .refreshable { await store.refreshContent() }
 
             pullToCompose

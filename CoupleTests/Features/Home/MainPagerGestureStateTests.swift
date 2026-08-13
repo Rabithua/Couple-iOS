@@ -155,8 +155,8 @@ struct MainPagerGestureStateTests {
         #expect(state.pageTranslation == 0)
     }
 
-    @Test("A page swipe that turns vertical does not commit")
-    func pageSwipeThatTurnsVerticalDoesNotCommit() {
+    @Test("A page swipe that turns vertical returns to scrolling")
+    func pageSwipeThatTurnsVerticalReturnsToScrolling() {
         var state = MainPagerGestureState()
         let startLocation = CGPoint(x: 195, y: 500)
 
@@ -178,7 +178,9 @@ struct MainPagerGestureStateTests {
             route: .pastAll
         )
 
-        #expect(state.intent == .page)
+        #expect(state.intent == .ignored)
+        #expect(state.pageTranslation == 0)
+        #expect(state.pageSourceRoute == nil)
         #expect(
             state.shouldCommitPageSwipe(
                 translation: finalTranslation,

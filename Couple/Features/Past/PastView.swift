@@ -38,7 +38,6 @@ struct PastView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let filter: PastFilter
     let pageDragOffset: CGFloat
-    let verticalScrollingDisabled: Bool
     let selectFilter: (PastFilter) -> Void
 
     var body: some View {
@@ -46,31 +45,19 @@ struct PastView: View {
             GeometryReader { proxy in
                 HStack(spacing: 0) {
                     MainPagerPage(isActive: filter == .completed, size: proxy.size) {
-                        PastPageView(
-                            filter: .completed,
-                            scrollingDisabled: verticalScrollingDisabled
-                        )
+                        PastPageView(filter: .completed)
                     }
 
                     MainPagerPage(isActive: filter == .anniversaries, size: proxy.size) {
-                        PastPageView(
-                            filter: .anniversaries,
-                            scrollingDisabled: verticalScrollingDisabled
-                        )
+                        PastPageView(filter: .anniversaries)
                     }
 
                     MainPagerPage(isActive: filter == .photos, size: proxy.size) {
-                        PastPageView(
-                            filter: .photos,
-                            scrollingDisabled: verticalScrollingDisabled
-                        )
+                        PastPageView(filter: .photos)
                     }
 
                     MainPagerPage(isActive: filter == .all, size: proxy.size) {
-                        PastPageView(
-                            filter: .all,
-                            scrollingDisabled: verticalScrollingDisabled
-                        )
+                        PastPageView(filter: .all)
                     }
                 }
                 .offset(
