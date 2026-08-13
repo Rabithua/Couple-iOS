@@ -103,6 +103,32 @@ final class CoupleJourneyUITests: XCTestCase {
         }
     }
 
+    func testPhotoCarouselSwipeStaysOnNow() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-now"]
+        app.launch()
+
+        let photoCarousel = app.scrollViews["featuredPhotoCarousel"]
+        XCTAssertTrue(photoCarousel.waitForExistence(timeout: 5))
+        let firstPhoto = app.descendants(matching: .any)["featuredPhoto-0"]
+        XCTAssertTrue(firstPhoto.waitForExistence(timeout: 3))
+        let initialPhotoX = firstPhoto.frame.minX
+
+        let start = photoCarousel.coordinate(withNormalizedOffset: CGVector(dx: 0.82, dy: 0.5))
+        let end = photoCarousel.coordinate(withNormalizedOffset: CGVector(dx: 0.18, dy: 0.5))
+        start.press(
+            forDuration: 0.05,
+            thenDragTo: end,
+            withVelocity: .slow,
+            thenHoldForDuration: 0
+        )
+
+        XCTAssertLessThan(firstPhoto.frame.minX, initialPhotoX - 10)
+        XCTAssertTrue(app.staticTexts["在一起"].exists)
+        XCTAssertFalse(app.buttons["日历"].isHittable)
+    }
+
     func testPastNowFutureJourneyAndComposer() {
         continueAfterFailure = false
         let app = XCUIApplication()

@@ -8,7 +8,7 @@ struct MainPagerView: View {
     @State private var route: MainPagerRoute
     @State private var showingComposer = false
     @State private var showingSettings = false
-    @State private var photoCarouselGestureActive = false
+    @State private var photoCarouselFrame = CGRect.null
     @State private var pageSwipeStartedInPhotoCarousel = false
     @State private var isTrackingMainGesture = false
     @State private var mainGestureState = MainPagerGestureState()
@@ -44,8 +44,8 @@ struct MainPagerView: View {
                         isActive: route == .now,
                         showComposer: presentComposer,
                         showSettings: presentSettings,
-                        setPhotoCarouselGestureActive: { active in
-                            photoCarouselGestureActive = active
+                        setPhotoCarouselFrame: { frame in
+                            photoCarouselFrame = frame
                         }
                     )
                 }
@@ -150,7 +150,8 @@ struct MainPagerView: View {
     ) {
         if !isTrackingMainGesture {
             isTrackingMainGesture = true
-            pageSwipeStartedInPhotoCarousel = photoCarouselGestureActive
+            pageSwipeStartedInPhotoCarousel = route == .now
+                && photoCarouselFrame.contains(value.startLocation)
         }
 
         mainGestureState.update(

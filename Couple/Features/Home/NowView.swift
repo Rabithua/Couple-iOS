@@ -3,12 +3,11 @@ import SwiftUI
 struct NowView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(AppStore.self) private var store
-    @GestureState private var photoCarouselGestureActive = false
     let composePullProgress: CGFloat
     let isActive: Bool
     let showComposer: () -> Void
     let showSettings: () -> Void
-    let setPhotoCarouselGestureActive: (Bool) -> Void
+    let setPhotoCarouselFrame: (CGRect) -> Void
 
     private var memberNames: String {
         let names = store.relationship?.members.map(\.displayName) ?? []
@@ -95,12 +94,10 @@ struct NowView: View {
             .scrollIndicators(.hidden)
             .scrollClipDisabled()
             .contentMargins(.horizontal, AppTheme.heroPhotoScrollMargin, for: .scrollContent)
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 5)
-                    .updating($photoCarouselGestureActive) { _, active, _ in active = true }
-            )
-            .onChange(of: photoCarouselGestureActive) { _, active in
-                setPhotoCarouselGestureActive(active)
+            .onGeometryChange(for: CGRect.self) { proxy in
+                proxy.frame(in: .named("mainPager"))
+            } action: { frame in
+                setPhotoCarouselFrame(frame)
             }
             .accessibilityIdentifier("featuredPhotoCarousel")
 
