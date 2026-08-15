@@ -1,9 +1,265 @@
 import Foundation
+import SwiftData
 import XCTest
 @testable import Couple
 
 @MainActor
 final class OfflineSyncTests: XCTestCase {
+    func testCreateTodoPersistsDueDateAndIncludesItInSyncPayload() async throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let dueDate = Date(timeIntervalSince1970: 1_786_803_600)
+
+        let todo = try store.createTodo(
+            coupleId: "couple",
+            ownerId: "owner",
+            title: "带日期的清单",
+            dueDate: dueDate,
+            visibility: .shared
+        )
+
+        XCTAssertEqual(todo.dueTime, dueDate)
+        let snapshot = try await store.loadSnapshot()
+        XCTAssertEqual(snapshot.todos.first(where: { $0.id == todo.id })?.dueTime, dueDate)
+        let operations = try await store.pendingOperations(limit: 100, now: .distantFuture)
+        let createOperation = try XCTUnwrap(operations.first(where: { $0.entityId == todo.id }))
+        XCTAssertEqual(createOperation.payload.fields["dueTime"], .date(dueDate))
+    }
+
+    func testUserCreatedContentCanBeEditedAndDeletedThroughSyncOutbox() async throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let originalDate = Date(timeIntervalSince1970: 1_786_800_000)
+        let updatedDate = originalDate.addingTimeInterval(86_400)
+
+        let todo = try store.createTodo(
+            coupleId: "couple",
+            ownerId: "owner",
+            title: "原清单",
+            dueDate: originalDate,
+            visibility: .shared
+        )
+        let anniversary = try store.createAnniversary(
+            coupleId: "couple",
+            ownerId: "owner",
+            title: "原纪念日",
+            date: originalDate,
+            annual: true,
+            visibility: .shared
+        )
+        let event = try store.createCalendarEvent(
+            coupleId: "couple",
+            ownerId: "owner",
+            title: "原日程",
+            start: originalDate,
+            end: originalDate.addingTimeInterval(3_600),
+            allDay: false
+        )
+        let note = try await store.createMemory(
+            coupleId: "couple",
+            ownerId: "owner",
+            content: "原动态",
+            photos: [],
+            anniversaryId: anniversary.id,
+            anniversaryTitle: anniversary.title,
+            todoId: todo.id,
+            todoTitle: todo.title,
+            visibility: .shared
+        )
+        let creates = try await store.pendingOperations(limit: 100, now: .distantFuture)
+        try await store.acknowledge(operationIds: creates.map(\.operationId), now: .now)
+
+        try store.editTodo(
+            id: todo.id,
+            title: "新清单",
+            dueDate: updatedDate,
+            visibility: .private
+        )
+        try store.editAnniversary(
+            id: anniversary.id,
+            title: "新纪念日",
+            date: updatedDate,
+            annual: false,
+            visibility: .private
+        )
+        try store.editCalendarEvent(
+            id: event.id,
+            title: "新日程",
+            start: updatedDate,
+            end: updatedDate.addingTimeInterval(7_200),
+            allDay: true
+        )
+        try store.editMemory(
+            id: note.id,
+            content: "新动态",
+            anniversaryId: nil,
+            anniversaryTitle: nil,
+            todoId: nil,
+            todoTitle: nil,
+            visibility: .private
+        )
+
+        let edited = try await store.loadSnapshot()
+        XCTAssertEqual(edited.todos.first?.title, "新清单")
+        XCTAssertEqual(edited.todos.first?.dueTime, updatedDate)
+        XCTAssertEqual(edited.todos.first?.visibility, .private)
+        XCTAssertEqual(edited.anniversaries.first?.title, "新纪念日")
+        XCTAssertEqual(edited.anniversaries.first?.date, updatedDate.dateOnlyString)
+        XCTAssertEqual(edited.anniversaries.first?.annual, false)
+        XCTAssertEqual(edited.canonicalCalendarEvents.first?.title, "新日程")
+        XCTAssertEqual(edited.canonicalCalendarEvents.first?.startTime, updatedDate)
+        XCTAssertEqual(edited.canonicalCalendarEvents.first?.allDay, true)
+        XCTAssertEqual(edited.notes.first?.content, "新动态")
+        XCTAssertEqual(edited.notes.first?.visibility, .private)
+        XCTAssertTrue(edited.notes.first?.associations.isEmpty == true)
+
+        let updates = try await store.pendingOperations(limit: 100, now: .distantFuture)
+        XCTAssertEqual(updates.count, 4)
+        XCTAssertTrue(updates.allSatisfy { $0.mutationKind == .update })
+        XCTAssertEqual(Set(updates.map(\.entityType)), [.todo, .anniversary, .calendarEvent, .memory])
+        let deviceID = UUID().uuidString
+        for operation in updates {
+            XCTAssertNoThrow(try SyncV1Mutation(operation: operation, deviceId: deviceID))
+        }
+        try await store.acknowledge(operationIds: updates.map(\.operationId), now: .now)
+
+        try store.deleteTodo(id: todo.id)
+        try store.deleteAnniversary(id: anniversary.id)
+        try store.deleteCalendarEvent(id: event.id)
+        try await store.deleteMemory(id: note.id)
+
+        let deleted = try await store.loadSnapshot()
+        XCTAssertTrue(deleted.todos.isEmpty)
+        XCTAssertTrue(deleted.anniversaries.isEmpty)
+        XCTAssertTrue(deleted.canonicalCalendarEvents.isEmpty)
+        XCTAssertTrue(deleted.notes.isEmpty)
+        let deletes = try await store.pendingOperations(limit: 100, now: .distantFuture)
+        XCTAssertEqual(deletes.count, 4)
+        XCTAssertTrue(deletes.allSatisfy { $0.mutationKind == .delete })
+        XCTAssertTrue(deletes.allSatisfy { $0.changedFieldGroups == ["lifecycle"] })
+        for operation in deletes {
+            XCTAssertNoThrow(try SyncV1Mutation(operation: operation, deviceId: deviceID))
+        }
+    }
+
+    func testNewIdentifiersAreLowercaseAndRemoteCaseVariantsMergeIntoOneEntity() async throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let todo = try store.createTodo(
+            coupleId: "couple",
+            ownerId: "owner",
+            title: "大小写兼容",
+            dueDate: nil,
+            visibility: .shared
+        )
+        XCTAssertEqual(todo.id, todo.id.lowercased())
+
+        let pending = try await store.pendingOperations(limit: 100, now: .distantFuture)
+        try await store.acknowledge(operationIds: pending.map(\.operationId), now: .now)
+        let clock = HybridLogicalTimestamp(
+            wallTimeMilliseconds: Date.now.millisecondsSince1970 + 10_000,
+            counter: 0,
+            deviceId: "server"
+        )
+        try await store.applyRemotePage(
+            PullPage(
+                changes: [remoteTodo(
+                    id: todo.id.uppercased(),
+                    kind: .upsert,
+                    fields: ["completed": .boolean(true)],
+                    groups: ["completion"],
+                    clock: clock
+                )],
+                nextCursor: "case-variant",
+                hasMore: false,
+                serverTime: .now
+            ),
+            now: .now
+        )
+
+        let snapshot = try await store.loadSnapshot()
+        XCTAssertEqual(snapshot.todos.count, 1)
+        XCTAssertEqual(snapshot.todos.first?.id, todo.id)
+        XCTAssertEqual(snapshot.todos.first?.completed, true)
+    }
+
+    func testOpeningStoreRepairsCleanUUIDCaseVariantDuplicates() async throws {
+        let root = temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let storeURL = root.appending(path: "offline.store")
+        let canonicalID = "0754cf6a-b9e6-47d5-99ae-6e965c258fc2"
+        let olderDate = Date(timeIntervalSince1970: 1_700_000_000)
+        let newerDate = olderDate.addingTimeInterval(60)
+        let clocks = try JSONEncoder().encode([String: HybridLogicalTimestamp]())
+
+        do {
+            let schema = Schema(OfflineSchema.models)
+            let configuration = ModelConfiguration(
+                "CoupleOfflineTests",
+                schema: schema,
+                url: storeURL,
+                cloudKitDatabase: .none
+            )
+            let container = try ModelContainer(for: schema, configurations: [configuration])
+            let context = ModelContext(container)
+            context.autosaveEnabled = false
+            context.insert(LocalTodoEntity(
+                id: canonicalID.uppercased(),
+                coupleId: "couple",
+                ownerId: "owner",
+                title: "历史重复",
+                note: nil,
+                dueTime: nil,
+                visibility: Visibility.shared.rawValue,
+                completed: false,
+                completedAt: nil,
+                completedBy: nil,
+                reminderOffset: nil,
+                createdAt: olderDate,
+                updatedAt: olderDate,
+                fieldClocksData: clocks
+            ))
+            context.insert(LocalTodoEntity(
+                id: canonicalID,
+                coupleId: "couple",
+                ownerId: "owner",
+                title: "历史重复",
+                note: nil,
+                dueTime: nil,
+                visibility: Visibility.shared.rawValue,
+                completed: true,
+                completedAt: newerDate,
+                completedBy: "owner",
+                reminderOffset: nil,
+                createdAt: olderDate,
+                updatedAt: newerDate,
+                fieldClocksData: clocks
+            ))
+            try context.save()
+        }
+
+        var store: OfflineStore? = try OfflineStore.makePersistent(
+            storeURL: storeURL,
+            attachmentRoot: root.appending(path: "attachments")
+        )
+        let snapshot = try await store?.loadSnapshot()
+        XCTAssertEqual(snapshot?.todos.count, 1)
+        XCTAssertEqual(snapshot?.todos.first?.id, canonicalID)
+        XCTAssertEqual(snapshot?.todos.first?.completed, true)
+        store = nil
+
+        let schema = Schema(OfflineSchema.models)
+        let configuration = ModelConfiguration(
+            "CoupleOfflineTests",
+            schema: schema,
+            url: storeURL,
+            cloudKitDatabase: .none
+        )
+        let container = try ModelContainer(for: schema, configurations: [configuration])
+        let context = ModelContext(container)
+        XCTAssertEqual(try context.fetch(FetchDescriptor<LocalTodoEntity>()).count, 1)
+    }
+
     func testSwiftDataCRUDAndRestartPersistence() async throws {
         let root = temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -220,7 +476,10 @@ final class OfflineSyncTests: XCTestCase {
             now: .now
         )
         let firstPageSnapshot = try await store.loadSnapshot()
-        XCTAssertEqual(Set(firstPageSnapshot.todos.map(\.id)), [retained.id, stale.id, dirty.id])
+        XCTAssertEqual(
+            Set(firstPageSnapshot.todos.map(\.id)),
+            [retained.id.lowercased(), stale.id.lowercased(), dirty.id]
+        )
 
         try await store.applyRemotePage(
             PullPage(
@@ -233,7 +492,7 @@ final class OfflineSyncTests: XCTestCase {
             now: .now
         )
         let completedSnapshot = try await store.loadSnapshot()
-        XCTAssertEqual(Set(completedSnapshot.todos.map(\.id)), [retained.id, dirty.id])
+        XCTAssertEqual(Set(completedSnapshot.todos.map(\.id)), [retained.id.lowercased(), dirty.id])
 
         let resharedClock = HybridLogicalTimestamp(
             wallTimeMilliseconds: clock.wallTimeMilliseconds + 1,
@@ -256,7 +515,7 @@ final class OfflineSyncTests: XCTestCase {
             now: .now
         )
         let resharedSnapshot = try await store.loadSnapshot()
-        XCTAssertTrue(resharedSnapshot.todos.contains(where: { $0.id == stale.id }))
+        XCTAssertTrue(resharedSnapshot.todos.contains(where: { $0.id == stale.id.lowercased() }))
 
         let revoked = RemoteEntityChange(
             entityType: .todo,
@@ -397,6 +656,31 @@ final class OfflineSyncTests: XCTestCase {
         await cancellable.cancel()
         let cancelledResult = await task.value
         XCTAssertEqual(cancelledResult, .cancelled)
+    }
+
+    func testWriteTriggeredWhileAnEmptyRunFinishesIsNotLost() async throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let transport = SlowSyncTransport(delay: .milliseconds(120))
+        let coordinator = SyncCoordinator(store: store, transport: transport)
+
+        async let launch = coordinator.trigger(.launch)
+        try await Task.sleep(for: .milliseconds(20))
+        _ = try store.createTodo(
+            coupleId: "couple",
+            ownerId: "owner",
+            title: "同步收尾时写入",
+            dueDate: nil,
+            visibility: .shared
+        )
+        async let write = coordinator.trigger(.manual)
+
+        let results = await (launch, write)
+        XCTAssertEqual(results.0, .success)
+        XCTAssertEqual(results.1, .success)
+        XCTAssertEqual(try store.unsyncedCount(), 0)
+        let exchangeCount = await transport.exchangeCount()
+        XCTAssertEqual(exchangeCount, 3)
     }
 
     func testDeviceReuseRotatesInstallationIdentityAndRetriesUnchangedOutbox() async throws {
@@ -562,7 +846,7 @@ final class OfflineSyncTests: XCTestCase {
         let retainedBytes = try await store.pendingAttachment(relativePath: record.relativePath)
         XCTAssertEqual(retainedBytes, bytes)
 
-        let remoteAttachment = Attachment(
+        let pendingRemoteAttachment = Attachment(
             id: UUID().uuidString,
             filename: record.filename,
             mimeType: record.mimeType,
@@ -571,34 +855,82 @@ final class OfflineSyncTests: XCTestCase {
             height: record.height,
             durationMs: nil,
             finalized: true,
-            processingStatus: "ready",
+            processingStatus: "pending",
             createdAt: .now,
             sortOrder: 0,
-            url: "/attachments/example",
+            url: nil,
             posterUrl: nil,
             demoAssetName: nil
         )
         try store.markAttachmentUploadPrepared(
             localId: record.localId,
-            serverAttachmentId: remoteAttachment.id,
+            serverAttachmentId: pendingRemoteAttachment.id,
             objectKey: "uploads/kept-until-content-ack",
             presignedUploadURL: "https://upload.invalid/signed"
         )
-        try store.markAttachmentFinalized(localId: record.localId, serverAttachment: remoteAttachment)
+        try store.markAttachmentFinalized(
+            localId: record.localId,
+            serverAttachment: pendingRemoteAttachment
+        )
         let finalized = try XCTUnwrap(store.pendingAttachmentRecords(for: note.id).first)
         XCTAssertEqual(finalized.uploadObjectKey, "uploads/kept-until-content-ack")
         try store.markAttachmentsForReconciliation(parentIds: [note.id])
         let reconciled = try XCTUnwrap(store.pendingAttachmentRecords(for: note.id).first)
         XCTAssertEqual(reconciled.syncState, AttachmentSyncState.uploading.rawValue)
         XCTAssertEqual(reconciled.uploadObjectKey, "uploads/kept-until-content-ack")
-        try store.markAttachmentFinalized(localId: record.localId, serverAttachment: remoteAttachment)
+        try store.markAttachmentFinalized(
+            localId: record.localId,
+            serverAttachment: pendingRemoteAttachment
+        )
         try await store.acknowledge(operationIds: [operation.operationId], now: .now)
+        let bytesAfterAck = try await store.pendingAttachment(relativePath: record.relativePath)
+        XCTAssertEqual(bytesAfterAck, bytes)
+
+        let readyClock = HybridLogicalTimestamp(
+            wallTimeMilliseconds: Date.now.millisecondsSince1970,
+            counter: 0,
+            deviceId: "server"
+        )
+        try await store.applyRemotePage(
+            PullPage(
+                changes: [RemoteEntityChange(
+                    entityType: .attachment,
+                    entityId: pendingRemoteAttachment.id,
+                    ownerId: "owner",
+                    visibility: Visibility.private.rawValue,
+                    kind: .upsert,
+                    fields: [
+                        "filename": .string(record.filename),
+                        "mimeType": .string(record.mimeType),
+                        "size": .integer(record.size),
+                        "width": .integer(record.width ?? 0),
+                        "height": .integer(record.height ?? 0),
+                        "url": .string("/v1/api/attachments/\(pendingRemoteAttachment.id)/download"),
+                    ],
+                    attachments: [],
+                    changedFieldGroups: ["metadata"],
+                    fieldClocks: ["metadata": readyClock],
+                    tombstone: nil,
+                    updatedAt: readyClock.date
+                )],
+                nextCursor: "attachment-ready",
+                hasMore: false,
+                serverTime: readyClock.date
+            ),
+            now: readyClock.date
+        )
         do {
             _ = try await store.pendingAttachment(relativePath: record.relativePath)
-            XCTFail("pending file should be removed after mutation ack")
+            XCTFail("pending file should be removed after a remote download URL is available")
         } catch {
             XCTAssertTrue(error is CocoaError)
         }
+        let readySnapshot = try await store.loadSnapshot()
+        let synchronized = try XCTUnwrap(readySnapshot.notes.first?.attachments.first)
+        XCTAssertEqual(
+            synchronized.url,
+            "/v1/api/attachments/\(pendingRemoteAttachment.id)/download"
+        )
     }
 
     func testRemoteAttachmentCacheSurvivesStoreRecreation() async throws {

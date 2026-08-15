@@ -8,6 +8,9 @@ struct NowView: View {
     let showComposer: () -> Void
     let showSettings: () -> Void
     let setPhotoCarouselFrame: (CGRect) -> Void
+    @State private var editingNote: Note?
+    @State private var editingTodo: Todo?
+    @State private var editingAnniversary: Anniversary?
 
     private var memberNames: String {
         let names = store.relationship?.members.map(\.displayName) ?? []
@@ -20,6 +23,10 @@ struct NowView: View {
 
     private var activeTodos: [Todo] {
         store.todos.incompleteTodosOrderedByDueTime(limit: 4)
+    }
+
+    private var nextAnniversary: Anniversary? {
+        store.homeAnniversary
     }
 
     var body: some View {
@@ -44,6 +51,15 @@ struct NowView: View {
             DesignTopEdgeBackground(length: AppTheme.homeTopFadeLength)
         }
         .screenBackground()
+        .sheet(item: $editingNote) { note in
+            ComposeMemoryView(editing: note)
+        }
+        .sheet(item: $editingTodo) { todo in
+            NewTodoView(editing: todo)
+        }
+        .sheet(item: $editingAnniversary) { anniversary in
+            NewAnniversaryView(editing: anniversary)
+        }
     }
 
     private var relationshipHero: some View {
@@ -71,12 +87,32 @@ struct NowView: View {
             ScrollView(.horizontal) {
                 HStack(alignment: .bottom, spacing: AppTheme.heroPhotoSpacing) {
                     ForEach(Array(featuredAttachments.enumerated()), id: \.element.id) { index, attachment in
-                        AttachmentImage(attachment: attachment)
-                            .frame(width: heroWidth(for: index), height: 120)
+                        let note = store.notes.first { candidate in
+                            candidate.attachments.contains { $0.id == attachment.id }
+                        }
+
+                        AttachmentImage(attachment: attachment, contentMode: .fit)
+                            .frame(
+                                width: AttachmentFlow.itemWidth(
+                                    height: 120,
+                                    aspectRatio: attachment.aspectRatio
+                                ),
+                                height: 120
+                            )
+                            .clipped()
                             .overlay { Rectangle().stroke(Color.white, lineWidth: 3) }
                             .shadow(color: .black.opacity(0.2), radius: 14, y: 4)
                             .rotationEffect(.degrees(-1))
                             .accessibilityIdentifier("featuredPhoto-\(index)")
+                            .editableContentActions(
+                                deletionTitle: "删除这条动态及其中照片？",
+                                editAction: {
+                                    if let note { editingNote = note }
+                                },
+                                deleteAction: {
+                                    if let note { try await store.deleteMemory(note) }
+                                }
+                            )
                     }
                     if featuredAttachments.isEmpty {
                         ForEach(0..<4, id: \.self) { index in
@@ -110,7 +146,7 @@ struct NowView: View {
 
     private var anniversarySection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            if let anniversary = store.home?.nextAnniversary ?? store.anniversaries.first {
+            if let anniversary = nextAnniversary {
                 let days = daysUntil(anniversary)
                 HStack(spacing: 4) {
                     Text("下一个纪念日还有")
@@ -124,7 +160,7 @@ struct NowView: View {
                 HStack(alignment: .top, spacing: 9) {
                     AssociationArrow(height: 45)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text((Date.fromDateOnly(anniversary.nextOccurrence ?? anniversary.date) ?? Date()).chineseDateTime)
+                        Text((anniversary.upcomingOccurrence() ?? Date()).chineseDateTime)
                             .font(.caption)
                             .foregroundStyle(AppTheme.muted)
                         Label(anniversary.title, systemImage: "birthday.cake.fill")
@@ -133,6 +169,11 @@ struct NowView: View {
                 }
                 .padding(.horizontal, 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .editableContentActions(
+                    deletionTitle: "删除纪念日“\(anniversary.title)”？",
+                    editAction: { editingAnniversary = anniversary },
+                    deleteAction: { try await store.deleteAnniversary(anniversary) }
+                )
             } else {
                 Text("还没有纪念日")
                     .font(AppTheme.titleFont())
@@ -151,6 +192,11 @@ struct NowView: View {
                 ) {
                     await store.setTodoCompletion(todo, completed: true)
                 }
+                .editableContentActions(
+                    deletionTitle: "删除清单“\(todo.title)”？",
+                    editAction: { editingTodo = todo },
+                    deleteAction: { try await store.deleteTodo(todo) }
+                )
             }
             if activeTodos.isEmpty {
                 Label("共同清单已经完成", systemImage: "checkmark.square")
@@ -175,7 +221,7 @@ struct NowView: View {
     }
 
     private func daysUntil(_ anniversary: Anniversary) -> Int {
-        guard let date = Date.fromDateOnly(anniversary.nextOccurrence ?? anniversary.date) else { return 0 }
+        guard let date = anniversary.upcomingOccurrence() else { return 0 }
         return max(Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: Date()), to: date).day ?? 0, 0)
     }
 }

@@ -199,6 +199,8 @@ actor SyncCoordinator {
     private let pageSize: Int
     private let retryBaseDelay: TimeInterval
     private var activeTask: Task<SyncRunResult, Never>?
+    private var activeTaskID: UUID?
+    private var requestedGeneration: UInt64 = 0
     private(set) var state: SyncCoordinatorState = .idle
 
     init(
@@ -216,10 +218,14 @@ actor SyncCoordinator {
     }
 
     func trigger(_ trigger: SyncTrigger) async -> SyncRunResult {
+        requestedGeneration &+= 1
         if let activeTask { return await activeTask.value }
         state = .syncing(trigger)
+        let taskID = UUID()
+        activeTaskID = taskID
         let task = Task { [store, transport, batchSize, pageSize, retryBaseDelay] in
-            await Self.run(
+            await self.runUntilQuiescent(
+                taskID: taskID,
                 store: store,
                 transport: transport,
                 batchSize: batchSize,
@@ -228,17 +234,61 @@ actor SyncCoordinator {
             )
         }
         activeTask = task
-        let result = await task.value
-        activeTask = nil
-        switch result {
-        case .success, .cancelled: state = .idle
-        case .failed(let message): state = .waitingForRetry(message)
-        }
-        return result
+        return await task.value
     }
 
     func cancel() {
         activeTask?.cancel()
+    }
+
+    private func runUntilQuiescent(
+        taskID: UUID,
+        store: any SyncStore,
+        transport: any SyncTransport,
+        batchSize: Int,
+        pageSize: Int,
+        retryBaseDelay: TimeInterval
+    ) async -> SyncRunResult {
+        var result: SyncRunResult
+        repeat {
+            let runGeneration = requestedGeneration
+            result = await Self.run(
+                store: store,
+                transport: transport,
+                batchSize: batchSize,
+                pageSize: pageSize,
+                retryBaseDelay: retryBaseDelay
+            )
+            guard result == .success else { break }
+            guard await hasPendingWorkRequested(after: runGeneration, store: store) else { break }
+        } while true
+
+        if activeTaskID == taskID {
+            activeTask = nil
+            activeTaskID = nil
+            switch result {
+            case .success, .cancelled: state = .idle
+            case .failed(let message): state = .waitingForRetry(message)
+            }
+        }
+        return result
+    }
+
+    private func hasPendingWorkRequested(
+        after runGeneration: UInt64,
+        store: any SyncStore
+    ) async -> Bool {
+        var observedGeneration = runGeneration
+        while requestedGeneration != observedGeneration {
+            observedGeneration = requestedGeneration
+            do {
+                let pending = try await store.pendingOperations(limit: 1, now: .now)
+                if !pending.isEmpty { return true }
+            } catch {
+                return true
+            }
+        }
+        return false
     }
 
     private static func run(

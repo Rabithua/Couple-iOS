@@ -2,6 +2,23 @@ import XCTest
 
 @MainActor
 final class CoupleJourneyUITests: XCTestCase {
+    func testLongPressTodoOffersEditAndDeleteActions() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-future"]
+        app.launch()
+
+        app.buttons["清单"].tap()
+        let todo = app.staticTexts["一起去灵隐寺还愿吧"]
+        XCTAssertTrue(todo.waitForExistence(timeout: 5))
+        todo.press(forDuration: 1)
+
+        XCTAssertTrue(app.buttons["编辑"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["删除"].exists)
+        app.buttons["编辑"].tap()
+        XCTAssertTrue(app.navigationBars["编辑清单"].waitForExistence(timeout: 2))
+    }
+
     func testFutureAddButtonPresentsImmediately() {
         continueAfterFailure = false
         let app = XCUIApplication()
@@ -13,6 +30,9 @@ final class CoupleJourneyUITests: XCTestCase {
         addButton.tap()
         XCTAssertTrue(app.navigationBars["新日程"].waitForExistence(timeout: 2))
         XCTAssertEqual(app.navigationBars.matching(identifier: "新日程").count, 1)
+        let endTimeToggle = app.switches["结束时间"]
+        XCTAssertTrue(endTimeToggle.waitForExistence(timeout: 2))
+        XCTAssertEqual(endTimeToggle.value as? String, "1")
         app.buttons["取消"].tap()
 
         app.buttons["清单"].tap()

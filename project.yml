@@ -40,7 +40,7 @@ targets:
         Debug:
           CODE_SIGN_STYLE: Manual
           CODE_SIGN_IDENTITY: Apple Development
-          PROVISIONING_PROFILE_SPECIFIER: Oursince Couple Development Huawei Air
+          PROVISIONING_PROFILE_SPECIFIER: Oursince Couple Development Huawei Devices
     dependencies: []
   CoupleTests:
     type: bundle.unit-test

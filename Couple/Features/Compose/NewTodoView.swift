@@ -4,12 +4,21 @@ struct NewTodoView: View {
     @Environment(AppHaptics.self) private var haptics
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
-    @State private var title = ""
-    @State private var hasDueDate = false
-    @State private var dueDate = Date().addingTimeInterval(86_400)
-    @State private var visibility: Visibility = .shared
+    private let editingTodo: Todo?
+    @State private var title: String
+    @State private var hasDueDate: Bool
+    @State private var dueDate: Date
+    @State private var visibility: Visibility
     @State private var isSaving = false
     @State private var errorMessage: String?
+
+    init(editing todo: Todo? = nil) {
+        editingTodo = todo
+        _title = State(initialValue: todo?.title ?? "")
+        _hasDueDate = State(initialValue: todo?.dueTime != nil)
+        _dueDate = State(initialValue: todo?.dueTime ?? Date.now.addingTimeInterval(86_400))
+        _visibility = State(initialValue: todo?.visibility ?? .shared)
+    }
 
     var body: some View {
         NavigationStack {
@@ -32,7 +41,7 @@ struct NewTodoView: View {
                     .appHapticFeedback(.selection, trigger: visibility)
                 }
             }
-            .navigationTitle("新清单")
+            .navigationTitle(editingTodo == nil ? "新清单" : "编辑清单")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -63,6 +72,8 @@ struct NewTodoView: View {
     }
 
     private func beginSaving() {
+        guard !isSaving else { return }
+        isSaving = true
         haptics.play(.tap)
         Task { await save() }
     }
@@ -72,14 +83,23 @@ struct NewTodoView: View {
     }
 
     private func save() async {
-        isSaving = true
         defer { isSaving = false }
         do {
-            try await store.addTodo(
-                title: title.trimmingCharacters(in: .whitespacesAndNewlines),
-                dueDate: hasDueDate ? dueDate : nil,
-                visibility: visibility
-            )
+            let cleanedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let editingTodo {
+                try await store.updateTodo(
+                    editingTodo,
+                    title: cleanedTitle,
+                    dueDate: hasDueDate ? dueDate : nil,
+                    visibility: visibility
+                )
+            } else {
+                try await store.addTodo(
+                    title: cleanedTitle,
+                    dueDate: hasDueDate ? dueDate : nil,
+                    visibility: visibility
+                )
+            }
             haptics.play(.success)
             dismiss()
         } catch {

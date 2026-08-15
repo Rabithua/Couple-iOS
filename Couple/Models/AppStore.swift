@@ -55,6 +55,15 @@ final class AppStore {
     private(set) var pendingTodoIDs: Set<String> = []
     private(set) var isDemo: Bool
 
+    var homeAnniversary: Anniversary? {
+        guard let cached = home?.nextAnniversary else {
+            return anniversaries.nextUpcomingAnniversary()
+        }
+        return anniversaries.first {
+            $0.id.caseInsensitiveCompare(cached.id) == .orderedSame
+        } ?? cached
+    }
+
     init(
         api: APIClient = APIClient(),
         passkeys: PasskeyService = PasskeyService(),
@@ -302,6 +311,42 @@ final class AppStore {
         triggerSyncAfterWrite()
     }
 
+    func updateTodo(
+        _ todo: Todo,
+        title: String,
+        dueDate: Date?,
+        visibility: Visibility
+    ) async throws {
+        if isDemo {
+            guard let index = todos.firstIndex(where: { $0.id == todo.id }) else { return }
+            todos[index].title = title
+            todos[index].dueTime = dueDate
+            todos[index].visibility = visibility
+            todos[index].updatedAt = .now
+            return
+        }
+        guard let offlineStore else { throw APIError.invalidResponse }
+        try offlineStore.editTodo(
+            id: todo.id,
+            title: title,
+            dueDate: dueDate,
+            visibility: visibility
+        )
+        try await loadLocalContent()
+        triggerSyncAfterWrite()
+    }
+
+    func deleteTodo(_ todo: Todo) async throws {
+        if isDemo {
+            todos.removeAll { $0.id == todo.id }
+            return
+        }
+        guard let offlineStore else { throw APIError.invalidResponse }
+        try offlineStore.deleteTodo(id: todo.id)
+        try await loadLocalContent()
+        triggerSyncAfterWrite()
+    }
+
     func addAnniversary(title: String, date: Date, annual: Bool, visibility: Visibility) async throws {
         if isDemo {
             var item = SampleData.anniversary
@@ -325,6 +370,52 @@ final class AppStore {
         triggerSyncAfterWrite()
     }
 
+    func updateAnniversary(
+        _ anniversary: Anniversary,
+        title: String,
+        date: Date,
+        annual: Bool,
+        visibility: Visibility
+    ) async throws {
+        if isDemo {
+            guard let index = anniversaries.firstIndex(where: {
+                $0.id.caseInsensitiveCompare(anniversary.id) == .orderedSame
+            }) else { return }
+            anniversaries[index].title = title
+            anniversaries[index].date = date.dateOnlyString
+            anniversaries[index].annual = annual
+            anniversaries[index].nextOccurrence = nil
+            anniversaries[index].visibility = visibility
+            anniversaries[index].updatedAt = .now
+            return
+        }
+        guard let offlineStore else { throw APIError.invalidResponse }
+        try offlineStore.editAnniversary(
+            id: anniversary.id,
+            title: title,
+            date: date,
+            annual: annual,
+            visibility: visibility
+        )
+        try await loadLocalContent()
+        triggerSyncAfterWrite()
+    }
+
+    func deleteAnniversary(_ anniversary: Anniversary) async throws {
+        if isDemo {
+            anniversaries.removeAll {
+                $0.id.caseInsensitiveCompare(anniversary.id) == .orderedSame
+            }
+            refreshHomeAfterDeletingAnniversary(id: anniversary.id)
+            return
+        }
+        guard let offlineStore else { throw APIError.invalidResponse }
+        try offlineStore.deleteAnniversary(id: anniversary.id)
+        try await loadLocalContent()
+        refreshHomeAfterDeletingAnniversary(id: anniversary.id)
+        triggerSyncAfterWrite()
+    }
+
     func addCalendarEvent(title: String, start: Date, end: Date?, allDay: Bool) async throws {
         if isDemo { return }
         let identity = try localIdentity()
@@ -336,6 +427,67 @@ final class AppStore {
             end: end,
             allDay: allDay
         )
+        try await loadLocalContent()
+        triggerSyncAfterWrite()
+    }
+
+    func updateCalendarEvent(
+        _ event: CalendarEvent,
+        title: String,
+        start: Date,
+        end: Date?,
+        allDay: Bool
+    ) async throws {
+        let sourceID = event.recurrenceSourceId ?? event.id
+        if isDemo {
+            let startDelta = start.timeIntervalSince(event.startTime)
+            let endDelta = end.flatMap { editedEnd in
+                event.endTime.map { editedEnd.timeIntervalSince($0) }
+            }
+            let editedDuration = end.map { max($0.timeIntervalSince(start), 0) }
+            for index in calendarEvents.indices where
+                calendarEvents[index].id == sourceID
+                    || calendarEvents[index].recurrenceSourceId == sourceID {
+                calendarEvents[index].title = title
+                calendarEvents[index].startTime = calendarEvents[index].startTime
+                    .addingTimeInterval(startDelta)
+                if end == nil {
+                    calendarEvents[index].endTime = nil
+                } else if let currentEnd = calendarEvents[index].endTime, let endDelta {
+                    calendarEvents[index].endTime = currentEnd.addingTimeInterval(endDelta)
+                } else if let editedDuration {
+                    calendarEvents[index].endTime = calendarEvents[index].startTime
+                        .addingTimeInterval(editedDuration)
+                }
+                calendarEvents[index].allDay = allDay
+                calendarEvents[index].updatedAt = .now
+            }
+            return
+        }
+        guard let offlineStore else { throw APIError.invalidResponse }
+        try offlineStore.editCalendarEvent(
+            id: sourceID,
+            title: title,
+            start: start,
+            end: end,
+            allDay: allDay,
+            occurrenceStart: event.recurrenceSourceId == nil ? nil : event.startTime,
+            occurrenceEnd: event.recurrenceSourceId == nil ? nil : event.endTime
+        )
+        try await loadLocalContent()
+        triggerSyncAfterWrite()
+    }
+
+    func deleteCalendarEvent(_ event: CalendarEvent) async throws {
+        let sourceID = event.recurrenceSourceId ?? event.id
+        if isDemo {
+            calendarEvents.removeAll {
+                $0.id == sourceID || $0.recurrenceSourceId == sourceID
+            }
+            return
+        }
+        guard let offlineStore else { throw APIError.invalidResponse }
+        try offlineStore.deleteCalendarEvent(id: sourceID)
         try await loadLocalContent()
         triggerSyncAfterWrite()
     }
@@ -377,6 +529,63 @@ final class AppStore {
             todoTitle: todos.first(where: { $0.id == todoId })?.title,
             visibility: visibility
         )
+        try await loadLocalContent()
+        triggerSyncAfterWrite()
+    }
+
+    func updateMemory(
+        _ note: Note,
+        content: String,
+        anniversaryId: String?,
+        todoId: String?,
+        visibility: Visibility
+    ) async throws {
+        let associations = [
+            anniversaryId.flatMap { id in
+                anniversaries.first(where: { $0.id == id }).map {
+                    NoteAssociation(type: .anniversary, id: id, title: $0.title)
+                }
+            },
+            todoId.flatMap { id in
+                todos.first(where: { $0.id == id }).map {
+                    NoteAssociation(type: .todo, id: id, title: $0.title)
+                }
+            },
+        ].compactMap { $0 }
+
+        if isDemo {
+            guard let index = notes.firstIndex(where: { $0.id == note.id }) else { return }
+            notes[index].content = content
+            notes[index].anniversaryId = anniversaryId
+            notes[index].todoId = todoId
+            notes[index].visibility = visibility
+            notes[index].associations = associations
+            notes[index].updatedAt = .now
+            rebuildPastNoteCaches()
+            return
+        }
+        guard let offlineStore else { throw APIError.invalidResponse }
+        try offlineStore.editMemory(
+            id: note.id,
+            content: content,
+            anniversaryId: anniversaryId,
+            anniversaryTitle: associations.first(where: { $0.type == .anniversary })?.title,
+            todoId: todoId,
+            todoTitle: associations.first(where: { $0.type == .todo })?.title,
+            visibility: visibility
+        )
+        try await loadLocalContent()
+        triggerSyncAfterWrite()
+    }
+
+    func deleteMemory(_ note: Note) async throws {
+        if isDemo {
+            notes.removeAll { $0.id == note.id }
+            rebuildPastNoteCaches()
+            return
+        }
+        guard let offlineStore else { throw APIError.invalidResponse }
+        try await offlineStore.deleteMemory(id: note.id)
         try await loadLocalContent()
         triggerSyncAfterWrite()
     }
@@ -577,6 +786,21 @@ final class AppStore {
         return (coupleId, userId)
     }
 
+    private func refreshHomeAfterDeletingAnniversary(id: String) {
+        guard let currentHome = home,
+              currentHome.nextAnniversary?.id.caseInsensitiveCompare(id) == .orderedSame else {
+            return
+        }
+        let updatedHome = HomeData(
+            daysTogether: currentHome.daysTogether,
+            nextAnniversary: anniversaries.nextUpcomingAnniversary(),
+            nextUpcoming: currentHome.nextUpcoming,
+            latestTimelineEntry: currentHome.latestTimelineEntry
+        )
+        home = updatedHome
+        if !isDemo { try? offlineStore?.updateCachedHome(updatedHome) }
+    }
+
     private func performSignOut(discardLocalChanges: Bool) async -> Bool {
         retryTask?.cancel()
         retryTask = nil
@@ -589,7 +813,7 @@ final class AppStore {
             if discardLocalChanges {
                 try await offlineStore?.discardPendingMutationsAndLocalData()
             } else if signOutDisposition() == .ready {
-                try offlineStore?.clearSynchronizedLocalDataForSignOut()
+                try await offlineStore?.clearSynchronizedLocalDataForSignOut()
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -612,6 +836,7 @@ final class AppStore {
     }
 
     private func runBusy(_ operation: () async throws -> Void) async {
+        guard !isBusy else { return }
         isBusy = true
         errorMessage = nil
         defer { isBusy = false }
@@ -622,7 +847,8 @@ final class AppStore {
         } catch is CancellationError {
             return
         } catch {
-            errorMessage = error.localizedDescription
+            let message = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+            errorMessage = message.isEmpty ? "操作失败，请稍后重试" : message
         }
     }
 

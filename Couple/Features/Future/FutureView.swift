@@ -18,6 +18,8 @@ struct FutureView: View {
     let selectMode: (FutureMode) -> Void
     @State private var showingNewTodo = false
     @State private var selectedEventDate: SelectedEventDate?
+    @State private var editingTodo: Todo?
+    @State private var editingEvent: CalendarEvent?
 
     private let months = CalendarMonth.make(startingAt: Date(), count: 12)
 
@@ -66,6 +68,12 @@ struct FutureView: View {
         .sheet(item: $selectedEventDate) { selection in
             NewCalendarEventView(initialDate: selection.date)
         }
+        .sheet(item: $editingTodo) { todo in
+            NewTodoView(editing: todo)
+        }
+        .sheet(item: $editingEvent) { event in
+            NewCalendarEventView(editing: event)
+        }
     }
 
     private var calendarContent: some View {
@@ -74,7 +82,12 @@ struct FutureView: View {
                 ForEach(months) { month in
                     CalendarMonthView(
                         month: month,
-                        events: store.calendarEvents
+                        events: store.calendarEvents,
+                        todos: store.todos,
+                        editEvent: editCalendarEvent,
+                        editTodo: editTodo,
+                        deleteEvent: deleteCalendarEvent,
+                        deleteTodo: deleteTodo
                     )
                 }
             }
@@ -99,6 +112,11 @@ struct FutureView: View {
                     ) { completed in
                         await store.setTodoCompletion(todo, completed: completed)
                     }
+                    .editableContentActions(
+                        deletionTitle: "删除清单“\(todo.title)”？",
+                        editAction: { editTodo(todo) },
+                        deleteAction: { try await deleteTodo(todo) }
+                    )
                 }
 
                 if orderedTodos.isEmpty {
@@ -128,6 +146,22 @@ struct FutureView: View {
         } else {
             selectedEventDate = SelectedEventDate(date: Date())
         }
+    }
+
+    private func editTodo(_ todo: Todo) {
+        editingTodo = todo
+    }
+
+    private func editCalendarEvent(_ event: CalendarEvent) {
+        editingEvent = event
+    }
+
+    private func deleteTodo(_ todo: Todo) async throws {
+        try await store.deleteTodo(todo)
+    }
+
+    private func deleteCalendarEvent(_ event: CalendarEvent) async throws {
+        try await store.deleteCalendarEvent(event)
     }
 }
 

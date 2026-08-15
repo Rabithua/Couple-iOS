@@ -50,6 +50,43 @@ final class CoupleCoreTests: XCTestCase {
     }
 
     @MainActor
+    func testCalendarMonthMarksTodoDueDateAsScheduled() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let dueDate = try XCTUnwrap(calendar.date(from: DateComponents(
+            year: 2026,
+            month: 8,
+            day: 15,
+            hour: 21
+        )))
+        let otherDate = try XCTUnwrap(calendar.date(byAdding: .day, value: 1, to: dueDate))
+        let month = try XCTUnwrap(CalendarMonth.make(
+            startingAt: dueDate,
+            count: 1,
+            calendar: calendar
+        ).first)
+        let todo = Todo(
+            id: "todo-with-due-date",
+            coupleId: "couple",
+            ownerId: "owner",
+            title: "有日期的清单",
+            note: nil,
+            dueTime: dueDate,
+            visibility: .shared,
+            completed: false,
+            completedAt: nil,
+            completedBy: nil,
+            reminderOffset: 60,
+            createdAt: dueDate,
+            updatedAt: dueDate
+        )
+        let view = CalendarMonthView(month: month, events: [], todos: [todo])
+
+        XCTAssertTrue(view.hasScheduledItem(on: dueDate, calendar: calendar))
+        XCTAssertFalse(view.hasScheduledItem(on: otherDate, calendar: calendar))
+    }
+
+    @MainActor
     func testDemoStoreLoadsCompleteHomeData() async {
         let store = AppStore(
             environment: ["COUPLE_DEMO_MODE": "1"],
