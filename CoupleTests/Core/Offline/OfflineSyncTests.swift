@@ -126,7 +126,7 @@ final class OfflineSyncTests: XCTestCase {
         try store.deleteTodo(id: todo.id)
         try store.deleteAnniversary(id: anniversary.id)
         try store.deleteCalendarEvent(id: event.id)
-        try store.deleteMemory(id: note.id)
+        try await store.deleteMemory(id: note.id)
 
         let deleted = try await store.loadSnapshot()
         XCTAssertTrue(deleted.todos.isEmpty)

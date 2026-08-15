@@ -26,11 +26,7 @@ struct NowView: View {
     }
 
     private var nextAnniversary: Anniversary? {
-        if let cachedID = store.home?.nextAnniversary?.id,
-           let local = store.anniversaries.first(where: { $0.id == cachedID }) {
-            return local
-        }
-        return store.anniversaries.first
+        store.homeAnniversary
     }
 
     var body: some View {
@@ -96,7 +92,13 @@ struct NowView: View {
                         }
 
                         AttachmentImage(attachment: attachment, contentMode: .fit)
-                            .frame(width: 120 * attachment.aspectRatio, height: 120)
+                            .frame(
+                                width: AttachmentFlow.itemWidth(
+                                    height: 120,
+                                    aspectRatio: attachment.aspectRatio
+                                ),
+                                height: 120
+                            )
                             .clipped()
                             .overlay { Rectangle().stroke(Color.white, lineWidth: 3) }
                             .shadow(color: .black.opacity(0.2), radius: 14, y: 4)
@@ -158,7 +160,7 @@ struct NowView: View {
                 HStack(alignment: .top, spacing: 9) {
                     AssociationArrow(height: 45)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text((Date.fromDateOnly(anniversary.nextOccurrence ?? anniversary.date) ?? Date()).chineseDateTime)
+                        Text((anniversary.upcomingOccurrence() ?? Date()).chineseDateTime)
                             .font(.caption)
                             .foregroundStyle(AppTheme.muted)
                         Label(anniversary.title, systemImage: "birthday.cake.fill")
@@ -219,7 +221,7 @@ struct NowView: View {
     }
 
     private func daysUntil(_ anniversary: Anniversary) -> Int {
-        guard let date = Date.fromDateOnly(anniversary.nextOccurrence ?? anniversary.date) else { return 0 }
+        guard let date = anniversary.upcomingOccurrence() else { return 0 }
         return max(Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: Date()), to: date).day ?? 0, 0)
     }
 }

@@ -40,6 +40,78 @@ extension Date {
     }
 }
 
+extension Anniversary {
+    func upcomingOccurrence(
+        onOrAfter reference: Date = .now,
+        calendar: Calendar = .current
+    ) -> Date? {
+        let referenceDay = calendar.startOfDay(for: reference)
+        if let nextOccurrence,
+           let serverDate = Self.dateOnly(nextOccurrence, calendar: calendar),
+           calendar.startOfDay(for: serverDate) >= referenceDay {
+            return serverDate
+        }
+        guard let sourceDate = Self.dateOnly(date, calendar: calendar) else { return nil }
+        guard annual else {
+            return calendar.startOfDay(for: sourceDate) >= referenceDay ? sourceDate : nil
+        }
+        let source = calendar.dateComponents([.month, .day], from: sourceDate)
+        guard let month = source.month, let day = source.day else { return nil }
+        let referenceYear = calendar.component(.year, from: referenceDay)
+        guard let thisYear = Self.annualOccurrence(
+            year: referenceYear,
+            month: month,
+            day: day,
+            calendar: calendar
+        ) else { return nil }
+        if thisYear >= referenceDay { return thisYear }
+        return Self.annualOccurrence(
+            year: referenceYear + 1,
+            month: month,
+            day: day,
+            calendar: calendar
+        )
+    }
+
+    private static func annualOccurrence(
+        year: Int,
+        month: Int,
+        day: Int,
+        calendar: Calendar
+    ) -> Date? {
+        var components = DateComponents(year: year, month: month, day: day)
+        if month == 2, day == 29,
+           calendar.range(of: .day, in: .month, for: calendar.date(from: DateComponents(year: year, month: 2, day: 1)) ?? .distantPast)?.contains(29) == false {
+            components.day = 28
+        }
+        return calendar.date(from: components).map { calendar.startOfDay(for: $0) }
+    }
+
+    private static func dateOnly(_ value: String, calendar: Calendar) -> Date? {
+        let parts = value.split(separator: "-").compactMap { Int($0) }
+        guard parts.count == 3 else { return nil }
+        return calendar.date(from: DateComponents(
+            year: parts[0],
+            month: parts[1],
+            day: parts[2]
+        ))
+    }
+}
+
+extension Collection where Element == Anniversary {
+    func nextUpcomingAnniversary(
+        onOrAfter reference: Date = .now,
+        calendar: Calendar = .current
+    ) -> Anniversary? {
+        compactMap { anniversary in
+            anniversary.upcomingOccurrence(onOrAfter: reference, calendar: calendar)
+                .map { (anniversary, $0) }
+        }
+        .min { $0.1 < $1.1 }?
+        .0
+    }
+}
+
 struct CalendarMonth: Identifiable, Hashable, Sendable {
     let start: Date
     let days: [Date?]

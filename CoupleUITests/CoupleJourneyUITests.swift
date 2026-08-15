@@ -30,6 +30,9 @@ final class CoupleJourneyUITests: XCTestCase {
         addButton.tap()
         XCTAssertTrue(app.navigationBars["新日程"].waitForExistence(timeout: 2))
         XCTAssertEqual(app.navigationBars.matching(identifier: "新日程").count, 1)
+        let endTimeToggle = app.switches["结束时间"]
+        XCTAssertTrue(endTimeToggle.waitForExistence(timeout: 2))
+        XCTAssertEqual(endTimeToggle.value as? String, "1")
         app.buttons["取消"].tap()
 
         app.buttons["清单"].tap()

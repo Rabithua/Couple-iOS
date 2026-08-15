@@ -87,6 +87,7 @@ final class OfflineStore: SyncStore {
     }
 
     func loadSnapshot() async throws -> OfflineSnapshot {
+        try await cleanTombstonedAttachmentFiles()
         let localAttachments = try context.fetch(FetchDescriptor<LocalAttachmentEntity>())
             .filter { !$0.isTombstoned }
         var attachmentsByMemory: [String: [Attachment]] = [:]
@@ -460,6 +461,7 @@ final class OfflineStore: SyncStore {
         entity.title = title
         entity.date = date.dateOnlyString
         entity.annual = annual
+        entity.nextOccurrence = nil
         entity.visibility = visibility.rawValue
         entity.updatedAt = now
         entity.isDirty = true
@@ -539,6 +541,8 @@ final class OfflineStore: SyncStore {
         start: Date,
         end: Date?,
         allDay: Bool,
+        occurrenceStart: Date? = nil,
+        occurrenceEnd: Date? = nil,
         now: Date = .now
     ) throws {
         guard let entity = try calendarEventEntity(id: id) else {
@@ -547,9 +551,32 @@ final class OfflineStore: SyncStore {
         guard !entity.isTombstoned else { return }
         let hlc = try nextHLC(at: now)
         let groups: Set<String> = ["content", "schedule"]
+        let anchoredStart: Date
+        let anchoredEnd: Date?
+        if let occurrenceStart {
+            anchoredStart = entity.startTime.addingTimeInterval(
+                start.timeIntervalSince(occurrenceStart)
+            )
+            if let end {
+                if let occurrenceEnd, let sourceEnd = entity.endTime {
+                    anchoredEnd = sourceEnd.addingTimeInterval(
+                        end.timeIntervalSince(occurrenceEnd)
+                    )
+                } else {
+                    anchoredEnd = anchoredStart.addingTimeInterval(
+                        max(end.timeIntervalSince(start), 0)
+                    )
+                }
+            } else {
+                anchoredEnd = nil
+            }
+        } else {
+            anchoredStart = start
+            anchoredEnd = end
+        }
         entity.title = title
-        entity.startTime = start
-        entity.endTime = end
+        entity.startTime = anchoredStart
+        entity.endTime = anchoredEnd
         entity.allDay = allDay
         entity.updatedAt = now
         entity.isDirty = true
@@ -561,8 +588,8 @@ final class OfflineStore: SyncStore {
             payload: .init(fields: [
                 "title": .string(title),
                 "allDay": .boolean(allDay),
-                "startTime": .date(start),
-                "endTime": end.map(MutationValue.date) ?? .null,
+                "startTime": .date(anchoredStart),
+                "endTime": anchoredEnd.map(MutationValue.date) ?? .null,
             ]),
             changedGroups: groups,
             hlc: hlc,
@@ -704,11 +731,42 @@ final class OfflineStore: SyncStore {
         try context.save()
     }
 
-    func deleteMemory(id: String, now: Date = .now) throws {
+    func deleteMemory(id: String, now: Date = .now) async throws {
         guard let entity = try memoryEntity(id: id) else {
             throw OfflineStoreError.missingEntity(.memory, id)
         }
-        try delete(entity, entityType: .memory, now: now)
+        guard !entity.isTombstoned else {
+            try await cleanTombstonedAttachmentFiles(parentId: id)
+            return
+        }
+        let operations = try context.fetch(FetchDescriptor<OutboxEntity>())
+            .filter {
+                $0.entityType == SyncEntityType.memory.rawValue
+                    && Self.identifiersEqual($0.entityId, id)
+            }
+        let createOperation = operations.first {
+            $0.mutationKind == MutationKind.create.rawValue
+        }
+        let createWasNeverSent = createOperation.map {
+            $0.state == OutboxState.pending.rawValue
+                && $0.retryCount == 0
+                && $0.lastError == nil
+                && $0.updatedAt == $0.createdAt
+        } ?? false
+
+        for operation in operations { context.delete(operation) }
+        for attachment in try attachmentEntities(parentId: id) {
+            attachment.isTombstoned = true
+            attachment.isDirty = false
+            attachment.updatedAt = now
+        }
+        if createWasNeverSent {
+            context.delete(entity)
+            try context.save()
+        } else {
+            try delete(entity, entityType: .memory, now: now)
+        }
+        try await cleanTombstonedAttachmentFiles(parentId: id)
     }
 
     func createTimelineEntry(
@@ -861,10 +919,11 @@ final class OfflineStore: SyncStore {
         try context.fetchCount(FetchDescriptor<OutboxEntity>())
     }
 
-    func clearSynchronizedLocalDataForSignOut() throws {
+    func clearSynchronizedLocalDataForSignOut() async throws {
         guard try unsyncedCount() == 0 else {
             throw OfflineStoreError.corruptStoredValue("sign out with pending outbox")
         }
+        try await attachmentFiles.discardAllPending()
         try deleteAll(LocalTodoEntity.self)
         try deleteAll(LocalAnniversaryEntity.self)
         try deleteAll(LocalCalendarEventEntity.self)
@@ -1550,6 +1609,29 @@ final class OfflineStore: SyncStore {
         try context.save()
     }
 
+    private func cleanTombstonedAttachmentFiles(parentId: String? = nil) async throws {
+        let attachments = try context.fetch(FetchDescriptor<LocalAttachmentEntity>())
+            .filter { attachment in
+                guard attachment.isTombstoned else { return false }
+                guard let parentId else { return true }
+                return Self.identifiersEqual(attachment.memoryId, parentId)
+                    || Self.identifiersEqual(attachment.timelineId, parentId)
+            }
+        var removedRecord = false
+        for attachment in attachments {
+            do {
+                if let path = attachment.localRelativePath {
+                    try await attachmentFiles.removePending(relativePath: path)
+                }
+                context.delete(attachment)
+                removedRecord = true
+            } catch {
+                continue
+            }
+        }
+        if removedRecord { try context.save() }
+    }
+
     private func activeCoupleId() throws -> String {
         guard let session = try cachedSession(), let id = session.relationship.couple?.id else {
             return Self.activeScope
@@ -2215,6 +2297,14 @@ final class OfflineStore: SyncStore {
                     || Self.identifiersEqual($0.serverId, id)
             }
         return Self.preferredEntity(in: matches, matching: id)
+    }
+
+    private func attachmentEntities(parentId: String) throws -> [LocalAttachmentEntity] {
+        try context.fetch(FetchDescriptor<LocalAttachmentEntity>())
+            .filter {
+                Self.identifiersEqual($0.memoryId, parentId)
+                    || Self.identifiersEqual($0.timelineId, parentId)
+            }
     }
 
     private func resetFieldClocks(

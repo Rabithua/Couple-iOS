@@ -41,6 +41,7 @@
 		86A4A4A8125260287A48F14B /* AppRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D2778920BD88CC2CF7161A1 /* AppRootView.swift */; };
 		87796C37918793070E77674B /* DesignDecorations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FCD593DB9E8685FBCA89140 /* DesignDecorations.swift */; };
 		894840224FEE7C33559C1844 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 253314A1C5DD61760079944F /* KeychainStore.swift */; };
+		8AC6AF88130095C101AF1471 /* ReviewFeedbackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64E10CA2778DA878C57C90C5 /* ReviewFeedbackTests.swift */; };
 		8BB996E6A8D76DF9F52C1CD5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 22BED188E317E7EABE587033 /* Assets.xcassets */; };
 		8D839A0DB954A715E9A6826F /* AttachmentFileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BC4E79300346F7DDF02DFCF /* AttachmentFileStore.swift */; };
 		998B471ADAA4E5155F2EA1BD /* PastPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CF891D7864253C43B017ECD /* PastPageView.swift */; };
@@ -115,6 +116,7 @@
 		5D2778920BD88CC2CF7161A1 /* AppRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRootView.swift; sourceTree = "<group>"; };
 		60734C7C5F8A39BEA866997C /* CalendarMonthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarMonthView.swift; sourceTree = "<group>"; };
 		6300E503D7463C62D9897D82 /* AppHaptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHaptics.swift; sourceTree = "<group>"; };
+		64E10CA2778DA878C57C90C5 /* ReviewFeedbackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewFeedbackTests.swift; sourceTree = "<group>"; };
 		68F57A3CA83DDC65731106BA /* DeferredTodoCompletionRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeferredTodoCompletionRow.swift; sourceTree = "<group>"; };
 		696F9D1F109987A90B921B2E /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
 		6CF891D7864253C43B017ECD /* PastPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastPageView.swift; sourceTree = "<group>"; };
@@ -346,6 +348,7 @@
 			isa = PBXGroup;
 			children = (
 				B0AF77D26D44448929547523 /* AppStoreTests.swift */,
+				64E10CA2778DA878C57C90C5 /* ReviewFeedbackTests.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -634,6 +637,7 @@
 				A1956724BAA6C906CF61D659 /* CoupleCoreTests.swift in Sources */,
 				062FE797585C2017DF312C5D /* MainPagerGestureStateTests.swift in Sources */,
 				58326B25C993CD986092B2AA /* OfflineSyncTests.swift in Sources */,
+				8AC6AF88130095C101AF1471 /* ReviewFeedbackTests.swift in Sources */,
 				E38BB36A3D77587B744FEE90 /* SyncV1DTOTests.swift in Sources */,
 				C1536A7567795BE922FD71C4 /* TodoCompletionTests.swift in Sources */,
 				F325DB5E85A378D954EA9376 /* TodoDisplayOrderTests.swift in Sources */,

@@ -59,11 +59,18 @@ struct AttachmentFlow: View {
             ForEach(attachments) { attachment in
                 AttachmentImage(attachment: attachment, contentMode: .fit)
                     .frame(
-                        width: height * attachment.aspectRatio,
+                        width: Self.itemWidth(
+                            height: height,
+                            aspectRatio: attachment.aspectRatio
+                        ),
                         height: height
                     )
                     .clipped()
             }
         }
+    }
+
+    static func itemWidth(height: CGFloat, aspectRatio: CGFloat) -> CGFloat {
+        min(max(height * aspectRatio, 82), 216)
     }
 }
