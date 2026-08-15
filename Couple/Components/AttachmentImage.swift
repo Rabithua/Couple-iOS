@@ -51,11 +51,20 @@ actor AttachmentImageCache {
     }
 }
 
+@MainActor
 struct AttachmentImage: View {
+    private static let decodedImages: NSCache<NSString, UIImage> = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.countLimit = 40
+        cache.totalCostLimit = 96 * 1_024 * 1_024
+        return cache
+    }()
+
     let attachment: Attachment
     var contentMode: ContentMode = .fit
     @Environment(AppStore.self) private var store
     @State private var image: UIImage?
+    @State private var resolvedCacheKey: String?
     @State private var failed = false
 
     var body: some View {
@@ -64,11 +73,11 @@ struct AttachmentImage: View {
                 Image(asset)
                     .resizable()
                     .aspectRatio(contentMode: contentMode)
-            } else if let image {
-                Image(uiImage: image)
+            } else if let displayedImage {
+                Image(uiImage: displayedImage)
                     .resizable()
                     .aspectRatio(contentMode: contentMode)
-            } else if failed {
+            } else if failed, resolvedCacheKey == cacheKey {
                 Rectangle()
                     .fill(Color(.systemGray5))
                     .overlay { Image(systemName: "photo").foregroundStyle(.secondary) }
@@ -79,24 +88,57 @@ struct AttachmentImage: View {
             }
         }
         .clipped()
-        .task(id: "\(attachment.id)|\(attachment.url ?? "")|\(attachment.demoAssetName ?? "")") {
+        .task(id: cacheKey) {
             guard attachment.demoAssetName == nil else { return }
+
+            if let cachedImage = Self.decodedImages.object(forKey: cacheKey as NSString) {
+                image = cachedImage
+                resolvedCacheKey = cacheKey
+                failed = false
+                return
+            }
+
             image = nil
+            resolvedCacheKey = nil
             failed = false
             do {
                 guard let data = try await AttachmentImageCache.shared.data(for: attachment, api: store.api),
                       let decodedImage = UIImage(data: data) else {
                     failed = true
+                    resolvedCacheKey = cacheKey
                     return
                 }
                 try Task.checkCancellation()
+                Self.decodedImages.setObject(
+                    decodedImage,
+                    forKey: cacheKey as NSString,
+                    cost: decodedImageCost(decodedImage)
+                )
                 image = decodedImage
+                resolvedCacheKey = cacheKey
             } catch is CancellationError {
                 return
             } catch {
                 failed = true
+                resolvedCacheKey = cacheKey
             }
         }
         .accessibilityLabel(attachment.filename)
+    }
+
+    private var cacheKey: String {
+        "\(attachment.id)|\(attachment.url ?? "")|\(attachment.demoAssetName ?? "")"
+    }
+
+    private var displayedImage: UIImage? {
+        if resolvedCacheKey == cacheKey, let image {
+            return image
+        }
+        return Self.decodedImages.object(forKey: cacheKey as NSString)
+    }
+
+    private func decodedImageCost(_ image: UIImage) -> Int {
+        guard let cgImage = image.cgImage else { return 0 }
+        return cgImage.bytesPerRow * cgImage.height
     }
 }

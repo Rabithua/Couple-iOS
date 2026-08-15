@@ -18,7 +18,7 @@ struct NowView: View {
     }
 
     private var featuredAttachments: [Attachment] {
-        Array(store.notes.flatMap(\.attachments).prefix(4))
+        Array(store.notes.flatMap(\.attachments).filter(\.isImage).prefix(4))
     }
 
     private var activeTodos: [Todo] {
@@ -91,18 +91,24 @@ struct NowView: View {
                             candidate.attachments.contains { $0.id == attachment.id }
                         }
 
-                        AttachmentImage(attachment: attachment, contentMode: .fit)
-                            .frame(
-                                width: AttachmentFlow.itemWidth(
-                                    height: 120,
-                                    aspectRatio: attachment.aspectRatio
-                                ),
-                                height: 120
-                            )
-                            .clipped()
-                            .overlay { Rectangle().stroke(Color.white, lineWidth: 3) }
-                            .shadow(color: .black.opacity(0.2), radius: 14, y: 4)
-                            .rotationEffect(.degrees(-1))
+                        PhotoPreviewSource(
+                            groupID: "home.featured",
+                            attachments: featuredAttachments,
+                            attachment: attachment
+                        ) {
+                            AttachmentImage(attachment: attachment, contentMode: .fit)
+                                .frame(
+                                    width: AttachmentFlow.itemWidth(
+                                        height: 120,
+                                        aspectRatio: attachment.aspectRatio
+                                    ),
+                                    height: 120
+                                )
+                                .clipped()
+                                .overlay { Rectangle().stroke(Color.white, lineWidth: 3) }
+                                .shadow(color: .black.opacity(0.2), radius: 14, y: 4)
+                                .rotationEffect(.degrees(-1))
+                        }
                             .accessibilityIdentifier("featuredPhoto-\(index)")
                             .editableContentActions(
                                 deletionTitle: "删除这条动态及其中照片？",

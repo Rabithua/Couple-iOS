@@ -14,6 +14,8 @@ struct MainPagerView: View {
     @State private var mainGestureState = MainPagerGestureState()
     @State private var composerPresentedForCurrentGesture = false
     @State private var suppressComposerTapForCurrentEvent = false
+    @State private var photoPreviewSuppressedUntil = Date.distantPast
+    @GestureState private var isMainGestureActive = false
 
     init(arguments: [String] = ProcessInfo.processInfo.arguments) {
         let initialRoute: MainPagerRoute
@@ -28,57 +30,65 @@ struct MainPagerView: View {
     }
 
     var body: some View {
-        GeometryReader { proxy in
-            HStack(spacing: 0) {
-                MainPagerPage(isActive: route.isPast, size: proxy.size) {
-                    PastView(
-                        filter: route.pastFilter ?? .all,
-                        pageDragOffset: innerPageDragOffset,
-                        selectFilter: selectPastFilter
-                    )
-                }
+        PhotoPreviewHost(canPresent: canPresentPhotoPreview) {
+            GeometryReader { proxy in
+                HStack(spacing: 0) {
+                    MainPagerPage(isActive: route.isPast, size: proxy.size) {
+                        PastView(
+                            filter: route.pastFilter ?? .all,
+                            pageDragOffset: innerPageDragOffset,
+                            selectFilter: selectPastFilter
+                        )
+                    }
 
-                MainPagerPage(isActive: route == .now, size: proxy.size) {
-                    NowView(
-                        composePullProgress: mainGestureState.composeProgress,
-                        isActive: route == .now,
-                        showComposer: presentComposer,
-                        showSettings: presentSettings,
-                        setPhotoCarouselFrame: { frame in
-                            photoCarouselFrame = frame
-                        }
-                    )
-                }
+                    MainPagerPage(isActive: route == .now, size: proxy.size) {
+                        NowView(
+                            composePullProgress: mainGestureState.composeProgress,
+                            isActive: route == .now,
+                            showComposer: presentComposer,
+                            showSettings: presentSettings,
+                            setPhotoCarouselFrame: { frame in
+                                photoCarouselFrame = frame
+                            }
+                        )
+                    }
 
-                MainPagerPage(isActive: route.isFuture, size: proxy.size) {
-                    FutureView(
-                        mode: route.futureMode ?? .calendar,
-                        pageDragOffset: innerPageDragOffset,
-                        selectMode: selectFutureMode
+                    MainPagerPage(isActive: route.isFuture, size: proxy.size) {
+                        FutureView(
+                            mode: route.futureMode ?? .calendar,
+                            pageDragOffset: innerPageDragOffset,
+                            selectMode: selectFutureMode
+                        )
+                    }
+                }
+                .offset(
+                    x: -CGFloat(route.sectionIndex) * proxy.size.width
+                        + outerPageDragOffset
+                )
+                .animation(pageAnimation, value: route.sectionIndex)
+                .contentShape(Rectangle())
+                .simultaneousGesture(
+                    mainGesture(
+                        in: proxy.size,
+                        bottomSafeAreaInset: proxy.safeAreaInsets.bottom
                     )
+                )
+                .onChange(of: isMainGestureActive) { wasActive, isActive in
+                    guard wasActive, !isActive, isTrackingMainGesture else { return }
+                    withAnimation(pageAnimation) {
+                        resetMainGestureTracking()
+                    }
                 }
             }
-            .offset(
-                x: -CGFloat(route.sectionIndex) * proxy.size.width
-                    + outerPageDragOffset
-            )
-            .animation(pageAnimation, value: route.sectionIndex)
-            .contentShape(Rectangle())
-            .simultaneousGesture(
-                mainGesture(
-                    in: proxy.size,
-                    bottomSafeAreaInset: proxy.safeAreaInsets.bottom
-                )
-            )
+            .clipped()
+            .ignoresSafeArea(.container, edges: .bottom)
+            .coordinateSpace(name: "mainPager")
+            .background(Color(.systemBackground).ignoresSafeArea())
         }
-        .clipped()
-        .ignoresSafeArea(.container, edges: .bottom)
-        .coordinateSpace(name: "mainPager")
         .task(id: route) {
             await loadActivePastNotes()
         }
         .appHapticFeedback(.selection, trigger: route)
-        .background(Color(.systemBackground).ignoresSafeArea())
         .sheet(isPresented: $showingComposer, onDismiss: resetMainGestureTracking) {
             ComposeMemoryView()
         }
@@ -127,6 +137,9 @@ struct MainPagerView: View {
         bottomSafeAreaInset: CGFloat
     ) -> some Gesture {
         DragGesture(minimumDistance: 8, coordinateSpace: .named("mainPager"))
+            .updating($isMainGestureActive) { _, isActive, _ in
+                isActive = true
+            }
             .onChanged { value in
                 trackMainGesture(
                     value,
@@ -150,6 +163,7 @@ struct MainPagerView: View {
     ) {
         if !isTrackingMainGesture {
             isTrackingMainGesture = true
+            suppressPhotoPreviewAfterDrag()
             pageSwipeStartedInPhotoCarousel = route == .now
                 && photoCarouselFrame.contains(value.startLocation)
         }
@@ -170,6 +184,7 @@ struct MainPagerView: View {
         containerSize: CGSize,
         bottomSafeAreaInset: CGFloat
     ) {
+        suppressPhotoPreviewAfterDrag()
         mainGestureState.update(
             translation: value.translation,
             startLocation: value.startLocation,
@@ -250,6 +265,14 @@ struct MainPagerView: View {
         DispatchQueue.main.async {
             suppressComposerTapForCurrentEvent = false
         }
+    }
+
+    private func canPresentPhotoPreview() -> Bool {
+        Date.now >= photoPreviewSuppressedUntil
+    }
+
+    private func suppressPhotoPreviewAfterDrag() {
+        photoPreviewSuppressedUntil = Date.now.addingTimeInterval(0.2)
     }
 
     private func resetMainGestureTracking() {

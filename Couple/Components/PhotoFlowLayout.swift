@@ -53,19 +53,38 @@ struct PhotoFlowLayout: Layout {
 struct AttachmentFlow: View {
     let attachments: [Attachment]
     var height: CGFloat = 144
+    var previewGroupID: String?
 
     var body: some View {
         PhotoFlowLayout {
             ForEach(attachments) { attachment in
-                AttachmentImage(attachment: attachment, contentMode: .fit)
-                    .frame(
-                        width: Self.itemWidth(
-                            height: height,
-                            aspectRatio: attachment.aspectRatio
-                        ),
-                        height: height
-                    )
-                    .clipped()
+                if let previewGroupID, attachment.isImage {
+                    PhotoPreviewSource(
+                        groupID: previewGroupID,
+                        attachments: attachments,
+                        attachment: attachment
+                    ) {
+                        AttachmentImage(attachment: attachment, contentMode: .fit)
+                            .frame(
+                                width: Self.itemWidth(
+                                    height: height,
+                                    aspectRatio: attachment.aspectRatio
+                                ),
+                                height: height
+                            )
+                            .clipped()
+                    }
+                } else {
+                    AttachmentImage(attachment: attachment, contentMode: .fit)
+                        .frame(
+                            width: Self.itemWidth(
+                                height: height,
+                                aspectRatio: attachment.aspectRatio
+                            ),
+                            height: height
+                        )
+                        .clipped()
+                }
             }
         }
     }
