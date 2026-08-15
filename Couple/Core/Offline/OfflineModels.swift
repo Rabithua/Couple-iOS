@@ -566,9 +566,14 @@ protocol LocalSyncLifecycle: AnyObject {
     var isDirty: Bool { get set }
 }
 
-extension LocalTodoEntity: LocalSyncLifecycle {}
-extension LocalAnniversaryEntity: LocalSyncLifecycle {}
-extension LocalCalendarEventEntity: LocalSyncLifecycle {}
-extension LocalMemoryEntity: LocalSyncLifecycle {}
-extension LocalTimelineEntity: LocalSyncLifecycle {}
-extension LocalAttachmentEntity: LocalSyncLifecycle {}
+protocol LocalSyncEntity: LocalSyncLifecycle {
+    var id: String { get }
+    var updatedAt: Date { get set }
+}
+
+extension LocalTodoEntity: LocalSyncEntity {}
+extension LocalAnniversaryEntity: LocalSyncEntity {}
+extension LocalCalendarEventEntity: LocalSyncEntity {}
+extension LocalMemoryEntity: LocalSyncEntity {}
+extension LocalTimelineEntity: LocalSyncEntity {}
+extension LocalAttachmentEntity: LocalSyncEntity {}

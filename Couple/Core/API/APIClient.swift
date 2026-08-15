@@ -143,7 +143,7 @@ actor APIClient {
     }
 
     private func authorizedData(at path: String, mayRefresh: Bool) async throws -> Data {
-        var request = URLRequest(url: try makeURL(path: path, query: []))
+        var request = URLRequest(url: try makeResourceURL(path: path))
         request.setValue("Bearer \(try requireAccessToken())", forHTTPHeaderField: "Authorization")
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw APIError.invalidResponse }
@@ -323,6 +323,30 @@ actor APIClient {
         }
         if !query.isEmpty { components.queryItems = query }
         guard let result = components.url else { throw APIError.invalidResponse }
+        return result
+    }
+
+    private func makeResourceURL(path: String) throws -> URL {
+        guard path.hasPrefix("/"),
+              let resourceComponents = URLComponents(string: path),
+              var baseComponents = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)
+        else {
+            return try makeURL(path: path, query: [])
+        }
+
+        let basePath = baseComponents.path.hasSuffix("/")
+            ? String(baseComponents.path.dropLast())
+            : baseComponents.path
+        guard resourceComponents.path == basePath
+                || resourceComponents.path.hasPrefix("\(basePath)/")
+        else {
+            return try makeURL(path: path, query: [])
+        }
+
+        baseComponents.path = resourceComponents.path
+        baseComponents.percentEncodedQuery = resourceComponents.percentEncodedQuery
+        baseComponents.fragment = resourceComponents.fragment
+        guard let result = baseComponents.url else { throw APIError.invalidResponse }
         return result
     }
 

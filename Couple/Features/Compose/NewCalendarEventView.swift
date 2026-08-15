@@ -5,17 +5,30 @@ struct NewCalendarEventView: View {
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     let initialDate: Date
-    @State private var title = ""
+    private let editingEvent: CalendarEvent?
+    @State private var title: String
     @State private var start: Date
     @State private var end: Date
-    @State private var allDay = false
+    @State private var allDay: Bool
     @State private var isSaving = false
     @State private var errorMessage: String?
 
     init(initialDate: Date) {
         self.initialDate = initialDate
+        editingEvent = nil
+        _title = State(initialValue: "")
         _start = State(initialValue: initialDate)
         _end = State(initialValue: initialDate.addingTimeInterval(3_600))
+        _allDay = State(initialValue: false)
+    }
+
+    init(editing event: CalendarEvent) {
+        initialDate = event.startTime
+        editingEvent = event
+        _title = State(initialValue: event.title)
+        _start = State(initialValue: event.startTime)
+        _end = State(initialValue: event.endTime ?? event.startTime.addingTimeInterval(3_600))
+        _allDay = State(initialValue: event.allDay)
     }
 
     var body: some View {
@@ -31,7 +44,7 @@ struct NewCalendarEventView: View {
                         .appHapticFeedback(.selection, trigger: end)
                 }
             }
-            .navigationTitle("新日程")
+            .navigationTitle(editingEvent == nil ? "新日程" : "编辑日程")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -62,6 +75,8 @@ struct NewCalendarEventView: View {
     }
 
     private func beginSaving() {
+        guard !isSaving else { return }
+        isSaving = true
         haptics.play(.tap)
         Task { await save() }
     }
@@ -71,15 +86,25 @@ struct NewCalendarEventView: View {
     }
 
     private func save() async {
-        isSaving = true
         defer { isSaving = false }
         do {
-            try await store.addCalendarEvent(
-                title: title.trimmingCharacters(in: .whitespacesAndNewlines),
-                start: start,
-                end: end,
-                allDay: allDay
-            )
+            let cleanedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let editingEvent {
+                try await store.updateCalendarEvent(
+                    editingEvent,
+                    title: cleanedTitle,
+                    start: start,
+                    end: end,
+                    allDay: allDay
+                )
+            } else {
+                try await store.addCalendarEvent(
+                    title: cleanedTitle,
+                    start: start,
+                    end: end,
+                    allDay: allDay
+                )
+            }
             haptics.play(.success)
             dismiss()
         } catch {

@@ -4,12 +4,21 @@ struct NewAnniversaryView: View {
     @Environment(AppHaptics.self) private var haptics
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
-    @State private var title = ""
-    @State private var date = Date()
-    @State private var annual = true
-    @State private var visibility: Visibility = .shared
+    private let editingAnniversary: Anniversary?
+    @State private var title: String
+    @State private var date: Date
+    @State private var annual: Bool
+    @State private var visibility: Visibility
     @State private var isSaving = false
     @State private var errorMessage: String?
+
+    init(editing anniversary: Anniversary? = nil) {
+        editingAnniversary = anniversary
+        _title = State(initialValue: anniversary?.title ?? "")
+        _date = State(initialValue: anniversary.flatMap { Date.fromDateOnly($0.date) } ?? .now)
+        _annual = State(initialValue: anniversary?.annual ?? true)
+        _visibility = State(initialValue: anniversary?.visibility ?? .shared)
+    }
 
     var body: some View {
         NavigationStack {
@@ -28,7 +37,7 @@ struct NewAnniversaryView: View {
                     .appHapticFeedback(.selection, trigger: visibility)
                 }
             }
-            .navigationTitle("新纪念日")
+            .navigationTitle(editingAnniversary == nil ? "新纪念日" : "编辑纪念日")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -59,6 +68,8 @@ struct NewAnniversaryView: View {
     }
 
     private func beginSaving() {
+        guard !isSaving else { return }
+        isSaving = true
         haptics.play(.tap)
         Task { await save() }
     }
@@ -68,15 +79,25 @@ struct NewAnniversaryView: View {
     }
 
     private func save() async {
-        isSaving = true
         defer { isSaving = false }
         do {
-            try await store.addAnniversary(
-                title: title.trimmingCharacters(in: .whitespacesAndNewlines),
-                date: date,
-                annual: annual,
-                visibility: visibility
-            )
+            let cleanedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let editingAnniversary {
+                try await store.updateAnniversary(
+                    editingAnniversary,
+                    title: cleanedTitle,
+                    date: date,
+                    annual: annual,
+                    visibility: visibility
+                )
+            } else {
+                try await store.addAnniversary(
+                    title: cleanedTitle,
+                    date: date,
+                    annual: annual,
+                    visibility: visibility
+                )
+            }
             haptics.play(.success)
             dismiss()
         } catch {

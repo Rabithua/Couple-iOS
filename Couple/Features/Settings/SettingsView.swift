@@ -6,6 +6,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var startedOn: Date
     @State private var showingNewAnniversary = false
+    @State private var editingAnniversary: Anniversary?
     @State private var showingUnsyncedSignOut = false
     @State private var pendingSignOutCount = 0
     @State private var isSaving = false
@@ -47,6 +48,11 @@ struct SettingsView: View {
                         } icon: {
                             Image(systemName: "birthday.cake.fill")
                         }
+                        .editableContentActions(
+                            deletionTitle: "删除纪念日“\(item.title)”？",
+                            editAction: { editingAnniversary = item },
+                            deleteAction: { try await store.deleteAnniversary(item) }
+                        )
                     }
                     Button("添加纪念日", systemImage: "plus", action: presentNewAnniversary)
                 } header: {
@@ -70,6 +76,9 @@ struct SettingsView: View {
                 }
             }
             .sheet(isPresented: $showingNewAnniversary) { NewAnniversaryView() }
+            .sheet(item: $editingAnniversary) { anniversary in
+                NewAnniversaryView(editing: anniversary)
+            }
             .appHapticFeedback(
                 .error,
                 trigger: localError,
@@ -90,6 +99,8 @@ struct SettingsView: View {
     }
 
     private func beginSavingDate() {
+        guard !isSaving else { return }
+        isSaving = true
         haptics.play(.tap)
         Task { await saveDate() }
     }
@@ -147,7 +158,6 @@ struct SettingsView: View {
     }
 
     private func saveDate() async {
-        isSaving = true
         defer { isSaving = false }
         do {
             try await store.updateCouple(startedOn: startedOn)

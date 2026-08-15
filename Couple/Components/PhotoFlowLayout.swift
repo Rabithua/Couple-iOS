@@ -57,13 +57,13 @@ struct AttachmentFlow: View {
     var body: some View {
         PhotoFlowLayout {
             ForEach(attachments) { attachment in
-                AttachmentImage(attachment: attachment)
+                AttachmentImage(attachment: attachment, contentMode: .fit)
                     .frame(
-                        width: min(max(height * attachment.aspectRatio, 82), 216),
+                        width: height * attachment.aspectRatio,
                         height: height
                     )
+                    .clipped()
             }
         }
     }
 }
-

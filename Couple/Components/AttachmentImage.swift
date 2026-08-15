@@ -53,7 +53,7 @@ actor AttachmentImageCache {
 
 struct AttachmentImage: View {
     let attachment: Attachment
-    var contentMode: ContentMode = .fill
+    var contentMode: ContentMode = .fit
     @Environment(AppStore.self) private var store
     @State private var image: UIImage?
     @State private var failed = false
@@ -79,7 +79,7 @@ struct AttachmentImage: View {
             }
         }
         .clipped()
-        .task(id: attachment.id) {
+        .task(id: "\(attachment.id)|\(attachment.url ?? "")|\(attachment.demoAssetName ?? "")") {
             guard attachment.demoAssetName == nil else { return }
             image = nil
             failed = false

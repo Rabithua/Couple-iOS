@@ -76,6 +76,30 @@ struct APIClientTests {
         await client.clearSession()
     }
 
+    @Test("Authorized root-relative resource does not duplicate the API path", .tags(.networking))
+    func authorizedRootRelativeResourceUsesOrigin() async throws {
+        let baseURL = try #require(URL(string: "https://example.com/v1/api"))
+        let keychain = KeychainStore(
+            service: "couple-tests-\(UUID().uuidString)",
+            persistenceEnabled: false
+        )
+        let session = MockHTTPSession(stubs: [
+            .init(
+                pathSuffix: "/v1/api/attachments/1/download",
+                statusCode: 200,
+                data: Data("image-data".utf8)
+            )
+        ])
+        let client = APIClient(baseURL: baseURL, session: session, keychain: keychain)
+        try await client.install(tokens: Self.initialTokens)
+
+        let data = try await client.authorizedData(at: "/v1/api/attachments/1/download")
+
+        #expect(data == Data("image-data".utf8))
+        #expect(await session.lastRequestedURL()?.absoluteString == "https://example.com/v1/api/attachments/1/download")
+        await client.clearSession()
+    }
+
     @Test("Transient refresh failure preserves the offline session", .tags(.networking))
     func transientRefreshFailurePreservesOfflineSession() async throws {
         let baseURL = try #require(URL(string: "https://example.com/v1/api"))
@@ -188,6 +212,10 @@ private actor MockHTTPSession: HTTPSession {
 
     func requestCount(matching pathSuffix: String) -> Int {
         requests.count { $0.url?.path.hasSuffix(pathSuffix) == true }
+    }
+
+    func lastRequestedURL() -> URL? {
+        requests.last?.url
     }
 
     func waitForRequestCount(_ count: Int) async {

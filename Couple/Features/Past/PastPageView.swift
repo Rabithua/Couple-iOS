@@ -3,6 +3,7 @@ import SwiftUI
 struct PastPageView: View {
     @Environment(AppStore.self) private var store
     let filter: PastFilter
+    @State private var editingNote: Note?
 
     var body: some View {
         let notes = store.pastNotes(for: filter.query)
@@ -27,6 +28,9 @@ struct PastPageView: View {
         .contentMargins(.top, AppTheme.navigationBarHeight, for: .scrollContent)
         .refreshable { await store.selectNotes(filter.query, forceReload: true) }
         .accessibilityIdentifier(filter.scrollIdentifier)
+        .sheet(item: $editingNote) { note in
+            ComposeMemoryView(editing: note)
+        }
     }
 
     private func timelineList(_ notes: [Note]) -> some View {
@@ -34,8 +38,18 @@ struct PastPageView: View {
             ForEach(notes) { note in
                 if let association = note.associations.first {
                     AssociatedNoteRow(note: note, association: association)
+                        .editableContentActions(
+                            deletionTitle: "删除这条动态？",
+                            editAction: { editingNote = note },
+                            deleteAction: { try await store.deleteMemory(note) }
+                        )
                 } else {
                     StandardNoteRow(note: note)
+                        .editableContentActions(
+                            deletionTitle: "删除这条动态？",
+                            editAction: { editingNote = note },
+                            deleteAction: { try await store.deleteMemory(note) }
+                        )
                 }
             }
             if notes.isEmpty {
@@ -47,13 +61,22 @@ struct PastPageView: View {
     }
 
     private func photoArchive(_ notes: [Note]) -> some View {
-        let attachments = notes.flatMap(\.attachments).filter(\.isImage)
+        let photoNotes = notes.filter { $0.attachments.contains(where: \.isImage) }
         return Group {
-            if attachments.isEmpty {
+            if photoNotes.isEmpty {
                 ContentUnavailableView("还没有照片", systemImage: "photo.on.rectangle.angled")
                     .padding(.top, 100)
             } else {
-                AttachmentFlow(attachments: attachments)
+                LazyVStack(alignment: .leading, spacing: 8) {
+                    ForEach(photoNotes) { note in
+                        AttachmentFlow(attachments: note.attachments.filter(\.isImage))
+                            .editableContentActions(
+                                deletionTitle: "删除这条动态及其中照片？",
+                                editAction: { editingNote = note },
+                                deleteAction: { try await store.deleteMemory(note) }
+                            )
+                    }
+                }
             }
         }
     }
@@ -67,6 +90,11 @@ struct PastPageView: View {
                         Label(association.title ?? "共同完成", systemImage: "checkmark.square")
                             .font(AppTheme.titleFont())
                     }
+                    .editableContentActions(
+                        deletionTitle: "删除这条动态？",
+                        editAction: { editingNote = note },
+                        deleteAction: { try await store.deleteMemory(note) }
+                    )
                 }
             }
             if notes.allSatisfy({ $0.todoId == nil }) {

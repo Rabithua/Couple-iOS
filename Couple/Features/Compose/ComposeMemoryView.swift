@@ -7,14 +7,23 @@ struct ComposeMemoryView: View {
     @Environment(AppHaptics.self) private var haptics
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
-    @State private var content = ""
-    @State private var visibility: Visibility = .shared
+    private let editingNote: Note?
+    @State private var content: String
+    @State private var visibility: Visibility
     @State private var anniversaryId: String?
     @State private var todoId: String?
     @State private var selectedItems: [PhotosPickerItem] = []
     @State private var photos: [SelectedPhoto] = []
     @State private var isSaving = false
     @State private var localError: String?
+
+    init(editing note: Note? = nil) {
+        editingNote = note
+        _content = State(initialValue: note?.content ?? "")
+        _visibility = State(initialValue: note?.visibility ?? .shared)
+        _anniversaryId = State(initialValue: note?.anniversaryId)
+        _todoId = State(initialValue: note?.todoId)
+    }
 
     var body: some View {
         let photoCount = photos.count
@@ -26,30 +35,45 @@ struct ComposeMemoryView: View {
                 }
 
                 Section("照片") {
-                    PhotosPicker(
-                        selection: $selectedItems,
-                        maxSelectionCount: 10,
-                        matching: .images
-                    ) {
-                        Label(photoCount == 0 ? "选择照片" : "已选择 \(photoCount) 张", systemImage: "photo.on.rectangle.angled")
-                    }
-                    .appHapticFeedback(.selection, trigger: selectedItems)
+                    if let editingNote {
+                        if editingNote.attachments.isEmpty {
+                            Text("没有照片")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ScrollView(.horizontal) {
+                                AttachmentFlow(attachments: editingNote.attachments, height: 88)
+                            }
+                            .scrollIndicators(.hidden)
+                            Text("编辑会保留已有照片")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        PhotosPicker(
+                            selection: $selectedItems,
+                            maxSelectionCount: 10,
+                            matching: .images
+                        ) {
+                            Label(photoCount == 0 ? "选择照片" : "已选择 \(photoCount) 张", systemImage: "photo.on.rectangle.angled")
+                        }
+                        .appHapticFeedback(.selection, trigger: selectedItems)
 
-                    if !photos.isEmpty {
-                        ScrollView(.horizontal) {
-                            HStack(spacing: 8) {
-                                ForEach(photos) { photo in
-                                    if let image = UIImage(data: photo.data) {
-                                        Image(uiImage: image)
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(width: 88, height: 88)
-                                            .clipShape(.rect(cornerRadius: 8))
+                        if !photos.isEmpty {
+                            ScrollView(.horizontal) {
+                                HStack(spacing: 8) {
+                                    ForEach(photos) { photo in
+                                        if let image = UIImage(data: photo.data) {
+                                            Image(uiImage: image)
+                                                .resizable()
+                                                .scaledToFill()
+                                                .frame(width: 88, height: 88)
+                                                .clipShape(.rect(cornerRadius: 8))
+                                        }
                                     }
                                 }
                             }
+                            .scrollIndicators(.hidden)
                         }
-                        .scrollIndicators(.hidden)
                     }
                 }
 
@@ -79,7 +103,7 @@ struct ComposeMemoryView: View {
                     .appHapticFeedback(.selection, trigger: visibility)
                 }
             }
-            .navigationTitle("记录此刻")
+            .navigationTitle(editingNote == nil ? "记录此刻" : "编辑动态")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -121,7 +145,9 @@ struct ComposeMemoryView: View {
     }
 
     private var isValid: Bool {
-        !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !photos.isEmpty
+        !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !photos.isEmpty
+            || editingNote?.attachments.isEmpty == false
     }
 
     private func cancel() {
@@ -130,6 +156,8 @@ struct ComposeMemoryView: View {
     }
 
     private func beginSaving() {
+        guard !isSaving else { return }
+        isSaving = true
         haptics.play(.tap)
         Task { await save() }
     }
@@ -160,16 +188,26 @@ struct ComposeMemoryView: View {
     }
 
     private func save() async {
-        isSaving = true
         defer { isSaving = false }
         do {
-            try await store.addMemory(
-                content: content.trimmingCharacters(in: .whitespacesAndNewlines),
-                photos: photos,
-                anniversaryId: anniversaryId,
-                todoId: todoId,
-                visibility: visibility
-            )
+            let cleanedContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let editingNote {
+                try await store.updateMemory(
+                    editingNote,
+                    content: cleanedContent,
+                    anniversaryId: anniversaryId,
+                    todoId: todoId,
+                    visibility: visibility
+                )
+            } else {
+                try await store.addMemory(
+                    content: cleanedContent,
+                    photos: photos,
+                    anniversaryId: anniversaryId,
+                    todoId: todoId,
+                    visibility: visibility
+                )
+            }
             haptics.play(.success)
             dismiss()
         } catch {

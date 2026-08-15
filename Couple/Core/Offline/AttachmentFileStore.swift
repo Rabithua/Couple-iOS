@@ -46,7 +46,7 @@ actor AttachmentFileStore {
         try fileManager.createDirectory(at: remoteCacheDirectory, withIntermediateDirectories: true)
     }
 
-    func stage(_ photo: SelectedPhoto, id: String = UUID().uuidString) throws -> StagedAttachment {
+    func stage(_ photo: SelectedPhoto, id: String = UUID().uuidString.lowercased()) throws -> StagedAttachment {
         let safeExtension = URL(fileURLWithPath: photo.filename).pathExtension
         let filename = safeExtension.isEmpty ? id : "\(id).\(safeExtension)"
         let destination = pendingDirectory.appending(path: filename)
