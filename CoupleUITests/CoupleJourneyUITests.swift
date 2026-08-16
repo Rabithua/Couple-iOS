@@ -9,7 +9,8 @@ final class CoupleJourneyUITests: XCTestCase {
         app.launch()
 
         app.buttons["清单"].tap()
-        let todo = app.staticTexts["一起去灵隐寺还愿吧"]
+        let todo = app.scrollViews["futureListScroll"]
+            .staticTexts["一起去灵隐寺还愿吧"]
         XCTAssertTrue(todo.waitForExistence(timeout: 5))
         todo.press(forDuration: 1)
 
@@ -135,18 +136,108 @@ final class CoupleJourneyUITests: XCTestCase {
         XCTAssertTrue(firstPhoto.waitForExistence(timeout: 3))
         let initialPhotoX = firstPhoto.frame.minX
 
-        let start = photoCarousel.coordinate(withNormalizedOffset: CGVector(dx: 0.82, dy: 0.5))
-        let end = photoCarousel.coordinate(withNormalizedOffset: CGVector(dx: 0.18, dy: 0.5))
-        start.press(
-            forDuration: 0.05,
-            thenDragTo: end,
-            withVelocity: .slow,
-            thenHoldForDuration: 0
-        )
+        photoCarousel.swipeLeft()
 
         XCTAssertLessThan(firstPhoto.frame.minX, initialPhotoX - 10)
         XCTAssertTrue(app.staticTexts["在一起"].exists)
         XCTAssertFalse(app.buttons["日历"].isHittable)
+    }
+
+    func testFeaturedPhotoPreviewReturnsToItsSource() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-now"]
+        app.launch()
+
+        let sourcePhoto = app.descendants(matching: .any)["featuredPhoto-0"]
+        XCTAssertTrue(sourcePhoto.waitForExistence(timeout: 5))
+        let sourceX = sourcePhoto.frame.minX
+        sourcePhoto.tap()
+
+        let preview = app.descendants(matching: .any)
+            .matching(identifier: "photoPreviewPager")
+            .firstMatch
+        XCTAssertTrue(preview.waitForExistence(timeout: 3))
+        let windowFrame = app.windows.firstMatch.frame
+        XCTAssertEqual(preview.frame.minY, windowFrame.minY, accuracy: 1)
+        XCTAssertEqual(preview.frame.maxY, windowFrame.maxY, accuracy: 1)
+        XCTAssertFalse(app.buttons["photoPreviewCloseButton"].exists)
+
+        let previewPhoto = app.buttons[
+            "photoPreviewPage-70000000-0000-4000-8000-000000000001"
+        ]
+        XCTAssertTrue(previewPhoto.waitForExistence(timeout: 2))
+        XCTAssertEqual(previewPhoto.frame.minY, windowFrame.minY, accuracy: 1)
+        XCTAssertEqual(previewPhoto.frame.maxY, windowFrame.maxY, accuracy: 1)
+        XCTAssertFalse(app.descendants(matching: .any)["photoPreviewPageIndicator"].exists)
+        let initialZoomValue = previewPhoto.value as? String
+        previewPhoto.doubleTap()
+        XCTAssertTrue(previewPhoto.waitForExistence(timeout: 1))
+        XCTAssertNotEqual(previewPhoto.value as? String, initialZoomValue)
+
+        previewPhoto.doubleTap()
+        XCTAssertEqual(previewPhoto.value as? String, initialZoomValue)
+        XCTAssertTrue(preview.waitForExistence(timeout: 1))
+
+        previewPhoto.tap()
+
+        XCTAssertTrue(sourcePhoto.waitForExistence(timeout: 3))
+        XCTAssertEqual(sourcePhoto.frame.minX, sourceX, accuracy: 4)
+        XCTAssertTrue(app.staticTexts["在一起"].exists)
+    }
+
+    func testPastPhotoPreviewPagesAndPreservesLongPressActions() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-past"]
+        app.launch()
+
+        let photosTab = app.buttons["照片"]
+        XCTAssertTrue(photosTab.waitForExistence(timeout: 5))
+        photosTab.tap()
+        XCTAssertTrue(photosTab.isSelected)
+
+        let firstPhoto = app.buttons[
+            "photoPreviewSource-past.pastPhotosScroll.50000000-0000-4000-8000-000000000001-70000000-0000-4000-8000-000000000001"
+        ]
+        XCTAssertTrue(firstPhoto.waitForExistence(timeout: 3))
+        firstPhoto.tap()
+
+        let preview = app.descendants(matching: .any)
+            .matching(identifier: "photoPreviewPager")
+            .firstMatch
+        XCTAssertTrue(preview.waitForExistence(timeout: 3))
+
+        let firstPreviewPhoto = app.buttons[
+            "photoPreviewPage-70000000-0000-4000-8000-000000000001"
+        ]
+        XCTAssertTrue(firstPreviewPhoto.waitForExistence(timeout: 2))
+        let initialZoomValue = firstPreviewPhoto.value as? String
+        firstPreviewPhoto.pinch(withScale: 2, velocity: 1)
+        XCTAssertNotEqual(firstPreviewPhoto.value as? String, initialZoomValue)
+
+        preview.swipeLeft()
+        XCTAssertTrue(firstPreviewPhoto.isHittable)
+
+        firstPreviewPhoto.pinch(withScale: 0.1, velocity: -2)
+        preview.swipeLeft()
+
+        let secondPhoto = app.buttons[
+            "photoPreviewPage-70000000-0000-4000-8000-000000000002"
+        ]
+        XCTAssertTrue(secondPhoto.waitForExistence(timeout: 2))
+        XCTAssertFalse(app.descendants(matching: .any)["photoPreviewPageIndicator"].exists)
+        secondPhoto.tap()
+
+        XCTAssertTrue(photosTab.waitForExistence(timeout: 3))
+        XCTAssertTrue(photosTab.isSelected)
+        let returnedPhoto = app.buttons[
+            "photoPreviewSource-past.pastPhotosScroll.50000000-0000-4000-8000-000000000001-70000000-0000-4000-8000-000000000002"
+        ]
+        XCTAssertTrue(returnedPhoto.waitForExistence(timeout: 3))
+        returnedPhoto.press(forDuration: 1)
+        XCTAssertTrue(app.buttons["编辑"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["删除"].exists)
     }
 
     func testPastNowFutureJourneyAndComposer() {
@@ -161,9 +252,7 @@ final class CoupleJourneyUITests: XCTestCase {
 
         let photoCarousel = app.scrollViews["featuredPhotoCarousel"]
         XCTAssertTrue(photoCarousel.waitForExistence(timeout: 3))
-        let photoStart = photoCarousel.coordinate(withNormalizedOffset: CGVector(dx: 0.82, dy: 0.5))
-        let photoEnd = photoCarousel.coordinate(withNormalizedOffset: CGVector(dx: 0.18, dy: 0.5))
-        photoStart.press(forDuration: 0.05, thenDragTo: photoEnd)
+        photoCarousel.swipeLeft()
         let carouselMarker = app.descendants(matching: .any)["featuredPhoto-0"]
         XCTAssertTrue(carouselMarker.waitForExistence(timeout: 2))
         let preservedCarouselX = carouselMarker.frame.minX

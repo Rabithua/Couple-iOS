@@ -37,14 +37,21 @@ struct PastPageView: View {
         LazyVStack(alignment: .leading, spacing: 20) {
             ForEach(notes) { note in
                 if let association = note.associations.first {
-                    AssociatedNoteRow(note: note, association: association)
+                    AssociatedNoteRow(
+                        note: note,
+                        association: association,
+                        previewGroupID: previewGroupID(for: note)
+                    )
                         .editableContentActions(
                             deletionTitle: "删除这条动态？",
                             editAction: { editingNote = note },
                             deleteAction: { try await store.deleteMemory(note) }
                         )
                 } else {
-                    StandardNoteRow(note: note)
+                    StandardNoteRow(
+                        note: note,
+                        previewGroupID: previewGroupID(for: note)
+                    )
                         .editableContentActions(
                             deletionTitle: "删除这条动态？",
                             editAction: { editingNote = note },
@@ -69,7 +76,10 @@ struct PastPageView: View {
             } else {
                 LazyVStack(alignment: .leading, spacing: 8) {
                     ForEach(photoNotes) { note in
-                        AttachmentFlow(attachments: note.attachments.filter(\.isImage))
+                        AttachmentFlow(
+                            attachments: note.attachments.filter(\.isImage),
+                            previewGroupID: previewGroupID(for: note)
+                        )
                             .editableContentActions(
                                 deletionTitle: "删除这条动态及其中照片？",
                                 editAction: { editingNote = note },
@@ -103,10 +113,15 @@ struct PastPageView: View {
             }
         }
     }
+
+    private func previewGroupID(for note: Note) -> String {
+        "past.\(filter.scrollIdentifier).\(note.id)"
+    }
 }
 
 private struct StandardNoteRow: View {
     let note: Note
+    let previewGroupID: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -118,7 +133,10 @@ private struct StandardNoteRow: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             if !note.attachments.isEmpty {
-                AttachmentFlow(attachments: note.attachments)
+                AttachmentFlow(
+                    attachments: note.attachments,
+                    previewGroupID: previewGroupID
+                )
             }
         }
     }
@@ -127,6 +145,7 @@ private struct StandardNoteRow: View {
 private struct AssociatedNoteRow: View {
     let note: Note
     let association: NoteAssociation
+    let previewGroupID: String
 
     private var symbol: String {
         association.type == .anniversary ? "birthday.cake.fill" : "checkmark.square"
@@ -149,7 +168,10 @@ private struct AssociatedNoteRow: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     if !note.attachments.isEmpty {
-                        AttachmentFlow(attachments: note.attachments)
+                        AttachmentFlow(
+                            attachments: note.attachments,
+                            previewGroupID: previewGroupID
+                        )
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
