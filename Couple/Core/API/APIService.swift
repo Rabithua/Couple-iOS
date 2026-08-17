@@ -76,6 +76,14 @@ extension APIClient {
 
     func me() async throws -> User { try await request("/me") }
 
+    func updateMe(displayName: String) async throws -> User {
+        try await request(
+            "/me",
+            method: .patch,
+            body: ["displayName": displayName]
+        )
+    }
+
     func relationshipStatus() async throws -> RelationshipStatus {
         try await request("/couples/status")
     }
@@ -94,6 +102,10 @@ extension APIClient {
             method: .patch,
             body: ["startedOn": startedOn, "timezone": timezone]
         )
+    }
+
+    func leaveCouple() async throws {
+        try await requestEmpty("/couples/leave", method: .post)
     }
 
     func home() async throws -> HomeData { try await request("/home") }

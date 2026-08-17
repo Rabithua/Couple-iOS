@@ -14,7 +14,7 @@ struct AuthView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Image(systemName: "heart.fill")
                         .font(.largeTitle.bold())
-                    Text("恋爱")
+                    Text("oursince")
                         .font(.largeTitle.bold())
                     Text("只属于两个人的共同记录。")
                         .font(.title3)

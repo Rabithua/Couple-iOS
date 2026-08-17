@@ -3,9 +3,14 @@ import SwiftUI
 enum FutureMode: String, CaseIterable, Hashable {
     case calendar = "日历"
     case list = "清单"
+    case settings = "设置"
 
     var pageIndex: Int {
-        self == .calendar ? 0 : 1
+        switch self {
+        case .calendar: 0
+        case .list: 1
+        case .settings: 2
+        }
     }
 }
 
@@ -35,6 +40,10 @@ struct FutureView: View {
                     MainPagerPage(isActive: mode == .list, size: proxy.size) {
                         todoContent
                     }
+
+                    MainPagerPage(isActive: mode == .settings, size: proxy.size) {
+                        SettingsView()
+                    }
                 }
                 .offset(
                     x: -CGFloat(mode.pageIndex) * proxy.size.width
@@ -51,16 +60,18 @@ struct FutureView: View {
                     select: selectMode
                 )
 
-                Button(
-                    mode == .list ? "添加清单" : "添加日程",
-                    systemImage: "plus",
-                    action: presentNewItem
-                )
-                .labelStyle(.iconOnly)
-                .font(.title2.bold())
-                .foregroundStyle(AppTheme.muted)
-                .frame(width: 44, height: 44)
-                .accessibilityIdentifier("futureAddButton")
+                if mode != .settings {
+                    Button(
+                        mode == .list ? "添加清单" : "添加日程",
+                        systemImage: "plus",
+                        action: presentNewItem
+                    )
+                    .labelStyle(.iconOnly)
+                    .font(.title2.bold())
+                    .foregroundStyle(AppTheme.muted)
+                    .frame(width: 44, height: 44)
+                    .accessibilityIdentifier("futureAddButton")
+                }
             }
             .padding(.horizontal, AppTheme.horizontalPadding)
         }
@@ -93,7 +104,7 @@ struct FutureView: View {
                 }
             }
             .padding(.horizontal, AppTheme.horizontalPadding)
-            .padding(.bottom, 80)
+            .padding(.bottom, AppTheme.futureContentBottomPadding)
         }
         .scrollIndicators(.hidden)
         .scrollDisabled(verticalScrollingDisabled)
@@ -129,7 +140,7 @@ struct FutureView: View {
             }
             .animation(pageAnimation, value: orderedTodos.map(\.id))
             .padding(.horizontal, AppTheme.horizontalPadding)
-            .padding(.bottom, 80)
+            .padding(.bottom, AppTheme.futureContentBottomPadding)
         }
         .scrollIndicators(.hidden)
         .scrollDisabled(verticalScrollingDisabled)

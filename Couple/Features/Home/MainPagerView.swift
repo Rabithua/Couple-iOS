@@ -7,7 +7,6 @@ struct MainPagerView: View {
     @Environment(AppStore.self) private var store
     @State private var route: MainPagerRoute
     @State private var showingComposer = false
-    @State private var showingSettings = false
     @State private var photoCarouselFrame = CGRect.null
     @State private var pageSwipeStartedInPhotoCarousel = false
     @State private var isTrackingMainGesture = false
@@ -22,6 +21,8 @@ struct MainPagerView: View {
         let initialRoute: MainPagerRoute
         if arguments.contains("-ui-testing-past") {
             initialRoute = .pastAll
+        } else if arguments.contains("-ui-testing-settings") {
+            initialRoute = .futureSettings
         } else if arguments.contains("-ui-testing-future") {
             initialRoute = .futureCalendar
         } else {
@@ -100,18 +101,10 @@ struct MainPagerView: View {
         .sheet(isPresented: $showingComposer, onDismiss: resetMainGestureTracking) {
             ComposeMemoryView()
         }
-        .sheet(isPresented: $showingSettings) {
-            SettingsView(startedOn: relationshipStartedOn)
-        }
     }
 
     private var pageAnimation: Animation? {
         reduceMotion ? nil : .smooth(duration: 0.32)
-    }
-
-    private var relationshipStartedOn: Date {
-        guard let rawDate = store.relationship?.couple?.startedOn else { return .now }
-        return Date.fromDateOnly(rawDate) ?? .now
     }
 
     private var outerPageDragOffset: CGFloat {
@@ -274,7 +267,8 @@ struct MainPagerView: View {
 
     private func suppressComposerTapAfterPageSwipe() {
         suppressComposerTapForCurrentEvent = true
-        DispatchQueue.main.async {
+        Task { @MainActor in
+            await Task.yield()
             suppressComposerTapForCurrentEvent = false
         }
     }
@@ -303,7 +297,7 @@ struct MainPagerView: View {
 
     private func presentSettings() {
         haptics.play(.tap)
-        showingSettings = true
+        route = .futureSettings
     }
 
     private func loadActivePastNotes() async {

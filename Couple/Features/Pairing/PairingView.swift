@@ -100,7 +100,7 @@ struct PairingView: View {
             Text("有效期至 \(invite.expiresAt.formatted(date: .abbreviated, time: .shortened))")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            ShareLink(item: "加入我的情侣共同空间，邀请码：\(invite.code)") {
+            ShareLink(item: "加入我们的共同空间，邀请码：\(invite.code)") {
                 Label("分享邀请码", systemImage: "square.and.arrow.up")
             }
             .buttonStyle(.bordered)

@@ -79,6 +79,105 @@ struct AppStoreTests {
         #expect(Set(store.notes.map(\.id)) == Set(SampleData.notes.map(\.id)))
         await api.clearSession()
     }
+
+    @Test("Changing the display name updates the current user and member list")
+    func displayNameUpdatesDemoSession() async throws {
+        let store = AppStore(
+            environment: ["COUPLE_DEMO_MODE": "1"],
+            arguments: ["CoupleTests"]
+        )
+        await store.start()
+
+        try await store.updateDisplayName(" 新名字 ")
+
+        #expect(store.currentUser?.displayName == "新名字")
+        #expect(
+            store.relationship?.members.first(where: { $0.id == SampleData.user.id })?.displayName
+                == "新名字"
+        )
+    }
+
+    @Test("Changing the relationship date updates the complete demo session")
+    func relationshipDateUpdatesDemoSession() async throws {
+        let store = AppStore(
+            environment: ["COUPLE_DEMO_MODE": "1"],
+            arguments: ["CoupleTests"]
+        )
+        await store.start()
+        let calendar = Calendar.current
+        let selectedDate = try #require(calendar.date(byAdding: .day, value: -12, to: .now))
+
+        try await store.updateCouple(startedOn: selectedDate)
+
+        let expectedDays = calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: selectedDate),
+            to: calendar.startOfDay(for: .now)
+        ).day
+        #expect(store.relationship?.couple?.startedOn == selectedDate.dateOnlyString)
+        #expect(store.home?.daysTogether == expectedDays)
+    }
+
+    @Test("Interrupted space cleanup is completed before a session can open")
+    func interruptedSpaceCleanupRecoversBeforeOpeningSession() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appending(path: "AppStoreCleanupTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let offline = try OfflineStore.makeInMemory(attachmentRoot: root)
+        _ = try offline.createTodo(
+            coupleId: "old-couple",
+            ownerId: "user",
+            title: "不能带入新空间",
+            dueDate: nil,
+            visibility: .shared
+        )
+        let suiteName = "AppStoreCleanupTests-\(UUID().uuidString)"
+        let userDefaults = try #require(UserDefaults(suiteName: suiteName))
+        defer { userDefaults.removePersistentDomain(forName: suiteName) }
+        userDefaults.set(true, forKey: AppStore.pendingSpaceCleanupDefaultsKey)
+        let baseURL = try #require(URL(string: "https://offline.invalid/v1/api"))
+        let api = APIClient(
+            baseURL: baseURL,
+            session: AlwaysOfflineHTTPSession(),
+            keychain: KeychainStore(
+                service: "couple-tests-\(UUID().uuidString)",
+                persistenceEnabled: false
+            )
+        )
+        let store = AppStore(
+            api: api,
+            offlineStore: offline,
+            userDefaults: userDefaults,
+            environment: [:],
+            arguments: ["CoupleTests"]
+        )
+
+        await store.start()
+
+        let snapshot = try await offline.loadSnapshot()
+        #expect(store.phase == .signedOut)
+        #expect(snapshot.todos.isEmpty)
+        #expect(try offline.unsyncedCount() == 0)
+        #expect(userDefaults.object(forKey: AppStore.pendingSpaceCleanupDefaultsKey) == nil)
+    }
+
+    @Test("Leaving a space keeps the signed-in user and returns to pairing")
+    func leavingSpaceReturnsDemoSessionToPairing() async {
+        let store = AppStore(
+            environment: ["COUPLE_DEMO_MODE": "1"],
+            arguments: ["CoupleTests"]
+        )
+        await store.start()
+
+        let succeeded = await store.leaveSpaceIfSafe()
+
+        #expect(succeeded)
+        #expect(store.phase == .pairing)
+        #expect(store.currentUser != nil)
+        #expect(store.relationship?.couple == nil)
+        #expect(store.todos.isEmpty)
+        #expect(store.notes.isEmpty)
+    }
 }
 
 private actor AlwaysOfflineHTTPSession: HTTPSession {

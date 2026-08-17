@@ -2,6 +2,28 @@ import XCTest
 
 @MainActor
 final class CoupleJourneyUITests: XCTestCase {
+    func testSettingsIsAvailableAfterTheTodoList() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-future"]
+        app.launch()
+
+        app.buttons["设置"].tap()
+
+        XCTAssertTrue(app.buttons["设置"].isSelected)
+        let settingsForm = app.descendants(matching: .any)["settingsForm"]
+        XCTAssertTrue(settingsForm.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["editDisplayNameButton"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["startedOnDatePicker"].exists)
+        XCTAssertFalse(app.buttons["保存日期"].exists)
+        XCTAssertTrue(app.switches["hapticsToggle"].exists)
+        XCTAssertFalse(app.buttons["futureAddButton"].exists)
+
+        settingsForm.swipeUp()
+        settingsForm.swipeUp()
+        XCTAssertTrue(app.buttons["leaveSpaceButton"].waitForExistence(timeout: 2))
+    }
+
     func testLongPressTodoOffersEditAndDeleteActions() {
         continueAfterFailure = false
         let app = XCUIApplication()

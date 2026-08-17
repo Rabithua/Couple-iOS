@@ -5,7 +5,7 @@ import XCTest
 @MainActor
 final class AppHapticsTests: XCTestCase {
     func testRepeatedFeedbackProducesDistinctEvents() throws {
-        let haptics = AppHaptics()
+        let haptics = AppHaptics(userDefaults: makeUserDefaults())
 
         haptics.play(.selection)
         let firstEvent = try XCTUnwrap(haptics.event)
@@ -34,5 +34,26 @@ final class AppHapticsTests: XCTestCase {
         XCTAssertTrue(AppHaptics.whenPresent(nil, "first error"))
         XCTAssertTrue(AppHaptics.whenPresent("first error", "second error"))
         XCTAssertFalse(AppHaptics.whenPresent("first error", nil))
+    }
+
+    func testDisabledHapticsSuppressEventsAndPersistPreference() {
+        let userDefaults = makeUserDefaults()
+        let haptics = AppHaptics(userDefaults: userDefaults)
+
+        XCTAssertTrue(haptics.isEnabled)
+        haptics.isEnabled = false
+        haptics.play(.warning)
+
+        XCTAssertNil(haptics.event)
+        XCTAssertFalse(AppHaptics(userDefaults: userDefaults).isEnabled)
+    }
+
+    private func makeUserDefaults() -> UserDefaults {
+        let suiteName = "AppHapticsTests-\(UUID().uuidString)"
+        guard let userDefaults = UserDefaults(suiteName: suiteName) else {
+            fatalError("Unable to create isolated UserDefaults")
+        }
+        userDefaults.removePersistentDomain(forName: suiteName)
+        return userDefaults
     }
 }

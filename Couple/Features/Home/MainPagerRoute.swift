@@ -6,6 +6,7 @@ enum MainPagerRoute: Int, CaseIterable, Hashable {
     case now
     case futureCalendar
     case futureList
+    case futureSettings
 
     var sectionIndex: Int {
         switch self {
@@ -13,7 +14,7 @@ enum MainPagerRoute: Int, CaseIterable, Hashable {
             0
         case .now:
             1
-        case .futureCalendar, .futureList:
+        case .futureCalendar, .futureList, .futureSettings:
             2
         }
     }
@@ -36,7 +37,7 @@ enum MainPagerRoute: Int, CaseIterable, Hashable {
             .photos
         case .pastAll:
             .all
-        case .now, .futureCalendar, .futureList:
+        case .now, .futureCalendar, .futureList, .futureSettings:
             nil
         }
     }
@@ -47,6 +48,8 @@ enum MainPagerRoute: Int, CaseIterable, Hashable {
             .calendar
         case .futureList:
             .list
+        case .futureSettings:
+            .settings
         case .pastCompleted, .pastAnniversaries, .pastPhotos, .pastAll, .now:
             nil
         }
@@ -66,6 +69,10 @@ enum MainPagerRoute: Int, CaseIterable, Hashable {
     }
 
     static func future(_ mode: FutureMode) -> Self {
-        mode == .list ? .futureList : .futureCalendar
+        switch mode {
+        case .calendar: .futureCalendar
+        case .list: .futureList
+        case .settings: .futureSettings
+        }
     }
 }

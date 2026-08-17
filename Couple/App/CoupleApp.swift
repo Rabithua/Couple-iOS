@@ -10,7 +10,6 @@ struct CoupleApp: App {
         WindowGroup {
             AppRootView()
                 .environment(store)
-                .appHapticsHost(haptics)
                 .task { await store.start() }
                 .onChange(of: scenePhase) { _, newPhase in
                     if newPhase == .active { store.handleForeground() }
@@ -34,6 +33,7 @@ struct CoupleApp: App {
                 } message: {
                     Text(store.errorMessage ?? "")
                 }
+                .appHapticsHost(haptics)
         }
     }
 }
