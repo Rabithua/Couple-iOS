@@ -143,6 +143,35 @@ final class CoupleJourneyUITests: XCTestCase {
         XCTAssertFalse(app.buttons["日历"].isHittable)
     }
 
+    func testDiagonalPageSwipeDoesNotMoveVerticalScroll() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-past"]
+        app.launch()
+
+        let allScroll = app.scrollViews["pastAllScroll"]
+        XCTAssertTrue(allScroll.waitForExistence(timeout: 5))
+        allScroll.swipeUp()
+
+        let scrollMarker = app.staticTexts["谁能拒绝坐在水边逮一下午虾呢～"]
+        XCTAssertTrue(scrollMarker.waitForExistence(timeout: 3))
+        let initialMarkerY = scrollMarker.frame.minY
+
+        let start = allScroll.coordinate(withNormalizedOffset: CGVector(dx: 0.85, dy: 0.35))
+        let end = allScroll.coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.53))
+        start.press(
+            forDuration: 0.05,
+            thenDragTo: end,
+            withVelocity: .slow,
+            thenHoldForDuration: 0
+        )
+
+        XCTAssertTrue(app.staticTexts["在一起"].waitForExistence(timeout: 3))
+        app.swipeRight()
+        XCTAssertTrue(allScroll.waitForExistence(timeout: 3))
+        XCTAssertEqual(scrollMarker.frame.minY, initialMarkerY, accuracy: 6)
+    }
+
     func testFeaturedPhotoPreviewReturnsToItsSource() {
         continueAfterFailure = false
         let app = XCUIApplication()

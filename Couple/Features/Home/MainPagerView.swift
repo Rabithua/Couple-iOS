@@ -37,6 +37,7 @@ struct MainPagerView: View {
                         PastView(
                             filter: route.pastFilter ?? .all,
                             pageDragOffset: innerPageDragOffset,
+                            verticalScrollingDisabled: verticalScrollingDisabled,
                             selectFilter: selectPastFilter
                         )
                     }
@@ -45,6 +46,7 @@ struct MainPagerView: View {
                         NowView(
                             composePullProgress: mainGestureState.composeProgress,
                             isActive: route == .now,
+                            verticalScrollingDisabled: verticalScrollingDisabled,
                             showComposer: presentComposer,
                             showSettings: presentSettings,
                             setPhotoCarouselFrame: { frame in
@@ -57,6 +59,7 @@ struct MainPagerView: View {
                         FutureView(
                             mode: route.futureMode ?? .calendar,
                             pageDragOffset: innerPageDragOffset,
+                            verticalScrollingDisabled: verticalScrollingDisabled,
                             selectMode: selectFutureMode
                         )
                     }
@@ -112,6 +115,10 @@ struct MainPagerView: View {
 
     private var innerPageDragOffset: CGFloat {
         pageDragOffset(forSameSection: true)
+    }
+
+    private var verticalScrollingDisabled: Bool {
+        mainGestureState.blocksVerticalScrolling && !pageSwipeStartedInPhotoCarousel
     }
 
     private func pageDragOffset(forSameSection sameSection: Bool) -> CGFloat {

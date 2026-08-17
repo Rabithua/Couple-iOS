@@ -15,6 +15,7 @@ struct FutureView: View {
     @Environment(AppStore.self) private var store
     let mode: FutureMode
     let pageDragOffset: CGFloat
+    let verticalScrollingDisabled: Bool
     let selectMode: (FutureMode) -> Void
     @State private var showingNewTodo = false
     @State private var selectedEventDate: SelectedEventDate?
@@ -95,6 +96,7 @@ struct FutureView: View {
             .padding(.bottom, 80)
         }
         .scrollIndicators(.hidden)
+        .scrollDisabled(verticalScrollingDisabled)
         .contentMargins(.top, AppTheme.navigationBarHeight, for: .scrollContent)
         .refreshable { await store.refreshContent() }
         .accessibilityIdentifier("futureCalendarScroll")
@@ -130,6 +132,7 @@ struct FutureView: View {
             .padding(.bottom, 80)
         }
         .scrollIndicators(.hidden)
+        .scrollDisabled(verticalScrollingDisabled)
         .contentMargins(.top, AppTheme.navigationBarHeight, for: .scrollContent)
         .refreshable { await store.refreshContent() }
         .accessibilityIdentifier("futureListScroll")

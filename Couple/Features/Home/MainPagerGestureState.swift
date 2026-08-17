@@ -27,6 +27,10 @@ struct MainPagerGestureState: Equatable {
         intent == .compose && composeProgress >= 1
     }
 
+    var blocksVerticalScrolling: Bool {
+        intent == .page
+    }
+
     func shouldCommitPageSwipe(
         translation: CGSize,
         predictedEndTranslation: CGSize
@@ -54,15 +58,7 @@ struct MainPagerGestureState: Equatable {
         }
 
         if intent == .page {
-            let horizontal = abs(translation.width)
-            let vertical = abs(translation.height)
-            if vertical > horizontal * Self.pageAxisRatio {
-                intent = .ignored
-                pageTranslation = 0
-                pageSourceRoute = nil
-            } else {
-                pageTranslation = translation.width
-            }
+            pageTranslation = translation.width
             return
         }
 
