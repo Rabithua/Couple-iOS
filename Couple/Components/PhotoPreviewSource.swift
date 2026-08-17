@@ -6,6 +6,7 @@ struct PhotoPreviewSource<Content: View>: View {
     let groupID: String
     let attachments: [Attachment]
     let attachment: Attachment
+    var transitionStyle = PhotoPreviewTransitionStyle.plain
     @ViewBuilder let content: Content
 
     var body: some View {
@@ -34,6 +35,12 @@ struct PhotoPreviewSource<Content: View>: View {
     }
 
     private func presentPreview() {
-        previewContext.present(groupID, attachments, attachment.id, sourceFrame)
+        previewContext.present(
+            groupID,
+            attachments,
+            attachment.id,
+            sourceFrame,
+            transitionStyle
+        )
     }
 }

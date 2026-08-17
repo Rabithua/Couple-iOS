@@ -80,6 +80,7 @@
 		F10000000000000000000009 /* PhotoPreviewZoomState.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000009 /* PhotoPreviewZoomState.swift */; };
 		F1000000000000000000000A /* PhotoPreviewZoomStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000000000000000000000A /* PhotoPreviewZoomStateTests.swift */; };
 		F1000000000000000000000D /* PhotoPreviewTransitionImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000000000000000000000D /* PhotoPreviewTransitionImage.swift */; };
+		F1000000000000000000000E /* PhotoPreviewTransitionStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000000000000000000000E /* PhotoPreviewTransitionStyle.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -176,6 +177,7 @@
 		E10000000000000000000009 /* PhotoPreviewZoomState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewZoomState.swift; sourceTree = "<group>"; };
 		E1000000000000000000000A /* PhotoPreviewZoomStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewZoomStateTests.swift; sourceTree = "<group>"; };
 		E1000000000000000000000D /* PhotoPreviewTransitionImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewTransitionImage.swift; sourceTree = "<group>"; };
+		E1000000000000000000000E /* PhotoPreviewTransitionStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewTransitionStyle.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -300,6 +302,7 @@
 				E10000000000000000000003 /* PhotoPreviewPresentation.swift */,
 				E10000000000000000000004 /* PhotoPreviewSource.swift */,
 				E1000000000000000000000D /* PhotoPreviewTransitionImage.swift */,
+				E1000000000000000000000E /* PhotoPreviewTransitionStyle.swift */,
 				E10000000000000000000002 /* PhotoPreviewTransitionID.swift */,
 				E10000000000000000000007 /* PhotoPreviewView.swift */,
 				E10000000000000000000009 /* PhotoPreviewZoomState.swift */,
@@ -648,6 +651,7 @@
 				F10000000000000000000003 /* PhotoPreviewPresentation.swift in Sources */,
 				F10000000000000000000004 /* PhotoPreviewSource.swift in Sources */,
 				F1000000000000000000000D /* PhotoPreviewTransitionImage.swift in Sources */,
+				F1000000000000000000000E /* PhotoPreviewTransitionStyle.swift in Sources */,
 				F10000000000000000000002 /* PhotoPreviewTransitionID.swift in Sources */,
 				F10000000000000000000007 /* PhotoPreviewView.swift in Sources */,
 				F10000000000000000000009 /* PhotoPreviewZoomState.swift in Sources */,

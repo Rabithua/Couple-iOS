@@ -6,6 +6,7 @@ struct PhotoPreviewHost<Content: View>: View {
     @State private var isTransitioning = false
     @State private var transitionProgress: CGFloat = 0
     @State private var transitionSourceFrame = CGRect.zero
+    @State private var transitionStyle = PhotoPreviewTransitionStyle.plain
     @State private var sourceFrames: [PhotoPreviewTransitionID: CGRect] = [:]
     let canPresent: @MainActor () -> Bool
     @ViewBuilder let content: Content
@@ -43,7 +44,8 @@ struct PhotoPreviewHost<Content: View>: View {
                     PhotoPreviewTransitionImage(
                         attachment: attachment,
                         sourceFrame: transitionSourceFrame,
-                        progress: transitionProgress
+                        progress: transitionProgress,
+                        style: transitionStyle
                     )
                     .zIndex(2)
                 }
@@ -73,7 +75,8 @@ struct PhotoPreviewHost<Content: View>: View {
         groupID: String,
         attachments: [Attachment],
         selectedAttachmentID: String,
-        sourceFrame: CGRect
+        sourceFrame: CGRect,
+        style: PhotoPreviewTransitionStyle
     ) {
         guard canPresent(),
               presentation == nil,
@@ -89,6 +92,7 @@ struct PhotoPreviewHost<Content: View>: View {
 
         withoutAnimation {
             transitionSourceFrame = resolvedSourceFrame
+            transitionStyle = style
             transitionProgress = 0
             isTransitioning = !reduceMotion
             presentation = nextPresentation
