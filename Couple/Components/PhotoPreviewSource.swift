@@ -10,8 +10,8 @@ struct PhotoPreviewSource<Content: View>: View {
     var body: some View {
         Button(action: presentPreview) {
             if previewContext.activeTransitionID == transitionID {
-                // The source must leave the namespace in the same transaction
-                // that inserts the dedicated full-screen transition image.
+                // Remove the namespace source while its full-screen destination exists.
+                // Keeping both alive makes the destination inherit this thumbnail frame.
                 content.opacity(0)
             } else {
                 content.photoPreviewMatchedGeometry(

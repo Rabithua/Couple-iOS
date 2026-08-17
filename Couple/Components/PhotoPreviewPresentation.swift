@@ -27,12 +27,8 @@ final class PhotoPreviewPresentation {
         attachments.firstIndex { $0.id == selectedAttachmentID }
     }
 
-    var selectedAttachment: Attachment? {
-        attachments.first { $0.id == selectedAttachmentID }
-    }
-
     var selectedTransitionID: PhotoPreviewTransitionID? {
-        guard selectedAttachment != nil else {
+        guard attachments.contains(where: { $0.id == selectedAttachmentID }) else {
             return nil
         }
         return transitionID(for: selectedAttachmentID)

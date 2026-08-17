@@ -4,7 +4,6 @@ struct PhotoPreviewHost<Content: View>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var namespace
     @State private var presentation: PhotoPreviewPresentation?
-    @State private var transitionState = PhotoPreviewTransitionState()
     let canPresent: @MainActor () -> Bool
     @ViewBuilder let content: Content
 
@@ -26,27 +25,17 @@ struct PhotoPreviewHost<Content: View>: View {
                     presentation: presentation,
                     dismiss: dismissPreview
                 )
-                .opacity(transitionState.showsInteractivePreview ? 1 : 0)
-                .allowsHitTesting(transitionState.showsInteractivePreview)
-                .accessibilityHidden(!transitionState.showsInteractivePreview)
+                // Match the eagerly-created pager container. TabView creates its page
+                // contents too late for the opening animation transaction on iOS 17.
+                .photoPreviewMatchedGeometry(
+                    id: presentation.transitionID(for: presentation.selectedAttachmentID),
+                    namespace: namespace,
+                    enabled: reduceMotion == false
+                )
+                .transition(reduceMotion ? .opacity : .identity)
                 .ignoresSafeArea(.container, edges: .all)
                 .zIndex(1)
-
-                if transitionState.showsTransitionImage,
-                   let attachment = presentation.selectedAttachment {
-                    PhotoPreviewTransitionImage(attachment: attachment)
-                        .photoPreviewMatchedGeometry(
-                            id: presentation.transitionID(for: attachment.id),
-                            namespace: namespace,
-                            enabled: reduceMotion == false
-                        )
-                        .transition(reduceMotion ? .opacity : .identity)
-                        .zIndex(2)
-                }
             }
-        }
-        .task(id: transitionState.phase) {
-            await continueDismissalAfterLayout()
         }
     }
 
@@ -78,44 +67,16 @@ struct PhotoPreviewHost<Content: View>: View {
                 groupID: groupID,
                 attachments: attachments,
                 selectedAttachmentID: selectedAttachmentID
-              ),
-              transitionState.beginPresentation() else { return }
+              ) else { return }
 
         withAnimation(transitionAnimation) {
             presentation = nextPresentation
-        } completion: {
-            withoutAnimation {
-                transitionState.finishPresentation()
-            }
         }
     }
 
     private func dismissPreview() {
-        guard presentation != nil else { return }
-        withoutAnimation {
-            _ = transitionState.prepareDismissal()
-        }
-    }
-
-    private func continueDismissalAfterLayout() async {
-        guard transitionState.phase == .preparingDismissal else { return }
-
-        // Give the dedicated transition image one layout pass before it replaces
-        // the interactive pager and starts animating back to the source.
-        await Task.yield()
-
-        guard !Task.isCancelled,
-              transitionState.beginDismissal() else { return }
         withAnimation(transitionAnimation) {
             presentation = nil
-        } completion: {
-            transitionState.finishDismissal()
         }
-    }
-
-    private func withoutAnimation(_ updates: () -> Void) {
-        var transaction = Transaction(animation: nil)
-        transaction.disablesAnimations = true
-        withTransaction(transaction, updates)
     }
 }

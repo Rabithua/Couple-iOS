@@ -79,9 +79,6 @@
 		F10000000000000000000008 /* PhotoPreviewPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000008 /* PhotoPreviewPresentationTests.swift */; };
 		F10000000000000000000009 /* PhotoPreviewZoomState.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000009 /* PhotoPreviewZoomState.swift */; };
 		F1000000000000000000000A /* PhotoPreviewZoomStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000000000000000000000A /* PhotoPreviewZoomStateTests.swift */; };
-		F1000000000000000000000B /* PhotoPreviewTransitionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000000000000000000000B /* PhotoPreviewTransitionState.swift */; };
-		F1000000000000000000000C /* PhotoPreviewTransitionStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000000000000000000000C /* PhotoPreviewTransitionStateTests.swift */; };
-		F1000000000000000000000D /* PhotoPreviewTransitionImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000000000000000000000D /* PhotoPreviewTransitionImage.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -177,9 +174,6 @@
 		E10000000000000000000008 /* PhotoPreviewPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewPresentationTests.swift; sourceTree = "<group>"; };
 		E10000000000000000000009 /* PhotoPreviewZoomState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewZoomState.swift; sourceTree = "<group>"; };
 		E1000000000000000000000A /* PhotoPreviewZoomStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewZoomStateTests.swift; sourceTree = "<group>"; };
-		E1000000000000000000000B /* PhotoPreviewTransitionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewTransitionState.swift; sourceTree = "<group>"; };
-		E1000000000000000000000C /* PhotoPreviewTransitionStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewTransitionStateTests.swift; sourceTree = "<group>"; };
-		E1000000000000000000000D /* PhotoPreviewTransitionImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewTransitionImage.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -303,8 +297,6 @@
 				E10000000000000000000006 /* PhotoPreviewPage.swift */,
 				E10000000000000000000003 /* PhotoPreviewPresentation.swift */,
 				E10000000000000000000004 /* PhotoPreviewSource.swift */,
-				E1000000000000000000000D /* PhotoPreviewTransitionImage.swift */,
-				E1000000000000000000000B /* PhotoPreviewTransitionState.swift */,
 				E10000000000000000000002 /* PhotoPreviewTransitionID.swift */,
 				E10000000000000000000007 /* PhotoPreviewView.swift */,
 				E10000000000000000000009 /* PhotoPreviewZoomState.swift */,
@@ -457,7 +449,6 @@
 			children = (
 				7D4DFD3C9B314DFF0448D5EC /* MainPagerGestureStateTests.swift */,
 				E10000000000000000000008 /* PhotoPreviewPresentationTests.swift */,
-				E1000000000000000000000C /* PhotoPreviewTransitionStateTests.swift */,
 				E1000000000000000000000A /* PhotoPreviewZoomStateTests.swift */,
 			);
 			path = Home;
@@ -653,8 +644,6 @@
 				F10000000000000000000006 /* PhotoPreviewPage.swift in Sources */,
 				F10000000000000000000003 /* PhotoPreviewPresentation.swift in Sources */,
 				F10000000000000000000004 /* PhotoPreviewSource.swift in Sources */,
-				F1000000000000000000000D /* PhotoPreviewTransitionImage.swift in Sources */,
-				F1000000000000000000000B /* PhotoPreviewTransitionState.swift in Sources */,
 				F10000000000000000000002 /* PhotoPreviewTransitionID.swift in Sources */,
 				F10000000000000000000007 /* PhotoPreviewView.swift in Sources */,
 				F10000000000000000000009 /* PhotoPreviewZoomState.swift in Sources */,
@@ -686,7 +675,6 @@
 				A1956724BAA6C906CF61D659 /* CoupleCoreTests.swift in Sources */,
 				062FE797585C2017DF312C5D /* MainPagerGestureStateTests.swift in Sources */,
 				F10000000000000000000008 /* PhotoPreviewPresentationTests.swift in Sources */,
-				F1000000000000000000000C /* PhotoPreviewTransitionStateTests.swift in Sources */,
 				F1000000000000000000000A /* PhotoPreviewZoomStateTests.swift in Sources */,
 				58326B25C993CD986092B2AA /* OfflineSyncTests.swift in Sources */,
 				8AC6AF88130095C101AF1471 /* ReviewFeedbackTests.swift in Sources */,
