@@ -96,7 +96,8 @@ struct NowView: View {
                         PhotoPreviewSource(
                             groupID: "home.featured",
                             attachments: featuredAttachments,
-                            attachment: attachment
+                            attachment: attachment,
+                            transitionStyle: .featuredPhoto
                         ) {
                             AttachmentImage(attachment: attachment, contentMode: .fit)
                                 .frame(

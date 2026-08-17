@@ -23,8 +23,12 @@ struct PhotoPreviewPage: View {
             )
 
             ZStack {
-                Color.clear
-                AttachmentImage(attachment: attachment, contentMode: .fit)
+                Color.black
+                AttachmentImage(
+                    attachment: attachment,
+                    contentMode: .fit,
+                    placeholderColor: .black
+                )
                     .scaleEffect(displayScale)
                     .offset(displayOffset)
             }
