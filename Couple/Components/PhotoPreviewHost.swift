@@ -32,6 +32,7 @@ struct PhotoPreviewHost<Content: View>: View {
                     presentation: presentation,
                     dismiss: dismissPreview
                 )
+                .id(ObjectIdentifier(presentation))
                 .opacity(previewOpacity)
                 .allowsHitTesting(!isTransitioning)
                 .accessibilityHidden(isTransitioning)
@@ -138,6 +139,9 @@ struct PhotoPreviewHost<Content: View>: View {
                 withoutAnimation {
                     presentation = nil
                     isTransitioning = false
+                    transitionProgress = 0
+                    transitionSourceFrame = .zero
+                    transitionStyle = .plain
                 }
             }
         }
