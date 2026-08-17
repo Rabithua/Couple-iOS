@@ -59,9 +59,14 @@ struct AttachmentImage: View {
         cache.totalCostLimit = 96 * 1_024 * 1_024
         return cache
     }()
+    private static let liveImages = NSMapTable<NSString, UIImage>(
+        keyOptions: .strongMemory,
+        valueOptions: .weakMemory
+    )
 
     let attachment: Attachment
     var contentMode: ContentMode = .fit
+    var placeholderColor: Color?
     @Environment(AppStore.self) private var store
     @State private var image: UIImage?
     @State private var resolvedCacheKey: String?
@@ -79,11 +84,11 @@ struct AttachmentImage: View {
                     .aspectRatio(contentMode: contentMode)
             } else if failed, resolvedCacheKey == cacheKey {
                 Rectangle()
-                    .fill(Color(.systemGray5))
+                    .fill(placeholderColor ?? Color(.systemGray5))
                     .overlay { Image(systemName: "photo").foregroundStyle(.secondary) }
             } else {
                 Rectangle()
-                    .fill(Color(.systemGray6))
+                    .fill(placeholderColor ?? Color(.systemGray6))
                     .overlay { ProgressView().controlSize(.small) }
             }
         }
@@ -91,7 +96,7 @@ struct AttachmentImage: View {
         .task(id: cacheKey) {
             guard attachment.demoAssetName == nil else { return }
 
-            if let cachedImage = Self.decodedImages.object(forKey: cacheKey as NSString) {
+            if let cachedImage = Self.cachedImage(forKey: cacheKey) {
                 image = cachedImage
                 resolvedCacheKey = cacheKey
                 failed = false
@@ -114,6 +119,10 @@ struct AttachmentImage: View {
                     forKey: cacheKey as NSString,
                     cost: decodedImageCost(decodedImage)
                 )
+                Self.liveImages.setObject(
+                    decodedImage,
+                    forKey: cacheKey as NSString
+                )
                 image = decodedImage
                 resolvedCacheKey = cacheKey
             } catch is CancellationError {
@@ -134,7 +143,12 @@ struct AttachmentImage: View {
         if resolvedCacheKey == cacheKey, let image {
             return image
         }
-        return Self.decodedImages.object(forKey: cacheKey as NSString)
+        return Self.cachedImage(forKey: cacheKey)
+    }
+
+    private static func cachedImage(forKey cacheKey: String) -> UIImage? {
+        let key = cacheKey as NSString
+        return decodedImages.object(forKey: key) ?? liveImages.object(forKey: key)
     }
 
     private func decodedImageCost(_ image: UIImage) -> Int {

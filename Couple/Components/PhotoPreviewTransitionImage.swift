@@ -22,7 +22,11 @@ struct PhotoPreviewTransitionImage: View {
             )
             let decorationProgress = 1 - clampedProgress
 
-            AttachmentImage(attachment: attachment, contentMode: .fit)
+            AttachmentImage(
+                attachment: attachment,
+                contentMode: .fit,
+                placeholderColor: .black
+            )
                 .frame(width: imageFrame.width, height: imageFrame.height)
                 .overlay {
                     Rectangle().stroke(

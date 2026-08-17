@@ -15,6 +15,7 @@ struct MainPagerView: View {
     @State private var composerPresentedForCurrentGesture = false
     @State private var suppressComposerTapForCurrentEvent = false
     @State private var photoPreviewSuppressedUntil = Date.distantPast
+    @State private var isPhotoPreviewPresented = false
     @GestureState private var isMainGestureActive = false
 
     init(arguments: [String] = ProcessInfo.processInfo.arguments) {
@@ -30,7 +31,10 @@ struct MainPagerView: View {
     }
 
     var body: some View {
-        PhotoPreviewHost(canPresent: canPresentPhotoPreview) {
+        PhotoPreviewHost(
+            canPresent: canPresentPhotoPreview,
+            onPresentationChanged: updatePhotoPreviewPresentation
+        ) {
             GeometryReader { proxy in
                 HStack(spacing: 0) {
                     MainPagerPage(isActive: route.isPast, size: proxy.size) {
@@ -74,7 +78,8 @@ struct MainPagerView: View {
                     mainGesture(
                         in: proxy.size,
                         bottomSafeAreaInset: proxy.safeAreaInsets.bottom
-                    )
+                    ),
+                    including: isPhotoPreviewPresented ? .none : .all
                 )
                 .onChange(of: isMainGestureActive) { wasActive, isActive in
                     guard wasActive, !isActive, isTrackingMainGesture else { return }
@@ -276,6 +281,13 @@ struct MainPagerView: View {
 
     private func canPresentPhotoPreview() -> Bool {
         Date.now >= photoPreviewSuppressedUntil
+    }
+
+    private func updatePhotoPreviewPresentation(_ isPresented: Bool) {
+        isPhotoPreviewPresented = isPresented
+        if isPresented {
+            resetMainGestureTracking()
+        }
     }
 
     private func suppressPhotoPreviewAfterDrag() {

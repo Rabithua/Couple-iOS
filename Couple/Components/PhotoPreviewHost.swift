@@ -9,6 +9,7 @@ struct PhotoPreviewHost<Content: View>: View {
     @State private var transitionStyle = PhotoPreviewTransitionStyle.plain
     @State private var sourceFrames: [PhotoPreviewTransitionID: CGRect] = [:]
     let canPresent: @MainActor () -> Bool
+    let onPresentationChanged: @MainActor (Bool) -> Void
     @ViewBuilder let content: Content
 
     var body: some View {
@@ -53,6 +54,9 @@ struct PhotoPreviewHost<Content: View>: View {
             }
         }
         .coordinateSpace(name: PhotoPreviewContext.coordinateSpaceName)
+        .onChange(of: presentation != nil) { _, isPresented in
+            onPresentationChanged(isPresented)
+        }
     }
 
     private var previewContext: PhotoPreviewContext {
