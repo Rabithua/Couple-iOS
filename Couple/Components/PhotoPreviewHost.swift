@@ -38,8 +38,7 @@ struct PhotoPreviewHost<Content: View>: View {
                         .photoPreviewMatchedGeometry(
                             id: presentation.transitionID(for: attachment.id),
                             namespace: namespace,
-                            enabled: reduceMotion == false,
-                            isSource: false
+                            enabled: reduceMotion == false
                         )
                         .transition(reduceMotion ? .opacity : .identity)
                         .zIndex(2)

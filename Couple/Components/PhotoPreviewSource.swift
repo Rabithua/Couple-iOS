@@ -9,14 +9,17 @@ struct PhotoPreviewSource<Content: View>: View {
 
     var body: some View {
         Button(action: presentPreview) {
-            content
-                .photoPreviewMatchedGeometry(
+            if previewContext.activeTransitionID == transitionID {
+                // The source must leave the namespace in the same transaction
+                // that inserts the dedicated full-screen transition image.
+                content.opacity(0)
+            } else {
+                content.photoPreviewMatchedGeometry(
                     id: transitionID,
                     namespace: previewContext.namespace,
-                    enabled: previewContext.sharedTransitionEnabled,
-                    isSource: true
+                    enabled: previewContext.sharedTransitionEnabled
                 )
-                .opacity(previewContext.activeTransitionID == transitionID ? 0 : 1)
+            }
         }
         .buttonStyle(.plain)
         .accessibilityLabel(attachment.filename)
