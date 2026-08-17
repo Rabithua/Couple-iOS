@@ -590,6 +590,32 @@ final class AppStore {
         triggerSyncAfterWrite()
     }
 
+    func updateDisplayName(_ displayName: String) async throws {
+        let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty, trimmedName.count <= 100 else {
+            throw APIError.server(
+                status: 400,
+                code: "VALIDATION_ERROR",
+                message: "名字需要在 1 到 100 个字符之间"
+            )
+        }
+        guard let currentUser else { throw APIError.missingSession }
+
+        let updatedUser: User
+        if isDemo {
+            updatedUser = User(
+                id: currentUser.id,
+                displayName: trimmedName,
+                timezone: currentUser.timezone
+            )
+        } else {
+            updatedUser = try await api.updateMe(displayName: trimmedName)
+        }
+
+        applyCurrentUser(updatedUser)
+        if !isDemo { try persistSession() }
+    }
+
     func updateCouple(startedOn: Date) async throws {
         guard !isDemo else { return }
         _ = try await api.updateCouple(
@@ -620,6 +646,21 @@ final class AppStore {
 
     func discardChangesAndSignOut() async -> Bool {
         await performSignOut(discardLocalChanges: true)
+    }
+
+    func leaveSpaceIfSafe() async -> Bool {
+        guard signOutDisposition() == .ready else { return false }
+        return await performLeaveSpace(discardLocalChanges: false)
+    }
+
+    func syncThenLeaveSpace() async -> Bool {
+        let result = await synchronize(trigger: .manual, surfaceError: true)
+        guard result == .success, signOutDisposition() == .ready else { return false }
+        return await performLeaveSpace(discardLocalChanges: false)
+    }
+
+    func discardChangesAndLeaveSpace() async -> Bool {
+        await performLeaveSpace(discardLocalChanges: true)
     }
 
     func signOut() async {
@@ -801,14 +842,48 @@ final class AppStore {
         if !isDemo { try? offlineStore?.updateCachedHome(updatedHome) }
     }
 
+    private func performLeaveSpace(discardLocalChanges: Bool) async -> Bool {
+        guard relationship?.couple != nil else { return false }
+
+        if isDemo {
+            relationship = unpairedRelationshipStatus()
+            clearLoadedContent()
+            phase = .pairing
+            return true
+        }
+
+        await stopSessionActivity()
+        do {
+            try await api.leaveCouple()
+        } catch {
+            errorMessage = error.localizedDescription
+            beginConnectivityObservation()
+            return false
+        }
+
+        var cleanupError: Error?
+        do {
+            if discardLocalChanges {
+                try await offlineStore?.discardPendingMutationsAndLocalData()
+            } else {
+                try await offlineStore?.clearSynchronizedLocalDataForSignOut()
+            }
+        } catch {
+            cleanupError = error
+        }
+
+        relationship = (try? await api.relationshipStatus()) ?? unpairedRelationshipStatus()
+        clearLoadedContent()
+        try? persistSession()
+        phase = .pairing
+        if let cleanupError {
+            errorMessage = "已经退出空间，但本地缓存清理失败：\(cleanupError.localizedDescription)"
+        }
+        return true
+    }
+
     private func performSignOut(discardLocalChanges: Bool) async -> Bool {
-        retryTask?.cancel()
-        retryTask = nil
-        connectivityTask?.cancel()
-        connectivityTask = nil
-        connectivityMonitor?.cancel()
-        connectivityMonitor = nil
-        await syncCoordinator?.cancel()
+        await stopSessionActivity()
         do {
             if discardLocalChanges {
                 try await offlineStore?.discardPendingMutationsAndLocalData()
@@ -823,6 +898,22 @@ final class AppStore {
         await api.logOut()
         currentUser = nil
         relationship = nil
+        clearLoadedContent()
+        phase = .signedOut
+        return true
+    }
+
+    private func stopSessionActivity() async {
+        retryTask?.cancel()
+        retryTask = nil
+        connectivityTask?.cancel()
+        connectivityTask = nil
+        connectivityMonitor?.cancel()
+        connectivityMonitor = nil
+        await syncCoordinator?.cancel()
+    }
+
+    private func clearLoadedContent() {
         home = nil
         notes = []
         pastNotes = []
@@ -831,8 +922,34 @@ final class AppStore {
         anniversaries = []
         calendarEvents = []
         pendingTodoIDs = []
-        phase = .signedOut
-        return true
+        selectedNoteQuery = .all
+    }
+
+    private func applyCurrentUser(_ user: User) {
+        currentUser = user
+        guard let relationship else { return }
+        let members = relationship.members.map { member in
+            if member.id == user.id {
+                CoupleMember(id: member.id, displayName: user.displayName)
+            } else {
+                member
+            }
+        }
+        self.relationship = RelationshipStatus(
+            couple: relationship.couple,
+            members: members,
+            pendingInvite: relationship.pendingInvite
+        )
+    }
+
+    private func unpairedRelationshipStatus() -> RelationshipStatus {
+        RelationshipStatus(
+            couple: nil,
+            members: currentUser.map {
+                [CoupleMember(id: $0.id, displayName: $0.displayName)]
+            } ?? [],
+            pendingInvite: nil
+        )
     }
 
     private func runBusy(_ operation: () async throws -> Void) async {

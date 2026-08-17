@@ -126,6 +126,49 @@ struct APIClientTests {
         await client.clearSession()
     }
 
+    @Test("Profile updates use PATCH me with the new display name", .tags(.networking))
+    func updateDisplayNameRequest() async throws {
+        let baseURL = try #require(URL(string: "https://example.com/v1/api"))
+        let keychain = KeychainStore(
+            service: "couple-tests-\(UUID().uuidString)",
+            persistenceEnabled: false
+        )
+        let session = MockHTTPSession(stubs: [
+            .init(pathSuffix: "/me", statusCode: 200, data: Self.updatedUserData)
+        ])
+        let client = APIClient(baseURL: baseURL, session: session, keychain: keychain)
+        try await client.install(tokens: Self.initialTokens)
+
+        let user = try await client.updateMe(displayName: "New Name")
+
+        #expect(user.displayName == "New Name")
+        #expect(await session.lastHTTPMethod() == "PATCH")
+        let body = try #require(await session.lastRequestBody())
+        let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: String])
+        #expect(json == ["displayName": "New Name"])
+        await client.clearSession()
+    }
+
+    @Test("Leaving a couple uses the authenticated leave endpoint", .tags(.networking))
+    func leaveCoupleRequest() async throws {
+        let baseURL = try #require(URL(string: "https://example.com/v1/api"))
+        let keychain = KeychainStore(
+            service: "couple-tests-\(UUID().uuidString)",
+            persistenceEnabled: false
+        )
+        let session = MockHTTPSession(stubs: [
+            .init(pathSuffix: "/couples/leave", statusCode: 200, data: Self.emptySuccessData)
+        ])
+        let client = APIClient(baseURL: baseURL, session: session, keychain: keychain)
+        try await client.install(tokens: Self.initialTokens)
+
+        try await client.leaveCouple()
+
+        #expect(await session.lastHTTPMethod() == "POST")
+        #expect(await session.lastRequestedURL()?.path == "/v1/api/couples/leave")
+        await client.clearSession()
+    }
+
     private static let initialTokens = TokenPair(
         accessToken: "old-access",
         refreshToken: "old-refresh"
@@ -153,6 +196,26 @@ struct APIClientTests {
     {
       "code": "UNAUTHORIZED",
       "message": "unauthorized"
+    }
+    """#.utf8)
+
+    private static let updatedUserData = Data(#"""
+    {
+      "code": 0,
+      "message": "success",
+      "data": {
+        "id": "user-1",
+        "displayName": "New Name",
+        "timezone": "Asia/Shanghai"
+      }
+    }
+    """#.utf8)
+
+    private static let emptySuccessData = Data(#"""
+    {
+      "code": 0,
+      "message": "success",
+      "data": null
     }
     """#.utf8)
 }
@@ -216,6 +279,14 @@ private actor MockHTTPSession: HTTPSession {
 
     func lastRequestedURL() -> URL? {
         requests.last?.url
+    }
+
+    func lastHTTPMethod() -> String? {
+        requests.last?.httpMethod
+    }
+
+    func lastRequestBody() -> Data? {
+        requests.last?.httpBody
     }
 
     func waitForRequestCount(_ count: Int) async {

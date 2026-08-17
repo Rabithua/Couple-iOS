@@ -1,4 +1,4 @@
-# 恋爱 · Couple for iOS
+# oursince for iOS
 
 一款只属于两个人的原生 iOS 共同记录应用。界面依据 [Figma 设计稿](https://www.figma.com/design/jtLq9nC41D1hpaLmWRM0Et/) 实现，并接入 [CoupleServer](https://github.com/Rabithua/CoupleServer) 的线上 API。
 
@@ -7,7 +7,7 @@
 ## 已实现
 
 - 系统 Passkey 注册与登录，凭证写入 Keychain，Access Token 失效时自动刷新
-- 创建情侣空间、生成/分享邀请码、接受邀请，以及关系日期设置
+- 创建共同空间、生成/分享邀请码、接受邀请，以及关系日期设置
 - “过去 / 现在 / 未来”三页横向手势导航
 - 全部、照片、纪念日、共同完成四种回忆筛选
 - 照片选择、预签名直传、附件 finalize、文字与关联记录发布

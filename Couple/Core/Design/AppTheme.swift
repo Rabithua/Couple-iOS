@@ -9,6 +9,7 @@ enum AppTheme {
     static let navigationFadeLength: CGFloat = 68
     static let homeTopFadeLength: CGFloat = 44
     static let navigationBackdropOverlap: CGFloat = 112
+    static let futureContentBottomPadding: CGFloat = 80
     static let heroPhotoSpacing: CGFloat = 14
     static let heroPhotoScrollMargin: CGFloat = 8
     static let composePromptBottomPadding: CGFloat = 38

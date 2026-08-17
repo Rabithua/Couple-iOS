@@ -24,10 +24,10 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.oursince.couple
         PRODUCT_NAME: Couple
-        INFOPLIST_KEY_CFBundleDisplayName: 恋爱
+        INFOPLIST_KEY_CFBundleDisplayName: oursince
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.lifestyle
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: 选择照片来记录你们共同的时刻。
-        INFOPLIST_KEY_NSFaceIDUsageDescription: 使用面容 ID 安全登录你们的情侣空间。
+        INFOPLIST_KEY_NSFaceIDUsageDescription: 使用面容 ID 安全登录你们的共同空间。
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         GENERATE_INFOPLIST_FILE: YES
         CODE_SIGN_ENTITLEMENTS: Config/Couple.entitlements

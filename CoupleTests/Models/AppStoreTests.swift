@@ -79,6 +79,41 @@ struct AppStoreTests {
         #expect(Set(store.notes.map(\.id)) == Set(SampleData.notes.map(\.id)))
         await api.clearSession()
     }
+
+    @Test("Changing the display name updates the current user and member list")
+    func displayNameUpdatesDemoSession() async throws {
+        let store = AppStore(
+            environment: ["COUPLE_DEMO_MODE": "1"],
+            arguments: ["CoupleTests"]
+        )
+        await store.start()
+
+        try await store.updateDisplayName(" 新名字 ")
+
+        #expect(store.currentUser?.displayName == "新名字")
+        #expect(
+            store.relationship?.members.first(where: { $0.id == SampleData.user.id })?.displayName
+                == "新名字"
+        )
+    }
+
+    @Test("Leaving a space keeps the signed-in user and returns to pairing")
+    func leavingSpaceReturnsDemoSessionToPairing() async {
+        let store = AppStore(
+            environment: ["COUPLE_DEMO_MODE": "1"],
+            arguments: ["CoupleTests"]
+        )
+        await store.start()
+
+        let succeeded = await store.leaveSpaceIfSafe()
+
+        #expect(succeeded)
+        #expect(store.phase == .pairing)
+        #expect(store.currentUser != nil)
+        #expect(store.relationship?.couple == nil)
+        #expect(store.todos.isEmpty)
+        #expect(store.notes.isEmpty)
+    }
 }
 
 private actor AlwaysOfflineHTTPSession: HTTPSession {

@@ -5,6 +5,13 @@ import Testing
 struct MainPagerGestureStateTests {
     private let containerSize = CGSize(width: 390, height: 844)
 
+    @Test("Settings is the rightmost future page")
+    func settingsIsAfterTheTodoList() {
+        #expect(FutureMode.settings.pageIndex == FutureMode.list.pageIndex + 1)
+        #expect(MainPagerRoute.future(.settings) == .futureSettings)
+        #expect(MainPagerRoute.futureSettings.rawValue == MainPagerRoute.futureList.rawValue + 1)
+    }
+
     @Test("A diagonal page swipe from the compose region stays horizontal")
     func diagonalPageSwipeNeverBecomesCompose() {
         var state = MainPagerGestureState()

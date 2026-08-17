@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -22,6 +22,7 @@
 		3CADA5F144CA5455F43B02E4 /* PastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33D4839F23CF0F830401E804 /* PastView.swift */; };
 		402E857575BFA75588152F86 /* NewTodoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3950B5B300C206EBA7D6F45B /* NewTodoView.swift */; };
 		419F2E16BC943623B6CDEE8B /* AppHaptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6300E503D7463C62D9897D82 /* AppHaptics.swift */; };
+		F30000000000000000000001 /* AppHapticFeedbackModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20000000000000000000001 /* AppHapticFeedbackModifier.swift */; };
 		4851E43C8D192D1271740ED1 /* EditableContentActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AA676000AC7E0320A51D735 /* EditableContentActions.swift */; };
 		4F7E70AA36D8D52E1E87462F /* NowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31475F86AC39EF3B94050D5E /* NowView.swift */; };
 		55BF5D05D162644DB032EB6E /* OfflineModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 862492117B1F02A0757AD9D4 /* OfflineModels.swift */; };
@@ -67,8 +68,6 @@
 		DE5E1E5740D3A9CF0EA5E3E4 /* ComposePullPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7948F99D38A07D6CD3D0A4FF /* ComposePullPrompt.swift */; };
 		E38BB36A3D77587B744FEE90 /* SyncV1DTOTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA12ABDCC12F47B0103421D7 /* SyncV1DTOTests.swift */; };
 		E4003FD6B3C8C7E22658C499 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EEEE5CF092AD4AA9B5E06BA /* SettingsView.swift */; };
-		F325DB5E85A378D954EA9376 /* TodoDisplayOrderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF5521BB5120D926EB3D944 /* TodoDisplayOrderTests.swift */; };
-		F33A98681E32E3F5146A3BC1 /* MainPagerPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = D22BDF968357311A06F19C02 /* MainPagerPage.swift */; };
 		F10000000000000000000001 /* PhotoPreviewContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000001 /* PhotoPreviewContext.swift */; };
 		F10000000000000000000002 /* PhotoPreviewTransitionID.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000002 /* PhotoPreviewTransitionID.swift */; };
 		F10000000000000000000003 /* PhotoPreviewPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000003 /* PhotoPreviewPresentation.swift */; };
@@ -81,6 +80,8 @@
 		F1000000000000000000000A /* PhotoPreviewZoomStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000000000000000000000A /* PhotoPreviewZoomStateTests.swift */; };
 		F1000000000000000000000D /* PhotoPreviewTransitionImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000000000000000000000D /* PhotoPreviewTransitionImage.swift */; };
 		F1000000000000000000000E /* PhotoPreviewTransitionStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000000000000000000000E /* PhotoPreviewTransitionStyle.swift */; };
+		F325DB5E85A378D954EA9376 /* TodoDisplayOrderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF5521BB5120D926EB3D944 /* TodoDisplayOrderTests.swift */; };
+		F33A98681E32E3F5146A3BC1 /* MainPagerPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = D22BDF968357311A06F19C02 /* MainPagerPage.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -128,6 +129,7 @@
 		5D2778920BD88CC2CF7161A1 /* AppRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRootView.swift; sourceTree = "<group>"; };
 		60734C7C5F8A39BEA866997C /* CalendarMonthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarMonthView.swift; sourceTree = "<group>"; };
 		6300E503D7463C62D9897D82 /* AppHaptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHaptics.swift; sourceTree = "<group>"; };
+		F20000000000000000000001 /* AppHapticFeedbackModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHapticFeedbackModifier.swift; sourceTree = "<group>"; };
 		64E10CA2778DA878C57C90C5 /* ReviewFeedbackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewFeedbackTests.swift; sourceTree = "<group>"; };
 		68F57A3CA83DDC65731106BA /* DeferredTodoCompletionRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeferredTodoCompletionRow.swift; sourceTree = "<group>"; };
 		696F9D1F109987A90B921B2E /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
@@ -161,11 +163,6 @@
 		D22BDF968357311A06F19C02 /* MainPagerPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainPagerPage.swift; sourceTree = "<group>"; };
 		D6C4CDD170E0CF0620452769 /* AttachmentImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentImage.swift; sourceTree = "<group>"; };
 		DA12ABDCC12F47B0103421D7 /* SyncV1DTOTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncV1DTOTests.swift; sourceTree = "<group>"; };
-		E48EA09FE1EA460E19604BE4 /* Couple.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Couple.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		E89908416DD57B054D3992A8 /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService.swift; sourceTree = "<group>"; };
-		E89BC2C907FBC6DEB7C2D2A1 /* CoupleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoupleApp.swift; sourceTree = "<group>"; };
-		EE2ECDEDCFB3D956F1518170 /* OfflineSyncTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineSyncTests.swift; sourceTree = "<group>"; };
-		F3FB2704D6C3AB2DBA8DE11F /* PairingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingView.swift; sourceTree = "<group>"; };
 		E10000000000000000000001 /* PhotoPreviewContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewContext.swift; sourceTree = "<group>"; };
 		E10000000000000000000002 /* PhotoPreviewTransitionID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewTransitionID.swift; sourceTree = "<group>"; };
 		E10000000000000000000003 /* PhotoPreviewPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewPresentation.swift; sourceTree = "<group>"; };
@@ -178,6 +175,11 @@
 		E1000000000000000000000A /* PhotoPreviewZoomStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewZoomStateTests.swift; sourceTree = "<group>"; };
 		E1000000000000000000000D /* PhotoPreviewTransitionImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewTransitionImage.swift; sourceTree = "<group>"; };
 		E1000000000000000000000E /* PhotoPreviewTransitionStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewTransitionStyle.swift; sourceTree = "<group>"; };
+		E48EA09FE1EA460E19604BE4 /* Couple.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Couple.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E89908416DD57B054D3992A8 /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService.swift; sourceTree = "<group>"; };
+		E89BC2C907FBC6DEB7C2D2A1 /* CoupleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoupleApp.swift; sourceTree = "<group>"; };
+		EE2ECDEDCFB3D956F1518170 /* OfflineSyncTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineSyncTests.swift; sourceTree = "<group>"; };
+		F3FB2704D6C3AB2DBA8DE11F /* PairingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -245,6 +247,7 @@
 		4F3372D05A61CAAF8723DAB2 /* Design */ = {
 			isa = PBXGroup;
 			children = (
+				F20000000000000000000001 /* AppHapticFeedbackModifier.swift */,
 				6300E503D7463C62D9897D82 /* AppHaptics.swift */,
 				47574B845991BEF80EED047B /* AppTheme.swift */,
 			);
@@ -576,7 +579,6 @@
 			);
 			mainGroup = 646713B2FC7645B41AB578AA;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -606,6 +608,7 @@
 				ACC4099C181A162958FF5DFA /* APIClient.swift in Sources */,
 				B8F6E5EDFDAAC36669A60F3C /* APIModels.swift in Sources */,
 				A305144BE24908FBE2BB7292 /* APIService.swift in Sources */,
+				F30000000000000000000001 /* AppHapticFeedbackModifier.swift in Sources */,
 				419F2E16BC943623B6CDEE8B /* AppHaptics.swift in Sources */,
 				86A4A4A8125260287A48F14B /* AppRootView.swift in Sources */,
 				81E1E3050AF11AFE426842AA /* AppStore.swift in Sources */,
@@ -733,10 +736,12 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Config/Couple.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = SSK4KVR5FN;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "恋爱";
+				INFOPLIST_KEY_CFBundleDisplayName = oursince;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
-				INFOPLIST_KEY_NSFaceIDUsageDescription = "使用面容 ID 安全登录你们的情侣空间。";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "使用面容 ID 安全登录你们的共同空间。";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "选择照片来记录你们共同的时刻。";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -745,6 +750,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.oursince.couple;
 				PRODUCT_NAME = Couple;
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "OurSince App Store 1.0.0 20260814";
 				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_STRICT_CONCURRENCY = complete;
@@ -778,9 +784,9 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Manual;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "恋爱";
+				INFOPLIST_KEY_CFBundleDisplayName = oursince;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
-				INFOPLIST_KEY_NSFaceIDUsageDescription = "使用面容 ID 安全登录你们的情侣空间。";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "使用面容 ID 安全登录你们的共同空间。";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "选择照片来记录你们共同的时刻。";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
