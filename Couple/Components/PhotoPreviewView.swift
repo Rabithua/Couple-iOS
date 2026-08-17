@@ -17,6 +17,7 @@ struct PhotoPreviewView: View {
             }
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
+        .background(Color.black)
         .accessibilityIdentifier("photoPreviewPager")
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea(.container, edges: .all)
