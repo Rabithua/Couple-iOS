@@ -4,6 +4,7 @@ struct PhotoPreviewHost<Content: View>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var namespace
     @State private var presentation: PhotoPreviewPresentation?
+    @State private var isTransitioning = false
     let canPresent: @MainActor () -> Bool
     @ViewBuilder let content: Content
 
@@ -25,16 +26,22 @@ struct PhotoPreviewHost<Content: View>: View {
                     presentation: presentation,
                     dismiss: dismissPreview
                 )
-                // Match the eagerly-created pager container. TabView creates its page
-                // contents too late for the opening animation transaction on iOS 17.
-                .photoPreviewMatchedGeometry(
-                    id: presentation.transitionID(for: presentation.selectedAttachmentID),
-                    namespace: namespace,
-                    enabled: reduceMotion == false
-                )
+                .opacity(isTransitioning ? 0 : 1)
+                .allowsHitTesting(!isTransitioning)
+                .accessibilityHidden(isTransitioning)
                 .transition(reduceMotion ? .opacity : .identity)
                 .ignoresSafeArea(.container, edges: .all)
                 .zIndex(1)
+
+                if isTransitioning,
+                   let attachment = presentation.selectedAttachment {
+                    PhotoPreviewTransitionImage(
+                        attachment: attachment,
+                        transitionID: presentation.transitionID(for: attachment.id),
+                        namespace: namespace
+                    )
+                    .zIndex(2)
+                }
             }
         }
     }
@@ -69,14 +76,50 @@ struct PhotoPreviewHost<Content: View>: View {
                 selectedAttachmentID: selectedAttachmentID
               ) else { return }
 
+        guard !reduceMotion else {
+            withAnimation(transitionAnimation) {
+                presentation = nextPresentation
+            }
+            return
+        }
+
+        updateTransitioning(true)
         withAnimation(transitionAnimation) {
             presentation = nextPresentation
+        } completion: {
+            updateTransitioning(false)
         }
     }
 
     private func dismissPreview() {
-        withAnimation(transitionAnimation) {
-            presentation = nil
+        guard presentation != nil else { return }
+
+        guard !reduceMotion else {
+            withAnimation(transitionAnimation) {
+                presentation = nil
+            }
+            return
+        }
+
+        updateTransitioning(true)
+        Task { @MainActor in
+            // Let the static transition image replace the pager before it moves.
+            await Task.yield()
+            guard isTransitioning, presentation != nil else { return }
+
+            withAnimation(transitionAnimation) {
+                presentation = nil
+            } completion: {
+                updateTransitioning(false)
+            }
+        }
+    }
+
+    private func updateTransitioning(_ value: Bool) {
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            isTransitioning = value
         }
     }
 }
