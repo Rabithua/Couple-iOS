@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PhotoPreviewSource<Content: View>: View {
     @Environment(\.photoPreviewContext) private var previewContext
+    @State private var sourceFrame = CGRect.zero
     let groupID: String
     let attachments: [Attachment]
     let attachment: Attachment
@@ -9,17 +10,7 @@ struct PhotoPreviewSource<Content: View>: View {
 
     var body: some View {
         Button(action: presentPreview) {
-            if previewContext.activeTransitionID == transitionID {
-                // Remove the namespace source while its full-screen destination exists.
-                // Keeping both alive makes the destination inherit this thumbnail frame.
-                content.opacity(0)
-            } else {
-                content.photoPreviewMatchedGeometry(
-                    id: transitionID,
-                    namespace: previewContext.namespace,
-                    enabled: previewContext.sharedTransitionEnabled
-                )
-            }
+            content.opacity(previewContext.activeTransitionID == transitionID ? 0 : 1)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(attachment.filename)
@@ -27,6 +18,12 @@ struct PhotoPreviewSource<Content: View>: View {
         .accessibilityIdentifier(
             "photoPreviewSource-\(groupID)-\(attachment.id)"
         )
+        .onGeometryChange(for: CGRect.self) { proxy in
+            proxy.frame(in: .named(PhotoPreviewContext.coordinateSpaceName))
+        } action: { frame in
+            sourceFrame = frame
+            previewContext.updateSourceFrame(transitionID, frame)
+        }
     }
 
     private var transitionID: PhotoPreviewTransitionID {
@@ -37,6 +34,6 @@ struct PhotoPreviewSource<Content: View>: View {
     }
 
     private func presentPreview() {
-        previewContext.present(groupID, attachments, attachment.id)
+        previewContext.present(groupID, attachments, attachment.id, sourceFrame)
     }
 }

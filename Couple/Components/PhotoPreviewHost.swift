@@ -2,9 +2,11 @@ import SwiftUI
 
 struct PhotoPreviewHost<Content: View>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Namespace private var namespace
     @State private var presentation: PhotoPreviewPresentation?
     @State private var isTransitioning = false
+    @State private var transitionProgress: CGFloat = 0
+    @State private var transitionSourceFrame = CGRect.zero
+    @State private var sourceFrames: [PhotoPreviewTransitionID: CGRect] = [:]
     let canPresent: @MainActor () -> Bool
     @ViewBuilder let content: Content
 
@@ -16,17 +18,20 @@ struct PhotoPreviewHost<Content: View>: View {
                 .accessibilityHidden(presentation != nil)
 
             Color.black
-                .opacity(presentation == nil ? 0 : 1)
+                .opacity(
+                    presentation == nil
+                        ? 0
+                        : Double(min(transitionProgress * 2, 1))
+                )
                 .ignoresSafeArea()
                 .allowsHitTesting(false)
-                .animation(backgroundAnimation, value: presentation != nil)
 
             if let presentation {
                 PhotoPreviewView(
                     presentation: presentation,
                     dismiss: dismissPreview
                 )
-                .opacity(isTransitioning ? 0 : 1)
+                .opacity(previewOpacity)
                 .allowsHitTesting(!isTransitioning)
                 .accessibilityHidden(isTransitioning)
                 .transition(reduceMotion ? .opacity : .identity)
@@ -37,36 +42,38 @@ struct PhotoPreviewHost<Content: View>: View {
                    let attachment = presentation.selectedAttachment {
                     PhotoPreviewTransitionImage(
                         attachment: attachment,
-                        transitionID: presentation.transitionID(for: attachment.id),
-                        namespace: namespace
+                        sourceFrame: transitionSourceFrame,
+                        progress: transitionProgress
                     )
                     .zIndex(2)
                 }
             }
         }
+        .coordinateSpace(name: PhotoPreviewContext.coordinateSpaceName)
     }
 
     private var previewContext: PhotoPreviewContext {
         PhotoPreviewContext(
-            namespace: namespace,
             activeTransitionID: presentation?.selectedTransitionID,
-            sharedTransitionEnabled: reduceMotion == false,
+            updateSourceFrame: updateSourceFrame,
             present: presentPreview
         )
+    }
+
+    private var previewOpacity: Double {
+        if isTransitioning { return 0 }
+        return reduceMotion ? Double(transitionProgress) : 1
     }
 
     private var transitionAnimation: Animation {
         reduceMotion ? .easeOut(duration: 0.16) : .smooth(duration: 0.48)
     }
 
-    private var backgroundAnimation: Animation {
-        reduceMotion ? .easeOut(duration: 0.12) : .easeInOut(duration: 0.24)
-    }
-
     private func presentPreview(
         groupID: String,
         attachments: [Attachment],
-        selectedAttachmentID: String
+        selectedAttachmentID: String,
+        sourceFrame: CGRect
     ) {
         guard canPresent(),
               presentation == nil,
@@ -76,50 +83,80 @@ struct PhotoPreviewHost<Content: View>: View {
                 selectedAttachmentID: selectedAttachmentID
               ) else { return }
 
-        guard !reduceMotion else {
-            withAnimation(transitionAnimation) {
-                presentation = nextPresentation
-            }
-            return
+        let transitionID = nextPresentation.transitionID(for: selectedAttachmentID)
+        let resolvedSourceFrame = sourceFrames[transitionID] ?? sourceFrame
+        guard reduceMotion || isUsable(resolvedSourceFrame) else { return }
+
+        withoutAnimation {
+            transitionSourceFrame = resolvedSourceFrame
+            transitionProgress = 0
+            isTransitioning = !reduceMotion
+            presentation = nextPresentation
         }
 
-        updateTransitioning(true)
-        withAnimation(transitionAnimation) {
-            presentation = nextPresentation
-        } completion: {
-            updateTransitioning(false)
+        Task { @MainActor in
+            await Task.yield()
+            guard presentation === nextPresentation else { return }
+
+            withAnimation(transitionAnimation) {
+                transitionProgress = 1
+            } completion: {
+                guard presentation === nextPresentation else { return }
+                withoutAnimation {
+                    isTransitioning = false
+                }
+            }
         }
     }
 
     private func dismissPreview() {
-        guard presentation != nil else { return }
+        guard let currentPresentation = presentation else { return }
 
-        guard !reduceMotion else {
-            withAnimation(transitionAnimation) {
-                presentation = nil
+        let destinationFrame = currentPresentation.selectedTransitionID
+            .flatMap { sourceFrames[$0] }
+        let resolvedSourceFrame = destinationFrame ?? transitionSourceFrame
+
+        withoutAnimation {
+            if isUsable(resolvedSourceFrame) {
+                transitionSourceFrame = resolvedSourceFrame
             }
-            return
+            transitionProgress = 1
+            isTransitioning = !reduceMotion
         }
-
-        updateTransitioning(true)
         Task { @MainActor in
-            // Let the static transition image replace the pager before it moves.
             await Task.yield()
-            guard isTransitioning, presentation != nil else { return }
+            guard presentation === currentPresentation else { return }
 
             withAnimation(transitionAnimation) {
-                presentation = nil
+                transitionProgress = 0
             } completion: {
-                updateTransitioning(false)
+                guard presentation === currentPresentation else { return }
+                withoutAnimation {
+                    presentation = nil
+                    isTransitioning = false
+                }
             }
         }
     }
 
-    private func updateTransitioning(_ value: Bool) {
+    private func updateSourceFrame(
+        _ transitionID: PhotoPreviewTransitionID,
+        _ frame: CGRect
+    ) {
+        guard isUsable(frame), sourceFrames[transitionID] != frame else { return }
+        sourceFrames[transitionID] = frame
+    }
+
+    private func isUsable(_ frame: CGRect) -> Bool {
+        frame.width > 0
+            && frame.height > 0
+            && frame.minX.isFinite
+            && frame.minY.isFinite
+    }
+
+    private func withoutAnimation(_ updates: () -> Void) {
         var transaction = Transaction(animation: nil)
         transaction.disablesAnimations = true
-        withTransaction(transaction) {
-            isTransitioning = value
-        }
+        withTransaction(transaction, updates)
     }
 }

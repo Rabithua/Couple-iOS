@@ -1,34 +1,19 @@
 import SwiftUI
 
 struct PhotoPreviewContext {
+    static let coordinateSpaceName = "photoPreviewHost"
+
     static let disabled = PhotoPreviewContext(
-        namespace: nil,
         activeTransitionID: nil,
-        sharedTransitionEnabled: false,
-        present: { _, _, _ in }
+        updateSourceFrame: { _, _ in },
+        present: { _, _, _, _ in }
     )
 
-    let namespace: Namespace.ID?
     let activeTransitionID: PhotoPreviewTransitionID?
-    let sharedTransitionEnabled: Bool
-    let present: @MainActor (String, [Attachment], String) -> Void
+    let updateSourceFrame: @MainActor (PhotoPreviewTransitionID, CGRect) -> Void
+    let present: @MainActor (String, [Attachment], String, CGRect) -> Void
 }
 
 extension EnvironmentValues {
     @Entry var photoPreviewContext = PhotoPreviewContext.disabled
-}
-
-extension View {
-    @ViewBuilder
-    func photoPreviewMatchedGeometry(
-        id: PhotoPreviewTransitionID,
-        namespace: Namespace.ID?,
-        enabled: Bool
-    ) -> some View {
-        if enabled, let namespace {
-            matchedGeometryEffect(id: id, in: namespace)
-        } else {
-            self
-        }
-    }
 }
