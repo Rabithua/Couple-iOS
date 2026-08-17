@@ -5,6 +5,7 @@ struct NowView: View {
     @Environment(AppStore.self) private var store
     let composePullProgress: CGFloat
     let isActive: Bool
+    let verticalScrollingDisabled: Bool
     let showComposer: () -> Void
     let showSettings: () -> Void
     let setPhotoCarouselFrame: (CGRect) -> Void
@@ -43,6 +44,7 @@ struct NowView: View {
                 .padding(.top, AppTheme.topPadding)
             }
             .scrollIndicators(.hidden)
+            .scrollDisabled(verticalScrollingDisabled)
             .refreshable { await store.refreshContent() }
 
             pullToCompose

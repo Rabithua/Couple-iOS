@@ -26,6 +26,7 @@ struct MainPagerGestureStateTests {
         )
 
         #expect(state.intent == .page)
+        #expect(state.blocksVerticalScrolling)
         #expect(state.composeProgress == 0)
         #expect(state.shouldPresentComposer == false)
         #expect(
@@ -49,6 +50,7 @@ struct MainPagerGestureStateTests {
             route: .now
         )
         #expect(state.intent == .compose)
+        #expect(state.blocksVerticalScrolling == false)
         #expect(state.shouldPresentComposer == false)
 
         state.update(
@@ -79,6 +81,7 @@ struct MainPagerGestureStateTests {
         )
 
         #expect(state.intent == .ignored)
+        #expect(state.blocksVerticalScrolling == false)
         #expect(state.shouldPresentComposer == false)
     }
 
@@ -155,8 +158,8 @@ struct MainPagerGestureStateTests {
         #expect(state.pageTranslation == 0)
     }
 
-    @Test("A page swipe that turns vertical returns to scrolling")
-    func pageSwipeThatTurnsVerticalReturnsToScrolling() {
+    @Test("A page swipe keeps horizontal ownership until the drag ends")
+    func pageSwipeKeepsHorizontalOwnershipUntilDragEnds() {
         var state = MainPagerGestureState()
         let startLocation = CGPoint(x: 195, y: 500)
 
@@ -178,15 +181,21 @@ struct MainPagerGestureStateTests {
             route: .pastAll
         )
 
-        #expect(state.intent == .ignored)
-        #expect(state.pageTranslation == 0)
-        #expect(state.pageSourceRoute == nil)
+        #expect(state.intent == .page)
+        #expect(state.blocksVerticalScrolling)
+        #expect(state.pageTranslation == finalTranslation.width)
+        #expect(state.pageSourceRoute == .pastAll)
         #expect(
             state.shouldCommitPageSwipe(
                 translation: finalTranslation,
                 predictedEndTranslation: CGSize(width: -120, height: -240)
             ) == false
         )
+
+        state.reset()
+
+        #expect(state.intent == .undecided)
+        #expect(state.blocksVerticalScrolling == false)
     }
 
 }
