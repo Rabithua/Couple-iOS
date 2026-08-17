@@ -27,8 +27,11 @@ enum SignOutDisposition: Equatable, Sendable {
 @MainActor
 @Observable
 final class AppStore {
+    static let pendingSpaceCleanupDefaultsKey = "app.space.pendingLocalCleanup"
+
     let api: APIClient
     private let passkeys: PasskeyService
+    private let userDefaults: UserDefaults
     private(set) var offlineStore: OfflineStore?
     private var syncCoordinator: SyncCoordinator?
     private var connectivityMonitor: ConnectivityMonitor?
@@ -69,11 +72,13 @@ final class AppStore {
         passkeys: PasskeyService = PasskeyService(),
         offlineStore suppliedOfflineStore: OfflineStore? = nil,
         syncTransport suppliedSyncTransport: (any SyncTransport)? = nil,
+        userDefaults: UserDefaults = .standard,
         environment: [String: String] = ProcessInfo.processInfo.environment,
         arguments: [String] = ProcessInfo.processInfo.arguments
     ) {
         self.api = api
         self.passkeys = passkeys
+        self.userDefaults = userDefaults
         let demo = environment["COUPLE_DEMO_MODE"] == "1" || arguments.contains("-ui-testing-demo")
         self.isDemo = demo
 
@@ -98,6 +103,10 @@ final class AppStore {
         }
         guard localStoreInitializationError == nil, let offlineStore else {
             errorMessage = localStoreInitializationError?.localizedDescription ?? "本地数据库无法打开"
+            phase = .signedOut
+            return
+        }
+        guard await recoverPendingSpaceCleanup() else {
             phase = .signedOut
             return
         }
@@ -147,6 +156,7 @@ final class AppStore {
     }
 
     func register(displayName: String) async {
+        guard await recoverPendingSpaceCleanup() else { return }
         await runBusy {
             let timezone = TimeZone.current.identifier
             let result = try await api.registrationOptions(displayName: displayName, timezone: timezone)
@@ -163,6 +173,7 @@ final class AppStore {
     }
 
     func signIn() async {
+        guard await recoverPendingSpaceCleanup() else { return }
         await runBusy {
             let result = try await api.authenticationOptions()
             let credential = try await passkeys.authenticate(options: result.options)
@@ -617,7 +628,30 @@ final class AppStore {
     }
 
     func updateCouple(startedOn: Date) async throws {
-        guard !isDemo else { return }
+        if isDemo {
+            guard let relationship, var couple = relationship.couple else { return }
+            couple.startedOn = startedOn.dateOnlyString
+            self.relationship = RelationshipStatus(
+                couple: couple,
+                members: relationship.members,
+                pendingInvite: relationship.pendingInvite
+            )
+            if let home {
+                let calendar = Calendar.current
+                let daysTogether = calendar.dateComponents(
+                    [.day],
+                    from: calendar.startOfDay(for: startedOn),
+                    to: calendar.startOfDay(for: .now)
+                ).day
+                self.home = HomeData(
+                    daysTogether: daysTogether,
+                    nextAnniversary: home.nextAnniversary,
+                    nextUpcoming: home.nextUpcoming,
+                    latestTimelineEntry: home.latestTimelineEntry
+                )
+            }
+            return
+        }
         _ = try await api.updateCouple(
             startedOn: startedOn.dateOnlyString,
             timezone: TimeZone.current.identifier
@@ -851,6 +885,10 @@ final class AppStore {
             phase = .pairing
             return true
         }
+        guard let offlineStore else {
+            errorMessage = localStoreInitializationError?.localizedDescription ?? "本地数据库无法打开"
+            return false
+        }
 
         await stopSessionActivity()
         do {
@@ -861,25 +899,51 @@ final class AppStore {
             return false
         }
 
-        var cleanupError: Error?
+        userDefaults.set(true, forKey: Self.pendingSpaceCleanupDefaultsKey)
         do {
             if discardLocalChanges {
-                try await offlineStore?.discardPendingMutationsAndLocalData()
+                try await offlineStore.discardPendingMutationsAndLocalData()
             } else {
-                try await offlineStore?.clearSynchronizedLocalDataForSignOut()
+                try await offlineStore.clearSynchronizedLocalDataForSignOut()
             }
+            userDefaults.removeObject(forKey: Self.pendingSpaceCleanupDefaultsKey)
         } catch {
-            cleanupError = error
+            await api.clearSession()
+            currentUser = nil
+            relationship = nil
+            clearLoadedContent()
+            errorMessage = "已经退出空间，但本地数据未能安全清理。为保护空间数据，已退出登录：\(error.localizedDescription)"
+            phase = .signedOut
+            return false
         }
 
         relationship = (try? await api.relationshipStatus()) ?? unpairedRelationshipStatus()
         clearLoadedContent()
         try? persistSession()
         phase = .pairing
-        if let cleanupError {
-            errorMessage = "已经退出空间，但本地缓存清理失败：\(cleanupError.localizedDescription)"
-        }
         return true
+    }
+
+    private func recoverPendingSpaceCleanup() async -> Bool {
+        guard userDefaults.bool(forKey: Self.pendingSpaceCleanupDefaultsKey) else { return true }
+        guard let offlineStore else {
+            await api.clearSession()
+            errorMessage = localStoreInitializationError?.localizedDescription ?? "本地数据库无法打开"
+            return false
+        }
+
+        do {
+            try await offlineStore.discardPendingMutationsAndLocalData()
+            userDefaults.removeObject(forKey: Self.pendingSpaceCleanupDefaultsKey)
+            return true
+        } catch {
+            await api.clearSession()
+            currentUser = nil
+            relationship = nil
+            clearLoadedContent()
+            errorMessage = "上次退出空间后的本地数据仍未安全清理，请重试：\(error.localizedDescription)"
+            return false
+        }
     }
 
     private func performSignOut(discardLocalChanges: Bool) async -> Bool {
