@@ -9,8 +9,17 @@ struct PhotoPreviewTransitionState: Equatable {
 
     private(set) var phase: Phase = .idle
 
-    var hidesSystemUI: Bool {
+    var showsInteractivePreview: Bool {
         phase == .presented
+    }
+
+    var showsTransitionImage: Bool {
+        switch phase {
+        case .opening, .preparingDismissal, .closing:
+            true
+        case .idle, .presented:
+            false
+        }
     }
 
     mutating func beginPresentation() -> Bool {

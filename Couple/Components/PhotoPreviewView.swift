@@ -2,7 +2,6 @@ import SwiftUI
 
 struct PhotoPreviewView: View {
     @Bindable var presentation: PhotoPreviewPresentation
-    let hidesSystemOverlays: Bool
     let dismiss: () -> Void
 
     var body: some View {
@@ -21,7 +20,6 @@ struct PhotoPreviewView: View {
         .accessibilityIdentifier("photoPreviewPager")
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea(.container, edges: .all)
-        .persistentSystemOverlays(hidesSystemOverlays ? .hidden : .automatic)
         .accessibilityAction(.escape, dismiss)
     }
 }

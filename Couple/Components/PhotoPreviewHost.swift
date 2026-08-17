@@ -24,22 +24,28 @@ struct PhotoPreviewHost<Content: View>: View {
             if let presentation {
                 PhotoPreviewView(
                     presentation: presentation,
-                    hidesSystemOverlays: transitionState.hidesSystemUI,
                     dismiss: dismissPreview
                 )
-                // Match the eagerly-created pager container. TabView creates its page
-                // contents too late for the opening animation transaction on iOS 17.
-                .photoPreviewMatchedGeometry(
-                    id: presentation.transitionID(for: presentation.selectedAttachmentID),
-                    namespace: namespace,
-                    enabled: reduceMotion == false
-                )
-                .transition(reduceMotion ? .opacity : .identity)
+                .opacity(transitionState.showsInteractivePreview ? 1 : 0)
+                .allowsHitTesting(transitionState.showsInteractivePreview)
+                .accessibilityHidden(!transitionState.showsInteractivePreview)
                 .ignoresSafeArea(.container, edges: .all)
                 .zIndex(1)
+
+                if transitionState.showsTransitionImage,
+                   let attachment = presentation.selectedAttachment {
+                    PhotoPreviewTransitionImage(attachment: attachment)
+                        .photoPreviewMatchedGeometry(
+                            id: presentation.transitionID(for: attachment.id),
+                            namespace: namespace,
+                            enabled: reduceMotion == false,
+                            isSource: false
+                        )
+                        .transition(reduceMotion ? .opacity : .identity)
+                        .zIndex(2)
+                }
             }
         }
-        .statusBarHidden(transitionState.hidesSystemUI)
         .task(id: transitionState.phase) {
             await continueDismissalAfterLayout()
         }
@@ -95,8 +101,8 @@ struct PhotoPreviewHost<Content: View>: View {
     private func continueDismissalAfterLayout() async {
         guard transitionState.phase == .preparingDismissal else { return }
 
-        // Let the restored system UI update the source safe area before SwiftUI
-        // captures the matched-geometry destination frame.
+        // Give the dedicated transition image one layout pass before it replaces
+        // the interactive pager and starts animating back to the source.
         await Task.yield()
 
         guard !Task.isCancelled,

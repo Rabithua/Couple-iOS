@@ -9,17 +9,14 @@ struct PhotoPreviewSource<Content: View>: View {
 
     var body: some View {
         Button(action: presentPreview) {
-            if previewContext.activeTransitionID == transitionID {
-                // Remove the namespace source while its full-screen destination exists.
-                // Keeping both alive makes the destination inherit this thumbnail frame.
-                content.opacity(0)
-            } else {
-                content.photoPreviewMatchedGeometry(
+            content
+                .photoPreviewMatchedGeometry(
                     id: transitionID,
                     namespace: previewContext.namespace,
-                    enabled: previewContext.sharedTransitionEnabled
+                    enabled: previewContext.sharedTransitionEnabled,
+                    isSource: true
                 )
-            }
+                .opacity(previewContext.activeTransitionID == transitionID ? 0 : 1)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(attachment.filename)

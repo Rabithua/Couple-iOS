@@ -23,10 +23,17 @@ extension View {
     func photoPreviewMatchedGeometry(
         id: PhotoPreviewTransitionID,
         namespace: Namespace.ID?,
-        enabled: Bool
+        enabled: Bool,
+        isSource: Bool
     ) -> some View {
         if enabled, let namespace {
-            matchedGeometryEffect(id: id, in: namespace)
+            matchedGeometryEffect(
+                id: id,
+                in: namespace,
+                properties: .frame,
+                anchor: .center,
+                isSource: isSource
+            )
         } else {
             self
         }
