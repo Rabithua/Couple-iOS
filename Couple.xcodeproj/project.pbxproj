@@ -14,6 +14,7 @@
 		17DB60F3CAFAF0A38B435D1B /* PhotoPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E91DCB8536246EB9009DE781 /* PhotoPreviewView.swift */; };
 		18C665F36ACB776EEF49A7C9 /* PhotoPreviewZoomState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AEB29ED930F34D3894CA2FD /* PhotoPreviewZoomState.swift */; };
 		1B173057AC6DE16C0FB72E4A /* CalendarMonthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60734C7C5F8A39BEA866997C /* CalendarMonthView.swift */; };
+		F19E57B4A7D24C839A106E51 /* CalendarDayAgendaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D7B4CB9E2F7481AA30C6D95 /* CalendarDayAgendaView.swift */; };
 		25119C67BAF53B4C2724A216 /* CoupleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E89BC2C907FBC6DEB7C2D2A1 /* CoupleApp.swift */; };
 		26DADC0E9BFDB1AE16E63C93 /* TodoListDisplayOrderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A499C009D370664DF245EB08 /* TodoListDisplayOrderTests.swift */; };
 		27109272F0CE02067665ADB8 /* DesignNavigationContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 866943AD76A71CCBB22D0F38 /* DesignNavigationContainer.swift */; };
@@ -103,6 +104,7 @@
 
 /* Begin PBXFileReference section */
 		041507648A3CCDBE8F9EE374 /* AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
+		0D7B4CB9E2F7481AA30C6D95 /* CalendarDayAgendaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarDayAgendaView.swift; sourceTree = "<group>"; };
 		048B64F77D7BAE239A747450 /* TodoCompletionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoCompletionTests.swift; sourceTree = "<group>"; };
 		0AAE37D211CA2400A2D1BD70 /* CoupleUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = CoupleUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0CF5521BB5120D926EB3D944 /* TodoDisplayOrderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoDisplayOrderTests.swift; sourceTree = "<group>"; };
@@ -229,6 +231,7 @@
 		4892706C6BF759FB8212F8C0 /* Future */ = {
 			isa = PBXGroup;
 			children = (
+				0D7B4CB9E2F7481AA30C6D95 /* CalendarDayAgendaView.swift */,
 				B4C88F117877FCBFCB92C847 /* CalendarDayCell.swift */,
 				60734C7C5F8A39BEA866997C /* CalendarMonthView.swift */,
 				6E15C236C8EDF6B1B9903587 /* FutureView.swift */,
@@ -617,6 +620,7 @@
 				8D839A0DB954A715E9A6826F /* AttachmentFileStore.swift in Sources */,
 				A037B3489A0F6AA92E044D78 /* AttachmentImage.swift in Sources */,
 				28BC3DEAE4A2D58F49AB860A /* AuthView.swift in Sources */,
+				F19E57B4A7D24C839A106E51 /* CalendarDayAgendaView.swift in Sources */,
 				A0B6F8756DE99A9546949193 /* CalendarDayCell.swift in Sources */,
 				1B173057AC6DE16C0FB72E4A /* CalendarMonthView.swift in Sources */,
 				C416256EE5D45FA4A4C68AA6 /* CalendarOccurrenceExpander.swift in Sources */,
@@ -869,7 +873,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_LANGUAGE = "zh-Hans";
 				DEVELOPMENT_TEAM = SSK4KVR5FN;
@@ -938,7 +942,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_LANGUAGE = "zh-Hans";
 				DEVELOPMENT_TEAM = SSK4KVR5FN;
