@@ -36,8 +36,8 @@ enum Visibility: String, Codable, CaseIterable, Sendable {
 
     var title: String {
         switch self {
-        case .shared: "共同可见"
-        case .private: "仅自己可见"
+        case .shared: String(localized: "共同可见")
+        case .private: String(localized: "仅自己可见")
         }
     }
 }

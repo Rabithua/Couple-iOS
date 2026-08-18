@@ -45,7 +45,7 @@ struct PastPageView: View {
                         previewGroupID: previewGroupID(for: note)
                     )
                         .editableContentActions(
-                            deletionTitle: "删除这条动态？",
+                            deletionTitle: String(localized: "删除这条动态？"),
                             editAction: { editingNote = note },
                             deleteAction: { try await store.deleteMemory(note) }
                         )
@@ -55,7 +55,7 @@ struct PastPageView: View {
                         previewGroupID: previewGroupID(for: note)
                     )
                         .editableContentActions(
-                            deletionTitle: "删除这条动态？",
+                            deletionTitle: String(localized: "删除这条动态？"),
                             editAction: { editingNote = note },
                             deleteAction: { try await store.deleteMemory(note) }
                         )
@@ -83,7 +83,7 @@ struct PastPageView: View {
                             previewGroupID: previewGroupID(for: note)
                         )
                             .editableContentActions(
-                                deletionTitle: "删除这条动态及其中照片？",
+                                deletionTitle: String(localized: "删除这条动态及其中照片？"),
                                 editAction: { editingNote = note },
                                 deleteAction: { try await store.deleteMemory(note) }
                             )
@@ -99,11 +99,14 @@ struct PastPageView: View {
                 if let association = note.associations.first(where: { $0.type == .todo }) {
                     VStack(alignment: .leading, spacing: 8) {
                         NoteMetadataRow(date: note.createdAt, trailing: sampleLocation(for: note))
-                        Label(association.title ?? "共同完成", systemImage: "checkmark.square")
+                        Label(
+                            association.title ?? String(localized: "共同完成"),
+                            systemImage: "checkmark.square"
+                        )
                             .font(AppTheme.titleFont())
                     }
                     .editableContentActions(
-                        deletionTitle: "删除这条动态？",
+                        deletionTitle: String(localized: "删除这条动态？"),
                         editAction: { editingNote = note },
                         deleteAction: { try await store.deleteMemory(note) }
                     )
@@ -156,7 +159,7 @@ private struct AssociatedNoteRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             NoteMetadataRow(date: note.createdAt, trailing: sampleLocation(for: note))
-            Label(association.title ?? "共同记录", systemImage: symbol)
+            Label(association.title ?? String(localized: "共同记录"), systemImage: symbol)
                 .font(AppTheme.titleFont())
 
             HStack(alignment: .top, spacing: 10) {
@@ -188,7 +191,7 @@ struct NoteMetadataRow: View {
 
     var body: some View {
         HStack {
-            Text(date.chineseDateTime)
+            Text(date.localizedDateTime)
             Spacer(minLength: 8)
             Text(trailing)
                 .lineLimit(1)
@@ -200,7 +203,9 @@ struct NoteMetadataRow: View {
 
 private func sampleLocation(for note: Note) -> String {
     guard note.demoIndex < 2 else { return "" }
-    return note.demoIndex == 0 ? "瓶窑镇良渚生长力聚落" : "虎山公园&杭钢公园"
+    return note.demoIndex == 0
+        ? String(localized: "瓶窑镇良渚生长力聚落")
+        : String(localized: "虎山公园&杭钢公园")
 }
 
 private extension Note {

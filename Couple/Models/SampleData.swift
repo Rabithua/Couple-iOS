@@ -4,12 +4,12 @@ enum SampleData {
     static let now = Date()
     static let user = User(
         id: "10000000-0000-4000-8000-000000000001",
-        displayName: "程袭",
+        displayName: String(localized: "程袭"),
         timezone: "Asia/Shanghai"
     )
     static let partner = CoupleMember(
         id: "10000000-0000-4000-8000-000000000002",
-        displayName: "长野"
+        displayName: String(localized: "长野")
     )
     static let relationship = RelationshipStatus(
         couple: Couple(
@@ -27,7 +27,7 @@ enum SampleData {
         id: "30000000-0000-4000-8000-000000000001",
         coupleId: relationship.couple!.id,
         ownerId: user.id,
-        title: "程袭的生日",
+        title: String(localized: "程袭的生日"),
         date: Calendar.current.date(byAdding: .day, value: 8, to: now)!.dateOnlyString,
         annual: true,
         visibility: .shared,
@@ -39,10 +39,10 @@ enum SampleData {
     )
 
     static let todos: [Todo] = [
-        "一起去灵隐寺还愿吧",
-        "闪击杭钢",
-        "真的很想吃云记烤鸭",
-        "清迈好啊，去玩去玩"
+        String(localized: "一起去灵隐寺还愿吧"),
+        String(localized: "闪击杭钢"),
+        String(localized: "真的很想吃云记烤鸭"),
+        String(localized: "清迈好啊，去玩去玩")
     ].enumerated().map { index, title in
         Todo(
             id: "40000000-0000-4000-8000-00000000000\(index + 1)",
@@ -65,7 +65,7 @@ enum SampleData {
         id: "40000000-0000-4000-8000-000000000099",
         coupleId: relationship.couple!.id,
         ownerId: user.id,
-        title: "去灵隐寺还愿吧",
+        title: String(localized: "去灵隐寺还愿吧"),
         note: nil,
         dueTime: nil,
         visibility: .shared,
@@ -91,7 +91,7 @@ enum SampleData {
             id: "50000000-0000-4000-8000-000000000001",
             coupleId: relationship.couple!.id,
             ownerId: partner.id,
-            content: "遇到了特别特别特别好看的夕阳，美美拍照，还有特别棒的双彩虹！\n还见到了好久没见的小狗！\n（👇图一也是小狗哈）",
+            content: String(localized: "遇到了特别特别特别好看的夕阳，美美拍照，还有特别棒的双彩虹！\n还见到了好久没见的小狗！\n（👇图一也是小狗哈）"),
             visibility: .shared,
             anniversaryId: nil,
             todoId: nil,
@@ -104,7 +104,7 @@ enum SampleData {
             id: "50000000-0000-4000-8000-000000000002",
             coupleId: relationship.couple!.id,
             ownerId: user.id,
-            content: "谁能拒绝坐在水边逮一下午虾呢～",
+            content: String(localized: "谁能拒绝坐在水边逮一下午虾呢～"),
             visibility: .shared,
             anniversaryId: nil,
             todoId: nil,
@@ -161,7 +161,7 @@ enum SampleData {
             id: "60000000-0000-4000-8000-000000000001",
             coupleId: relationship.couple!.id,
             ownerId: user.id,
-            title: "一起吃晚饭",
+            title: String(localized: "一起吃晚饭"),
             description: nil,
             allDay: false,
             startTime: Calendar.current.date(byAdding: .day, value: 3, to: now)!,
@@ -196,4 +196,3 @@ enum SampleData {
         )
     }
 }
-

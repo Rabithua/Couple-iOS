@@ -27,7 +27,7 @@ struct SettingsView: View {
                 Button(action: presentNameEditor) {
                     LabeledContent {
                         HStack(spacing: 6) {
-                            Text(store.currentUser?.displayName ?? "未设置")
+                            Text(store.currentUser?.displayName ?? String(localized: "未设置"))
                             Image(systemName: "chevron.right")
                                 .font(.caption.bold())
                                 .foregroundStyle(.tertiary)
@@ -56,7 +56,10 @@ struct SettingsView: View {
 
                 if let invite = store.relationship?.pendingInvite {
                     LabeledContent("邀请码", value: invite.code)
-                    ShareLink(item: "加入我们的共同空间，邀请码：\(invite.code)") {
+                    ShareLink(item: String(
+                        localized: "inviteShareMessage",
+                        defaultValue: "加入我们的共同空间，邀请码：\(invite.code)"
+                    )) {
                         Label("分享邀请码", systemImage: "square.and.arrow.up")
                     }
                 }
@@ -76,7 +79,10 @@ struct SettingsView: View {
                         Image(systemName: "birthday.cake.fill")
                     }
                     .editableContentActions(
-                        deletionTitle: "删除纪念日“\(item.title)”？",
+                        deletionTitle: String(
+                            localized: "deleteAnniversaryConfirmation",
+                            defaultValue: "删除纪念日“\(item.title)”？"
+                        ),
                         editAction: { editingAnniversary = item },
                         deleteAction: { try await store.deleteAnniversary(item) }
                     )
@@ -102,7 +108,10 @@ struct SettingsView: View {
 
             Section("连接") {
                 LabeledContent("服务器", value: "oursince.com")
-                LabeledContent("登录", value: store.isDemo ? "预览模式" : "Passkey")
+                LabeledContent(
+                    "登录",
+                    value: store.isDemo ? String(localized: "预览模式") : "Passkey"
+                )
             }
             .listRowSeparator(.hidden)
 
@@ -176,14 +185,20 @@ struct SettingsView: View {
         } message: {
             Text("对方会在共同空间里看到这个名字。")
         }
-        .alert("还有 \(pendingChangeCount) 项尚未同步", isPresented: $showingUnsyncedLeave) {
+        .alert(String(
+            localized: "pendingChangeCountAlert",
+            defaultValue: "还有 \(pendingChangeCount) 项尚未同步"
+        ), isPresented: $showingUnsyncedLeave) {
             Button("先同步再退出", action: beginSyncThenLeave)
             Button("丢弃并退出", role: .destructive, action: beginDiscardingAndLeave)
             Button("取消", role: .cancel) {}
         } message: {
             Text("未同步的修改不会自动带出这个空间。")
         }
-        .alert("还有 \(pendingChangeCount) 项尚未同步", isPresented: $showingUnsyncedSignOut) {
+        .alert(String(
+            localized: "pendingChangeCountAlert",
+            defaultValue: "还有 \(pendingChangeCount) 项尚未同步"
+        ), isPresented: $showingUnsyncedSignOut) {
             Button("先同步", action: beginSyncThenSignOut)
             Button("丢弃并退出", role: .destructive, action: beginDiscardingAndSignOut)
             Button("取消", role: .cancel) {}
@@ -280,7 +295,9 @@ struct SettingsView: View {
             if succeeded {
                 haptics.play(.success)
             } else {
-                presentError(store.errorMessage ?? "操作未能完成，请稍后重试。")
+                presentError(
+                    store.errorMessage ?? String(localized: "操作未能完成，请稍后重试。")
+                )
             }
         }
     }

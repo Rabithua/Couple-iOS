@@ -42,7 +42,11 @@ struct TodoCheckButton: View {
         .buttonStyle(.plain)
         .frame(width: AppTheme.todoControlSize, height: AppTheme.todoControlSize)
         .accessibilityLabel(accessibilityLabel)
-        .accessibilityHint(isChecked && todo.completed == false ? "再次轻点可取消" : "")
+        .accessibilityHint(
+            isChecked && todo.completed == false
+                ? String(localized: "再次轻点可取消")
+                : ""
+        )
     }
 
     private func toggleTodo() {
@@ -52,8 +56,19 @@ struct TodoCheckButton: View {
 
     private var accessibilityLabel: String {
         if isChecked {
-            return todo.completed ? "重新打开\(todo.title)" : "取消完成\(todo.title)"
+            return todo.completed
+                ? String(
+                    localized: "reopenTodoAccessibilityLabel",
+                    defaultValue: "重新打开\(todo.title)"
+                )
+                : String(
+                    localized: "cancelTodoCompletionAccessibilityLabel",
+                    defaultValue: "取消完成\(todo.title)"
+                )
         }
-        return "完成\(todo.title)"
+        return String(
+            localized: "completeTodoAccessibilityLabel",
+            defaultValue: "完成\(todo.title)"
+        )
     }
 }

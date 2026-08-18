@@ -37,7 +37,11 @@ struct NewAnniversaryView: View {
                     .appHapticFeedback(.selection, trigger: visibility)
                 }
             }
-            .navigationTitle(editingAnniversary == nil ? "新纪念日" : "编辑纪念日")
+            .navigationTitle(
+                editingAnniversary == nil
+                    ? String(localized: "新纪念日")
+                    : String(localized: "编辑纪念日")
+            )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

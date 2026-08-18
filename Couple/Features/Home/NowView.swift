@@ -15,7 +15,7 @@ struct NowView: View {
 
     private var memberNames: String {
         let names = store.relationship?.members.map(\.displayName) ?? []
-        return names.isEmpty ? "你们" : names.joined(separator: " & ")
+        return names.isEmpty ? String(localized: "你们") : names.joined(separator: " & ")
     }
 
     private var featuredAttachments: [Attachment] {
@@ -65,7 +65,9 @@ struct NowView: View {
     }
 
     private var relationshipHero: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        let daysTogether = store.home?.daysTogether ?? 0
+
+        return VStack(alignment: .leading, spacing: 4) {
             Button(action: showSettings) {
                 Text(memberNames)
                     .font(.caption)
@@ -79,10 +81,10 @@ struct NowView: View {
                     .font(.title2.bold())
                 Text("在一起")
                     .font(AppTheme.titleFont())
-                Text("\(store.home?.daysTogether ?? 0)")
+                Text(daysTogether, format: .number)
                     .font(AppTheme.roundedNumberFont())
                     .contentTransition(.numericText())
-                Text("天")
+                Text(dayUnit(for: daysTogether))
                     .font(AppTheme.titleFont())
             }
 
@@ -114,7 +116,7 @@ struct NowView: View {
                         }
                             .accessibilityIdentifier("featuredPhoto-\(index)")
                             .editableContentActions(
-                                deletionTitle: "删除这条动态及其中照片？",
+                                deletionTitle: String(localized: "删除这条动态及其中照片？"),
                                 editAction: {
                                     if let note { editingNote = note }
                                 },
@@ -160,16 +162,16 @@ struct NowView: View {
                 HStack(spacing: 4) {
                     Text("下一个纪念日还有")
                         .font(AppTheme.titleFont())
-                    Text("\(days)")
+                    Text(days, format: .number)
                         .font(AppTheme.roundedNumberFont())
-                    Text("天")
+                    Text(dayUnit(for: days))
                         .font(AppTheme.titleFont())
                 }
 
                 HStack(alignment: .top, spacing: 9) {
                     AssociationArrow(height: 45)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text((anniversary.upcomingOccurrence() ?? Date()).chineseDateTime)
+                        Text((anniversary.upcomingOccurrence() ?? Date()).localizedDateTime)
                             .font(.caption)
                             .foregroundStyle(AppTheme.muted)
                         Label(anniversary.title, systemImage: "birthday.cake.fill")
@@ -179,7 +181,10 @@ struct NowView: View {
                 .padding(.horizontal, 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .editableContentActions(
-                    deletionTitle: "删除纪念日“\(anniversary.title)”？",
+                    deletionTitle: String(
+                        localized: "deleteAnniversaryConfirmation",
+                        defaultValue: "删除纪念日“\(anniversary.title)”？"
+                    ),
                     editAction: { editingAnniversary = anniversary },
                     deleteAction: { try await store.deleteAnniversary(anniversary) }
                 )
@@ -202,7 +207,10 @@ struct NowView: View {
                     await store.setTodoCompletion(todo, completed: true)
                 }
                 .editableContentActions(
-                    deletionTitle: "删除清单“\(todo.title)”？",
+                    deletionTitle: String(
+                        localized: "deleteTodoConfirmation",
+                        defaultValue: "删除清单“\(todo.title)”？"
+                    ),
                     editAction: { editingTodo = todo },
                     deleteAction: { try await store.deleteTodo(todo) }
                 )
@@ -231,6 +239,19 @@ struct NowView: View {
 
     private func daysUntil(_ anniversary: Anniversary) -> Int {
         guard let date = anniversary.upcomingOccurrence() else { return 0 }
-        return max(Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: Date()), to: date).day ?? 0, 0)
+        return max(
+            Calendar.current.dateComponents(
+                [.day],
+                from: Calendar.current.startOfDay(for: .now),
+                to: date
+            ).day ?? 0,
+            0
+        )
+    }
+
+    private func dayUnit(for count: Int) -> String {
+        count == 1
+            ? String(localized: "dayUnitSingular", defaultValue: "天")
+            : String(localized: "dayUnitPlural", defaultValue: "天")
     }
 }

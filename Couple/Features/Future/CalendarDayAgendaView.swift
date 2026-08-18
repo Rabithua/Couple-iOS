@@ -44,7 +44,10 @@ struct CalendarDayAgendaView: View {
                 }
                 .buttonStyle(.plain)
                 .editableContentActions(
-                    deletionTitle: "删除日程“\(event.title)”？",
+                    deletionTitle: String(
+                        localized: "deleteEventConfirmation",
+                        defaultValue: "删除日程“\(event.title)”？"
+                    ),
                     editAction: { editEvent(event) },
                     deleteAction: { try await deleteEvent(event) }
                 )
@@ -59,7 +62,10 @@ struct CalendarDayAgendaView: View {
                     setCompletion: setTodoCompletion
                 )
                 .editableContentActions(
-                    deletionTitle: "删除清单“\(todo.title)”？",
+                    deletionTitle: String(
+                        localized: "deleteTodoConfirmation",
+                        defaultValue: "删除清单“\(todo.title)”？"
+                    ),
                     editAction: { editTodo(todo) },
                     deleteAction: { try await deleteTodo(todo) }
                 )
@@ -81,19 +87,20 @@ struct CalendarDayAgendaView: View {
         .opacity(isContentVisible ? 1 : 0)
         .allowsHitTesting(isContentVisible)
         .transition(.identity)
+        .accessibilityElement(children: .contain)
         .accessibilityHidden(!isContentVisible)
         .accessibilityIdentifier("calendarAgenda-\(date.dateOnlyString)")
     }
 
     private func eventTime(_ event: CalendarEvent) -> String {
-        if event.allDay { return "全天" }
+        if event.allDay { return String(localized: "全天") }
         let start = event.startTime.formatted(date: .omitted, time: .shortened)
         guard let endTime = event.endTime else { return start }
         return "\(start)–\(endTime.formatted(date: .omitted, time: .shortened))"
     }
 
     private func todoTime(_ todo: Todo) -> String {
-        todo.dueTime?.formatted(date: .omitted, time: .shortened) ?? "清单"
+        todo.dueTime?.formatted(date: .omitted, time: .shortened) ?? String(localized: "清单")
     }
 
     private func beginCreatingEvent() {
@@ -147,7 +154,7 @@ private struct CalendarAgendaTodoRow: View {
             .buttonStyle(.plain)
             .disabled(completion.isDisabled)
             .accessibilityLabel(accessibilityLabel(completion.isCompleted))
-            .accessibilityHint("长按可以编辑或删除")
+            .accessibilityHint(String(localized: "长按可以编辑或删除"))
         }
     }
 
@@ -156,6 +163,14 @@ private struct CalendarAgendaTodoRow: View {
     }
 
     private func accessibilityLabel(_ isCompleted: Bool) -> String {
-        isCompleted ? "重新打开\(todo.title)" : "完成\(todo.title)"
+        isCompleted
+            ? String(
+                localized: "reopenTodoAccessibilityLabel",
+                defaultValue: "重新打开\(todo.title)"
+            )
+            : String(
+                localized: "completeTodoAccessibilityLabel",
+                defaultValue: "完成\(todo.title)"
+            )
     }
 }

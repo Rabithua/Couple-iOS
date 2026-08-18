@@ -16,18 +16,12 @@ extension Date {
         return formatter.string(from: self)
     }
 
-    var chineseDateTime: String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_Hans_CN")
-        formatter.dateFormat = "yyyy年M月d日 HH:mm"
-        return formatter.string(from: self)
+    var localizedDateTime: String {
+        formatted(date: .long, time: .shortened)
     }
 
-    var chineseMonthTitle: String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_Hans_CN")
-        formatter.dateFormat = "yyyy年M月"
-        return formatter.string(from: self)
+    var localizedMonthTitle: String {
+        formatted(.dateTime.year().month(.wide))
     }
 
     static func fromDateOnly(_ value: String) -> Date? {
@@ -126,7 +120,7 @@ struct CalendarMonth: Identifiable, Hashable, Sendable {
     }
 
     var id: Date { start }
-    var title: String { start.chineseMonthTitle }
+    var title: String { start.localizedMonthTitle }
 
     static func make(startingAt date: Date, count: Int, calendar: Calendar = .current) -> [CalendarMonth] {
         guard let first = calendar.date(from: calendar.dateComponents([.year, .month], from: date)) else {

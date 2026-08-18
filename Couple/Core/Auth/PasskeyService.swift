@@ -43,10 +43,10 @@ enum PasskeyError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .malformedOptions: "服务器返回的 Passkey 参数无效"
-        case .wrongCredentialType: "系统返回了不支持的登录凭证"
-        case .missingAttestation: "系统没有生成 Passkey 注册证明"
-        case .unavailable: "此设备暂时无法使用 Passkey"
+        case .malformedOptions: String(localized: "服务器返回的 Passkey 参数无效")
+        case .wrongCredentialType: String(localized: "系统返回了不支持的登录凭证")
+        case .missingAttestation: String(localized: "系统没有生成 Passkey 注册证明")
+        case .unavailable: String(localized: "此设备暂时无法使用 Passkey")
         }
     }
 }

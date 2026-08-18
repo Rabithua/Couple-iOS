@@ -1,10 +1,19 @@
 import SwiftUI
 
 enum PastFilter: String, CaseIterable, Hashable {
-    case completed = "共同完成"
-    case anniversaries = "纪念日"
-    case photos = "照片"
-    case all = "全部"
+    case completed
+    case anniversaries
+    case photos
+    case all
+
+    var title: String {
+        switch self {
+        case .completed: String(localized: "共同完成")
+        case .anniversaries: String(localized: "纪念日")
+        case .photos: String(localized: "照片")
+        case .all: String(localized: "全部")
+        }
+    }
 
     var query: NoteQuery {
         switch self {
@@ -82,7 +91,7 @@ struct PastView: View {
             .clipped()
         } navigationBar: {
             DesignTabBar(
-                items: PastFilter.allCases.map { ($0, $0.rawValue) },
+                items: PastFilter.allCases.map { ($0, $0.title) },
                 selection: filter,
                 select: selectFilter
             )

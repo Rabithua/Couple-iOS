@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0C0A11A2D5404E17B3170011 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 0C0A11A2D5404E17B3170021 /* Localizable.xcstrings */; };
+		0C0A11A2D5404E17B3170012 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 0C0A11A2D5404E17B3170022 /* InfoPlist.xcstrings */; };
 		062FE797585C2017DF312C5D /* MainPagerGestureStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D4DFD3C9B314DFF0448D5EC /* MainPagerGestureStateTests.swift */; };
 		065A75575DE29369DFFEFFAB /* TodoDisplayOrder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49D779C659FFA44AF6FD0E2F /* TodoDisplayOrder.swift */; };
 		07EADADB98D07E9CFD339E78 /* FutureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E15C236C8EDF6B1B9903587 /* FutureView.swift */; };
@@ -107,6 +109,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		0C0A11A2D5404E17B3170021 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		0C0A11A2D5404E17B3170022 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		041507648A3CCDBE8F9EE374 /* AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
 		0D7B4CB9E2F7481AA30C6D95 /* CalendarDayAgendaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarDayAgendaView.swift; sourceTree = "<group>"; };
 		3E7A91C5B4D24F6081A9E2C7 /* CalendarAgendaBackgroundShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarAgendaBackgroundShape.swift; sourceTree = "<group>"; };
@@ -252,6 +256,8 @@
 			isa = PBXGroup;
 			children = (
 				22BED188E317E7EABE587033 /* Assets.xcassets */,
+				0C0A11A2D5404E17B3170022 /* InfoPlist.xcstrings */,
+				0C0A11A2D5404E17B3170021 /* Localizable.xcstrings */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -586,11 +592,13 @@
 			};
 			buildConfigurationList = B00130FF84FC977868D2D36A /* Build configuration list for PBXProject "Couple" */;
 			compatibilityVersion = "Xcode 14.0";
-			developmentRegion = en;
+			developmentRegion = "zh-Hans";
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				Base,
 				en,
+				"zh-Hans",
+				"zh-Hant",
 			);
 			mainGroup = 646713B2FC7645B41AB578AA;
 			minimizedProjectReferenceProxies = 1;
@@ -611,6 +619,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				8BB996E6A8D76DF9F52C1CD5 /* Assets.xcassets in Resources */,
+				0C0A11A2D5404E17B3170012 /* InfoPlist.xcstrings in Resources */,
+				0C0A11A2D5404E17B3170011 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -918,6 +928,8 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 6.0;
@@ -980,6 +992,8 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 6.0;

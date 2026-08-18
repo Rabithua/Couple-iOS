@@ -1,9 +1,17 @@
 import SwiftUI
 
 enum FutureMode: String, CaseIterable, Hashable {
-    case calendar = "日历"
-    case list = "清单"
-    case settings = "设置"
+    case calendar
+    case list
+    case settings
+
+    var title: String {
+        switch self {
+        case .calendar: String(localized: "日历")
+        case .list: String(localized: "清单")
+        case .settings: String(localized: "设置")
+        }
+    }
 
     var pageIndex: Int {
         switch self {
@@ -60,14 +68,16 @@ struct FutureView: View {
         } navigationBar: {
             ZStack(alignment: .trailing) {
                 DesignTabBar(
-                    items: FutureMode.allCases.map { ($0, $0.rawValue) },
+                    items: FutureMode.allCases.map { ($0, $0.title) },
                     selection: mode,
                     select: selectMode
                 )
 
                 if mode != .settings {
                     Button(
-                        mode == .list ? "添加清单" : "添加日程",
+                        mode == .list
+                            ? String(localized: "添加清单")
+                            : String(localized: "添加日程"),
                         systemImage: "plus",
                         action: presentNewItem
                     )
@@ -137,7 +147,10 @@ struct FutureView: View {
                         await store.setTodoCompletion(todo, completed: completed)
                     }
                     .editableContentActions(
-                        deletionTitle: "删除清单“\(todo.title)”？",
+                        deletionTitle: String(
+                            localized: "deleteTodoConfirmation",
+                            defaultValue: "删除清单“\(todo.title)”？"
+                        ),
                         editAction: { editTodo(todo) },
                         deleteAction: { try await deleteTodo(todo) }
                     )

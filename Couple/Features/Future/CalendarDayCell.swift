@@ -25,7 +25,7 @@ struct CalendarDayCell: View {
 
         Button(action: selectDay) {
             VStack(spacing: 2) {
-                Text("\(Calendar.current.component(.day, from: date))")
+                Text(Calendar.current.component(.day, from: date), format: .number)
                     .font(.body.bold())
                     .foregroundStyle(isToday ? Color(.systemBackground) : AppTheme.muted)
                     .frame(width: 32, height: 32)
@@ -45,31 +45,55 @@ struct CalendarDayCell: View {
         .disabled(isSelectionDisabled)
         .contextMenu {
             ForEach(events) { event in
-                Button("编辑日程：\(event.title)", systemImage: "pencil") {
+                Button(
+                    String(
+                        localized: "editEventAccessibilityLabel",
+                        defaultValue: "编辑日程：\(event.title)"
+                    ),
+                    systemImage: "pencil"
+                ) {
                     beginEditing(event)
                 }
                 Button(role: .destructive) {
                     requestDeletion(.event(event))
                 } label: {
-                    Label("删除日程：\(event.title)", systemImage: "trash")
+                    Label(
+                        String(
+                            localized: "deleteEventAccessibilityLabel",
+                            defaultValue: "删除日程：\(event.title)"
+                        ),
+                        systemImage: "trash"
+                    )
                 }
             }
 
             if !events.isEmpty, !todos.isEmpty { Divider() }
 
             ForEach(todos) { todo in
-                Button("编辑清单：\(todo.title)", systemImage: "pencil") {
+                Button(
+                    String(
+                        localized: "editTodoAccessibilityLabel",
+                        defaultValue: "编辑清单：\(todo.title)"
+                    ),
+                    systemImage: "pencil"
+                ) {
                     beginEditing(todo)
                 }
                 Button(role: .destructive) {
                     requestDeletion(.todo(todo))
                 } label: {
-                    Label("删除清单：\(todo.title)", systemImage: "trash")
+                    Label(
+                        String(
+                            localized: "deleteTodoAccessibilityLabel",
+                            defaultValue: "删除清单：\(todo.title)"
+                        ),
+                        systemImage: "trash"
+                    )
                 }
             }
         }
         .confirmationDialog(
-            pendingDeletion?.confirmationTitle ?? "确认删除？",
+            pendingDeletion?.confirmationTitle ?? String(localized: "确认删除？"),
             isPresented: $isShowingDeleteConfirmation,
             titleVisibility: .visible
         ) {
@@ -95,18 +119,30 @@ struct CalendarDayCell: View {
 
     private func accessibilityValue(isToday: Bool) -> String {
         var values: [String] = []
-        if isToday { values.append("今天") }
-        if isSelected { values.append("已展开") }
-        if !events.isEmpty { values.append("\(events.count) 个日程") }
-        if !todos.isEmpty { values.append("\(todos.count) 个清单") }
-        return values.isEmpty ? "无安排" : values.joined(separator: "，")
+        if isToday { values.append(String(localized: "今天")) }
+        if isSelected { values.append(String(localized: "已展开")) }
+        if !events.isEmpty {
+            values.append(String(
+                localized: "calendarEventCount",
+                defaultValue: "\(events.count) 个日程"
+            ))
+        }
+        if !todos.isEmpty {
+            values.append(String(
+                localized: "todoCount",
+                defaultValue: "\(todos.count) 个清单"
+            ))
+        }
+        return values.isEmpty
+            ? String(localized: "无安排")
+            : values.formatted(.list(type: .and, width: .short))
     }
 
     private func accessibilityHint(hasScheduledItem: Bool) -> String {
-        if isSelected { return "轻点收起当天安排" }
+        if isSelected { return String(localized: "轻点收起当天安排") }
         return hasScheduledItem
-            ? "轻点展开当天安排，长按管理"
-            : "轻点展开并新建日程"
+            ? String(localized: "轻点展开当天安排，长按管理")
+            : String(localized: "轻点展开并新建日程")
     }
 
     private func beginEditing(_ event: CalendarEvent) {
@@ -146,7 +182,9 @@ struct CalendarDayCell: View {
             haptics.play(.success)
         } catch {
             let message = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
-            deleteErrorMessage = message.isEmpty ? "操作失败，请稍后重试" : message
+            deleteErrorMessage = message.isEmpty
+                ? String(localized: "操作失败，请稍后重试")
+                : message
             isShowingDeleteError = true
             haptics.play(.error)
         }
@@ -159,8 +197,14 @@ private enum PendingDeletion {
 
     var confirmationTitle: String {
         switch self {
-        case .event(let event): "删除日程“\(event.title)”？"
-        case .todo(let todo): "删除清单“\(todo.title)”？"
+        case .event(let event): String(
+            localized: "deleteEventConfirmation",
+            defaultValue: "删除日程“\(event.title)”？"
+        )
+        case .todo(let todo): String(
+            localized: "deleteTodoConfirmation",
+            defaultValue: "删除清单“\(todo.title)”？"
+        )
         }
     }
 }

@@ -15,15 +15,13 @@ struct CalendarMonthView: View {
     var visibleAgendaDate: Date? = nil
     var selectionDisabled = false
 
-    private static let weekdaySymbols = ["日", "一", "二", "三", "四", "五", "六"]
-
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(month.title)
                 .font(AppTheme.titleFont())
 
             HStack(spacing: 0) {
-                ForEach(Self.weekdaySymbols, id: \.self) { symbol in
+                ForEach(Calendar.current.veryShortStandaloneWeekdaySymbols, id: \.self) { symbol in
                     Text(symbol)
                         .font(.caption.bold())
                         .foregroundStyle(AppTheme.muted)
