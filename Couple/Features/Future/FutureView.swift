@@ -32,7 +32,7 @@ struct FutureView: View {
     @State private var visibleCalendarAgendaDate: Date?
     @State private var calendarTransitionID = UUID()
 
-    private let months = CalendarMonth.make(startingAt: .now, count: 12)
+    private static let calendarMonths = CalendarMonth.make(startingAt: .now, count: 12)
 
     var body: some View {
         DesignNavigationContainer {
@@ -96,11 +96,10 @@ struct FutureView: View {
     private var calendarContent: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 28) {
-                ForEach(months) { month in
+                ForEach(Self.calendarMonths) { month in
                     CalendarMonthView(
                         month: month,
-                        events: store.calendarEvents,
-                        todos: store.todos,
+                        schedule: store.calendarScheduleIndex,
                         editEvent: editCalendarEvent,
                         editTodo: editTodo,
                         deleteEvent: deleteCalendarEvent,

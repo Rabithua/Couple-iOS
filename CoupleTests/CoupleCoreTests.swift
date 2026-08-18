@@ -49,8 +49,7 @@ final class CoupleCoreTests: XCTestCase {
         XCTAssertEqual(calendar.component(.day, from: try XCTUnwrap(month.days[32])), 30)
     }
 
-    @MainActor
-    func testCalendarMonthMarksTodoDueDateAsScheduled() throws {
+    func testCalendarScheduleIndexMarksTodoDueDateAsScheduled() throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
         let dueDate = try XCTUnwrap(calendar.date(from: DateComponents(
@@ -60,11 +59,6 @@ final class CoupleCoreTests: XCTestCase {
             hour: 21
         )))
         let otherDate = try XCTUnwrap(calendar.date(byAdding: .day, value: 1, to: dueDate))
-        let month = try XCTUnwrap(CalendarMonth.make(
-            startingAt: dueDate,
-            count: 1,
-            calendar: calendar
-        ).first)
         let todo = Todo(
             id: "todo-with-due-date",
             coupleId: "couple",
@@ -80,10 +74,15 @@ final class CoupleCoreTests: XCTestCase {
             createdAt: dueDate,
             updatedAt: dueDate
         )
-        let view = CalendarMonthView(month: month, events: [], todos: [todo])
+        let schedule = CalendarScheduleIndex(
+            events: [],
+            todos: [todo],
+            calendar: calendar
+        )
 
-        XCTAssertTrue(view.hasScheduledItem(on: dueDate, calendar: calendar))
-        XCTAssertFalse(view.hasScheduledItem(on: otherDate, calendar: calendar))
+        XCTAssertTrue(schedule.hasScheduledItem(on: dueDate, calendar: calendar))
+        XCTAssertEqual(schedule.todos(on: dueDate, calendar: calendar).map(\.id), [todo.id])
+        XCTAssertFalse(schedule.hasScheduledItem(on: otherDate, calendar: calendar))
     }
 
     @MainActor

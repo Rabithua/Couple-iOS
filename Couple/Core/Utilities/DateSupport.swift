@@ -115,6 +115,15 @@ extension Collection where Element == Anniversary {
 struct CalendarMonth: Identifiable, Hashable, Sendable {
     let start: Date
     let days: [Date?]
+    let weeks: [[Date?]]
+
+    init(start: Date, days: [Date?]) {
+        self.start = start
+        self.days = days
+        weeks = stride(from: 0, to: days.count, by: 7).map { startIndex in
+            Array(days[startIndex..<min(startIndex + 7, days.count)])
+        }
+    }
 
     var id: Date { start }
     var title: String { start.chineseMonthTitle }

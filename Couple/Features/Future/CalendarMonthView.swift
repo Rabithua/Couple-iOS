@@ -2,8 +2,7 @@ import SwiftUI
 
 struct CalendarMonthView: View {
     let month: CalendarMonth
-    let events: [CalendarEvent]
-    let todos: [Todo]
+    let schedule: CalendarScheduleIndex
     var editEvent: @MainActor (CalendarEvent) -> Void = { _ in }
     var editTodo: @MainActor (Todo) -> Void = { _ in }
     var deleteEvent: @MainActor (CalendarEvent) async throws -> Void = { _ in }
@@ -15,31 +14,32 @@ struct CalendarMonthView: View {
     var visibleAgendaDate: Date? = nil
     var selectionDisabled = false
 
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
-    private let weekdaySymbols = ["日", "一", "二", "三", "四", "五", "六"]
+    private static let weekdaySymbols = ["日", "一", "二", "三", "四", "五", "六"]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(month.title)
                 .font(AppTheme.titleFont())
 
-            LazyVGrid(columns: columns, spacing: 0) {
-                ForEach(weekdaySymbols, id: \.self) { symbol in
+            HStack(spacing: 0) {
+                ForEach(Self.weekdaySymbols, id: \.self) { symbol in
                     Text(symbol)
                         .font(.caption.bold())
                         .foregroundStyle(AppTheme.muted)
-                        .frame(height: 22)
+                        .frame(maxWidth: .infinity, minHeight: 22)
                 }
             }
 
             VStack(spacing: 0) {
-                ForEach(Array(weekRows.enumerated()), id: \.offset) { _, week in
+                ForEach(month.weeks.indices, id: \.self) { rowIndex in
+                    let week = month.weeks[rowIndex]
                     let backgroundSelection = selectedSelection(in: week)
                     let agendaDate = agendaDate(in: week)
 
                     VStack(spacing: 0) {
-                        LazyVGrid(columns: columns, spacing: 0) {
-                            ForEach(Array(week.enumerated()), id: \.offset) { _, day in
+                        HStack(spacing: 0) {
+                            ForEach(week.indices, id: \.self) { columnIndex in
+                                let day = week[columnIndex]
                                 if let day {
                                     CalendarDayCell(
                                         date: day,
@@ -55,7 +55,10 @@ struct CalendarMonthView: View {
                                     )
                                 } else {
                                     Color.clear
-                                        .frame(height: AppTheme.calendarDayHeight)
+                                        .frame(
+                                            maxWidth: .infinity,
+                                            minHeight: AppTheme.calendarDayHeight
+                                        )
                                         .accessibilityHidden(true)
                                 }
                             }
@@ -92,30 +95,15 @@ struct CalendarMonthView: View {
     }
 
     func hasScheduledItem(on date: Date, calendar: Calendar = .current) -> Bool {
-        events.contains { calendar.isDate($0.startTime, inSameDayAs: date) }
-            || todos.contains { todo in
-                todo.dueTime.map { calendar.isDate($0, inSameDayAs: date) } ?? false
-            }
+        schedule.hasScheduledItem(on: date, calendar: calendar)
     }
 
     private func scheduledEvents(on date: Date) -> [CalendarEvent] {
-        events
-            .filter { Calendar.current.isDate($0.startTime, inSameDayAs: date) }
-            .sorted { $0.startTime < $1.startTime }
+        schedule.events(on: date)
     }
 
     private func scheduledTodos(on date: Date) -> [Todo] {
-        todos
-            .filter { todo in
-                todo.dueTime.map { Calendar.current.isDate($0, inSameDayAs: date) } ?? false
-            }
-            .sorted { ($0.dueTime ?? .distantFuture) < ($1.dueTime ?? .distantFuture) }
-    }
-
-    private var weekRows: [[Date?]] {
-        stride(from: 0, to: month.days.count, by: 7).map { startIndex in
-            Array(month.days[startIndex..<min(startIndex + 7, month.days.count)])
-        }
+        schedule.todos(on: date)
     }
 
     private func selectedSelection(in week: [Date?]) -> (date: Date, column: Int)? {

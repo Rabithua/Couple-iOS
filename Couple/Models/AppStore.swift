@@ -47,9 +47,14 @@ final class AppStore {
     var notes: [Note] = []
     var pastNotes: [Note] = []
     private var cachedPastNotes: [NoteQuery: [Note]] = [:]
-    var todos: [Todo] = []
+    var todos: [Todo] = [] {
+        didSet { rebuildCalendarScheduleIndex() }
+    }
     var anniversaries: [Anniversary] = []
-    var calendarEvents: [CalendarEvent] = []
+    var calendarEvents: [CalendarEvent] = [] {
+        didSet { rebuildCalendarScheduleIndex() }
+    }
+    private(set) var calendarScheduleIndex = CalendarScheduleIndex()
     var selectedNoteQuery: NoteQuery = .all
     var isBusy = false
     var isRefreshing = false
@@ -65,6 +70,12 @@ final class AppStore {
         return anniversaries.first {
             $0.id.caseInsensitiveCompare(cached.id) == .orderedSame
         } ?? cached
+    }
+
+    private func rebuildCalendarScheduleIndex() {
+        let nextIndex = CalendarScheduleIndex(events: calendarEvents, todos: todos)
+        guard nextIndex != calendarScheduleIndex else { return }
+        calendarScheduleIndex = nextIndex
     }
 
     init(
