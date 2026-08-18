@@ -65,6 +65,37 @@ final class CoupleJourneyUITests: XCTestCase {
         XCTAssertEqual(app.navigationBars.matching(identifier: "新清单").count, 1)
     }
 
+    func testCalendarDayTapExpandsAgendaBeforeCreatingEvent() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-future"]
+        app.launch()
+
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd"
+        guard let eventDate = Calendar.current.date(byAdding: .day, value: 3, to: .now) else {
+            return XCTFail("Unable to make the demo event date")
+        }
+        let dayIdentifier = "calendarDay-\(formatter.string(from: eventDate))"
+        let day = app.buttons[dayIdentifier]
+        XCTAssertTrue(day.waitForExistence(timeout: 5))
+
+        day.tap()
+
+        let agenda = app.descendants(matching: .any)[
+            "calendarAgenda-\(formatter.string(from: eventDate))"
+        ]
+        XCTAssertTrue(agenda.waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["calendarAgendaEvent-60000000-0000-4000-8000-000000000001"].exists)
+        XCTAssertFalse(app.navigationBars["新日程"].exists)
+
+        app.buttons["calendarAgendaNewEventButton"].tap()
+        XCTAssertTrue(app.navigationBars["新日程"].waitForExistence(timeout: 2))
+    }
+
     func testFutureHorizontalSwipesDoNotOpenNewItem() {
         continueAfterFailure = false
         let app = XCUIApplication()
@@ -95,7 +126,17 @@ final class CoupleJourneyUITests: XCTestCase {
 
         let calendar = app.scrollViews["futureCalendarScroll"]
         XCTAssertTrue(calendar.waitForExistence(timeout: 3))
-        let calendarStart = calendar.coordinate(withNormalizedOffset: CGVector(dx: 0.82, dy: 0.25))
+        let visibleRightSideDay = app.buttons
+            .matching(NSPredicate(format: "identifier BEGINSWITH 'calendarDay-'"))
+            .allElementsBoundByIndex
+            .first { day in
+                day.isHittable && day.frame.midX > app.frame.width * 0.65
+            }
+        guard let day = visibleRightSideDay else {
+            return XCTFail("Expected a visible calendar day to start the page swipe")
+        }
+        let dateIdentifier = String(day.identifier.dropFirst("calendarDay-".count))
+        let calendarStart = day.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
         let calendarEnd = calendar.coordinate(withNormalizedOffset: CGVector(dx: 0.18, dy: 0.25))
         calendarStart.press(
             forDuration: 0.1,
@@ -109,6 +150,10 @@ final class CoupleJourneyUITests: XCTestCase {
 
         app.swipeRight()
         XCTAssertTrue(app.buttons["日历"].isSelected)
+        XCTAssertFalse(
+            app.descendants(matching: .any)["calendarAgenda-\(dateIdentifier)"]
+                .waitForExistence(timeout: 1)
+        )
         app.buttons["添加日程"].tap()
         XCTAssertTrue(app.navigationBars["新日程"].waitForExistence(timeout: 3))
         app.buttons["取消"].tap()

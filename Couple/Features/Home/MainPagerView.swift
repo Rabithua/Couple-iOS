@@ -13,6 +13,8 @@ struct MainPagerView: View {
     @State private var mainGestureState = MainPagerGestureState()
     @State private var composerPresentedForCurrentGesture = false
     @State private var suppressComposerTapForCurrentEvent = false
+    @State private var suppressFutureCalendarSelection = false
+    @State private var calendarSelectionSuppressionID = UUID()
     @State private var photoPreviewSuppressedUntil = Date.distantPast
     @State private var isPhotoPreviewPresented = false
     @GestureState private var isMainGestureActive = false
@@ -65,6 +67,7 @@ struct MainPagerView: View {
                             mode: route.futureMode ?? .calendar,
                             pageDragOffset: innerPageDragOffset,
                             verticalScrollingDisabled: verticalScrollingDisabled,
+                            calendarSelectionDisabled: suppressFutureCalendarSelection,
                             selectMode: selectFutureMode
                         )
                     }
@@ -173,6 +176,7 @@ struct MainPagerView: View {
                 && photoCarouselFrame.contains(value.startLocation)
         }
 
+        let previousIntent = mainGestureState.intent
         mainGestureState.update(
             translation: value.translation,
             startLocation: value.startLocation,
@@ -180,6 +184,9 @@ struct MainPagerView: View {
             bottomSafeAreaInset: bottomSafeAreaInset,
             route: route
         )
+        if previousIntent != .page, mainGestureState.intent == .page {
+            beginSuppressingFutureCalendarSelection()
+        }
 
         presentComposerIfThresholdReached()
     }
@@ -190,6 +197,7 @@ struct MainPagerView: View {
         bottomSafeAreaInset: CGFloat
     ) {
         suppressPhotoPreviewAfterDrag()
+        let previousIntent = mainGestureState.intent
         mainGestureState.update(
             translation: value.translation,
             startLocation: value.startLocation,
@@ -197,6 +205,9 @@ struct MainPagerView: View {
             bottomSafeAreaInset: bottomSafeAreaInset,
             route: route
         )
+        if previousIntent != .page, mainGestureState.intent == .page {
+            beginSuppressingFutureCalendarSelection()
+        }
 
         let intent = mainGestureState.intent
         let didReachComposeThreshold = mainGestureState.shouldPresentComposer
@@ -293,6 +304,22 @@ struct MainPagerView: View {
         composerPresentedForCurrentGesture = false
         isTrackingMainGesture = false
         pageSwipeStartedInPhotoCarousel = false
+        releaseFutureCalendarSelectionAfterCurrentEvent()
+    }
+
+    private func beginSuppressingFutureCalendarSelection() {
+        calendarSelectionSuppressionID = UUID()
+        suppressFutureCalendarSelection = true
+    }
+
+    private func releaseFutureCalendarSelectionAfterCurrentEvent() {
+        guard suppressFutureCalendarSelection else { return }
+        let suppressionID = calendarSelectionSuppressionID
+        Task { @MainActor in
+            await Task.yield()
+            guard calendarSelectionSuppressionID == suppressionID else { return }
+            suppressFutureCalendarSelection = false
+        }
     }
 
     private func presentSettings() {

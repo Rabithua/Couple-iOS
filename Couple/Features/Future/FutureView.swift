@@ -21,13 +21,18 @@ struct FutureView: View {
     let mode: FutureMode
     let pageDragOffset: CGFloat
     let verticalScrollingDisabled: Bool
+    let calendarSelectionDisabled: Bool
     let selectMode: (FutureMode) -> Void
     @State private var showingNewTodo = false
     @State private var selectedEventDate: SelectedEventDate?
     @State private var editingTodo: Todo?
     @State private var editingEvent: CalendarEvent?
+    @State private var selectedCalendarDate: Date?
+    @State private var expandedCalendarDate: Date?
+    @State private var visibleCalendarAgendaDate: Date?
+    @State private var calendarTransitionID = UUID()
 
-    private let months = CalendarMonth.make(startingAt: Date(), count: 12)
+    private let months = CalendarMonth.make(startingAt: .now, count: 12)
 
     var body: some View {
         DesignNavigationContainer {
@@ -99,7 +104,13 @@ struct FutureView: View {
                         editEvent: editCalendarEvent,
                         editTodo: editTodo,
                         deleteEvent: deleteCalendarEvent,
-                        deleteTodo: deleteTodo
+                        deleteTodo: deleteTodo,
+                        selectDate: selectCalendarDate,
+                        createEvent: presentCalendarEvent,
+                        selectedDate: selectedCalendarDate,
+                        expandedAgendaDate: expandedCalendarDate,
+                        visibleAgendaDate: visibleCalendarAgendaDate,
+                        selectionDisabled: calendarSelectionDisabled
                     )
                 }
             }
@@ -158,8 +169,212 @@ struct FutureView: View {
         if mode == .list {
             showingNewTodo = true
         } else {
-            selectedEventDate = SelectedEventDate(date: Date())
+            presentCalendarEvent(on: .now)
         }
+    }
+
+    private func selectCalendarDate(_ date: Date) {
+        guard !calendarSelectionDisabled else { return }
+        haptics.play(.selection)
+        let transitionID = UUID()
+        calendarTransitionID = transitionID
+
+        if isSameDay(selectedCalendarDate, as: date) {
+            closeCalendarDate(transitionID: transitionID)
+        } else if let selectedCalendarDate {
+            if canSlideCalendarSelection(from: selectedCalendarDate, to: date) {
+                slideCalendarSelection(to: date, transitionID: transitionID)
+            } else {
+                transferCalendarSelection(to: date, transitionID: transitionID)
+            }
+        } else {
+            openCalendarDate(date, transitionID: transitionID)
+        }
+    }
+
+    private func transferCalendarSelection(to date: Date, transitionID: UUID) {
+        withAnimation(
+            calendarAgendaFadeAnimation,
+            completionCriteria: .logicallyComplete
+        ) {
+            visibleCalendarAgendaDate = nil
+            selectedCalendarDate = date
+        } completion: {
+            guard isCurrentCalendarTransition(transitionID, date: date) else { return }
+            transferExpandedAgenda(to: date, transitionID: transitionID)
+        }
+    }
+
+    private func transferExpandedAgenda(to date: Date, transitionID: UUID) {
+        withAnimation(
+            calendarRowTransferAnimation,
+            completionCriteria: .logicallyComplete
+        ) {
+            expandedCalendarDate = date
+        } completion: {
+            guard isCurrentCalendarTransition(transitionID, date: date) else { return }
+            revealCalendarAgenda(on: date)
+        }
+    }
+
+    private func slideCalendarSelection(to date: Date, transitionID: UUID) {
+        withAnimation(
+            calendarAgendaFadeAnimation,
+            completionCriteria: .logicallyComplete
+        ) {
+            visibleCalendarAgendaDate = nil
+        } completion: {
+            guard calendarTransitionID == transitionID else { return }
+            moveCalendarSelection(to: date, transitionID: transitionID)
+        }
+    }
+
+    private func moveCalendarSelection(to date: Date, transitionID: UUID) {
+        withAnimation(
+            calendarDateSlideAnimation,
+            completionCriteria: .logicallyComplete
+        ) {
+            selectedCalendarDate = date
+            expandedCalendarDate = date
+        } completion: {
+            guard isCurrentCalendarTransition(transitionID, date: date) else { return }
+            revealCalendarAgenda(on: date)
+        }
+    }
+
+    private func openCalendarDate(_ date: Date, transitionID: UUID) {
+        withAnimation(
+            calendarBackgroundRevealAnimation,
+            completionCriteria: .logicallyComplete
+        ) {
+            selectedCalendarDate = date
+        } completion: {
+            guard isCurrentCalendarTransition(transitionID, date: date) else { return }
+            expandCalendarBackground(for: date, transitionID: transitionID)
+        }
+    }
+
+    private func expandCalendarBackground(for date: Date, transitionID: UUID) {
+        withAnimation(
+            calendarExpansionAnimation,
+            completionCriteria: .logicallyComplete
+        ) {
+            expandedCalendarDate = date
+        } completion: {
+            guard isCurrentCalendarTransition(transitionID, date: date) else { return }
+            revealCalendarAgenda(on: date)
+        }
+    }
+
+    private func revealCalendarAgenda(on date: Date) {
+        withAnimation(calendarAgendaFadeAnimation) {
+            visibleCalendarAgendaDate = date
+        }
+    }
+
+    private func closeCalendarDate(transitionID: UUID) {
+        withAnimation(
+            calendarAgendaFadeAnimation,
+            completionCriteria: .logicallyComplete
+        ) {
+            visibleCalendarAgendaDate = nil
+        } completion: {
+            guard calendarTransitionID == transitionID else { return }
+            retractCalendarBackground(transitionID: transitionID)
+        }
+    }
+
+    private func retractCalendarBackground(transitionID: UUID) {
+        withAnimation(
+            calendarExpansionAnimation,
+            completionCriteria: .logicallyComplete
+        ) {
+            expandedCalendarDate = nil
+        } completion: {
+            guard calendarTransitionID == transitionID else { return }
+            hideCalendarBackground(transitionID: transitionID)
+        }
+    }
+
+    private func hideCalendarBackground(transitionID: UUID) {
+        guard calendarTransitionID == transitionID else { return }
+        withAnimation(calendarBackgroundRevealAnimation) {
+            selectedCalendarDate = nil
+        }
+    }
+
+    private func isCurrentCalendarTransition(_ transitionID: UUID, date: Date) -> Bool {
+        calendarTransitionID == transitionID
+            && isSameDay(selectedCalendarDate, as: date)
+    }
+
+    private func isSameDay(_ lhs: Date?, as rhs: Date) -> Bool {
+        lhs.map { Calendar.current.isDate($0, inSameDayAs: rhs) } ?? false
+    }
+
+    private func canSlideCalendarSelection(from currentDate: Date, to nextDate: Date) -> Bool {
+        let calendar = Calendar.current
+        return isSameDay(expandedCalendarDate, as: currentDate)
+            && calendar.isDate(currentDate, equalTo: nextDate, toGranularity: .month)
+            && calendarRow(for: currentDate, calendar: calendar)
+                == calendarRow(for: nextDate, calendar: calendar)
+    }
+
+    private func calendarRow(for date: Date, calendar: Calendar) -> Int? {
+        guard let monthStart = calendar.date(
+            from: calendar.dateComponents([.year, .month], from: date)
+        ) else { return nil }
+        let leadingEmptyDays = calendar.component(.weekday, from: monthStart) - 1
+        let day = calendar.component(.day, from: date)
+        return (leadingEmptyDays + day - 1) / 7
+    }
+
+    private func presentCalendarEvent(on date: Date) {
+        selectedEventDate = SelectedEventDate(date: eventStart(on: date))
+    }
+
+    private func eventStart(on date: Date) -> Date {
+        let calendar = Calendar.current
+        let currentTime = calendar.dateComponents([.hour, .minute], from: .now)
+        var selectedDate = calendar.dateComponents([.year, .month, .day], from: date)
+        selectedDate.hour = currentTime.hour
+        selectedDate.minute = currentTime.minute
+        return calendar.date(from: selectedDate) ?? date
+    }
+
+    private var calendarExpansionAnimation: Animation? {
+        reduceMotion
+            ? nil
+            : .spring(
+                duration: AppTheme.calendarExpansionDuration,
+                bounce: AppTheme.calendarExpansionBounce
+            )
+    }
+
+    private var calendarBackgroundRevealAnimation: Animation? {
+        reduceMotion ? nil : .easeOut(duration: AppTheme.calendarBackgroundRevealDuration)
+    }
+
+    private var calendarDateSlideAnimation: Animation? {
+        reduceMotion
+            ? nil
+            : .spring(
+                duration: AppTheme.calendarDateSlideDuration,
+                bounce: AppTheme.calendarDateSlideBounce
+            )
+    }
+
+    private var calendarRowTransferAnimation: Animation? {
+        reduceMotion
+            ? nil
+            : .spring(
+                duration: AppTheme.calendarRowTransferDuration,
+                bounce: AppTheme.calendarRowTransferBounce
+            )
+    }
+
+    private var calendarAgendaFadeAnimation: Animation? {
+        reduceMotion ? nil : .easeOut(duration: AppTheme.calendarAgendaFadeDuration)
     }
 
     private func editTodo(_ todo: Todo) {

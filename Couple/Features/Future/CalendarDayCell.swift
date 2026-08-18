@@ -9,6 +9,9 @@ struct CalendarDayCell: View {
     let editTodo: @MainActor (Todo) -> Void
     let deleteEvent: @MainActor (CalendarEvent) async throws -> Void
     let deleteTodo: @MainActor (Todo) async throws -> Void
+    let selectDate: @MainActor (Date) -> Void
+    let isSelected: Bool
+    let isSelectionDisabled: Bool
 
     @State private var pendingDeletion: PendingDeletion?
     @State private var isShowingDeleteConfirmation = false
@@ -18,17 +21,25 @@ struct CalendarDayCell: View {
 
     var body: some View {
         let hasScheduledItem = !events.isEmpty || !todos.isEmpty
+        let isToday = Calendar.current.isDateInToday(date)
 
-        VStack(spacing: 2) {
-            Text("\(Calendar.current.component(.day, from: date))")
-                .font(.body.bold())
-            Circle()
-                .fill(hasScheduledItem ? Color.primary.opacity(0.45) : .clear)
-                .frame(width: 3, height: 3)
+        Button(action: selectDay) {
+            VStack(spacing: 2) {
+                Text("\(Calendar.current.component(.day, from: date))")
+                    .font(.body.bold())
+                    .foregroundStyle(isToday ? Color(.systemBackground) : AppTheme.muted)
+                    .frame(width: 32, height: 32)
+                    .background(isToday ? Color.primary : .clear, in: .circle)
+
+                Circle()
+                    .fill(hasScheduledItem ? Color.primary.opacity(0.45) : .clear)
+                    .frame(width: 3, height: 3)
+            }
+            .frame(maxWidth: .infinity, minHeight: AppTheme.calendarDayHeight)
+            .contentShape(.rect)
         }
-        .foregroundStyle(AppTheme.muted)
-        .frame(maxWidth: .infinity, minHeight: 50)
-        .contentShape(.rect)
+        .buttonStyle(.plain)
+        .disabled(isSelectionDisabled)
         .contextMenu {
             ForEach(events) { event in
                 Button("编辑日程：\(event.title)", systemImage: "pencil") {
@@ -69,7 +80,30 @@ struct CalendarDayCell: View {
             Text(deleteErrorMessage)
         }
         .accessibilityLabel(date.formatted(date: .complete, time: .omitted))
-        .accessibilityValue(hasScheduledItem ? "有安排" : "无安排")
+        .accessibilityValue(accessibilityValue(isToday: isToday))
+        .accessibilityHint(accessibilityHint(hasScheduledItem: hasScheduledItem))
+        .accessibilityIdentifier("calendarDay-\(date.dateOnlyString)")
+    }
+
+    private func selectDay() {
+        guard !isSelectionDisabled else { return }
+        selectDate(date)
+    }
+
+    private func accessibilityValue(isToday: Bool) -> String {
+        var values: [String] = []
+        if isToday { values.append("今天") }
+        if isSelected { values.append("已展开") }
+        if !events.isEmpty { values.append("\(events.count) 个日程") }
+        if !todos.isEmpty { values.append("\(todos.count) 个清单") }
+        return values.isEmpty ? "无安排" : values.joined(separator: "，")
+    }
+
+    private func accessibilityHint(hasScheduledItem: Bool) -> String {
+        if isSelected { return "轻点收起当天安排" }
+        return hasScheduledItem
+            ? "轻点展开当天安排，长按管理"
+            : "轻点展开并新建日程"
     }
 
     private func beginEditing(_ event: CalendarEvent) {
