@@ -168,7 +168,7 @@ struct SettingsView: View {
         .scrollContentBackground(.hidden)
         .contentMargins(
             .horizontal,
-            AppTheme.horizontalPadding,
+            0,
             for: .scrollContent
         )
         .contentMargins(.top, AppTheme.navigationBarHeight, for: .scrollContent)
