@@ -78,7 +78,7 @@ struct PastPageView: View {
             } else {
                 LazyVStack(alignment: .leading, spacing: 8) {
                     ForEach(photoNotes) { note in
-                        AttachmentFlow(
+                        JustifiedAttachmentFlow(
                             attachments: note.attachments.filter(\.isImage),
                             previewGroupID: previewGroupID(for: note)
                         )

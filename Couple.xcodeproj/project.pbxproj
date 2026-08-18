@@ -17,6 +17,11 @@
 		065A75575DE29369DFFEFFAB /* TodoDisplayOrder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49D779C659FFA44AF6FD0E2F /* TodoDisplayOrder.swift */; };
 		07EADADB98D07E9CFD339E78 /* FutureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E15C236C8EDF6B1B9903587 /* FutureView.swift */; };
 		136B7B0A0BE6E9EA568675CC /* PhotoFlowLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA03DF9BC1CC5105C17BCC9E /* PhotoFlowLayout.swift */; };
+		C0D3F0010000000000000001 /* JustifiedAttachmentFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D3F0020000000000000001 /* JustifiedAttachmentFlow.swift */; };
+		C0D3F0010000000000000002 /* JustifiedPhotoLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D3F0020000000000000002 /* JustifiedPhotoLayout.swift */; };
+		C0D3F0010000000000000003 /* JustifiedPhotoTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D3F0020000000000000003 /* JustifiedPhotoTile.swift */; };
+		C0D3F0010000000000000004 /* PhotoAspectRatioLayoutKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D3F0020000000000000004 /* PhotoAspectRatioLayoutKey.swift */; };
+		C0D3F0010000000000000005 /* JustifiedPhotoLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D3F0020000000000000005 /* JustifiedPhotoLayoutTests.swift */; };
 		17DB60F3CAFAF0A38B435D1B /* PhotoPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E91DCB8536246EB9009DE781 /* PhotoPreviewView.swift */; };
 		18C665F36ACB776EEF49A7C9 /* PhotoPreviewZoomState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AEB29ED930F34D3894CA2FD /* PhotoPreviewZoomState.swift */; };
 		1B173057AC6DE16C0FB72E4A /* CalendarMonthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60734C7C5F8A39BEA866997C /* CalendarMonthView.swift */; };
@@ -180,6 +185,11 @@
 		B43D624952C3975E9582E261 /* PhotoPreviewTransitionStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewTransitionStyle.swift; sourceTree = "<group>"; };
 		B4C88F117877FCBFCB92C847 /* CalendarDayCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarDayCell.swift; sourceTree = "<group>"; };
 		BA03DF9BC1CC5105C17BCC9E /* PhotoFlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoFlowLayout.swift; sourceTree = "<group>"; };
+		C0D3F0020000000000000001 /* JustifiedAttachmentFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JustifiedAttachmentFlow.swift; sourceTree = "<group>"; };
+		C0D3F0020000000000000002 /* JustifiedPhotoLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JustifiedPhotoLayout.swift; sourceTree = "<group>"; };
+		C0D3F0020000000000000003 /* JustifiedPhotoTile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JustifiedPhotoTile.swift; sourceTree = "<group>"; };
+		C0D3F0020000000000000004 /* PhotoAspectRatioLayoutKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoAspectRatioLayoutKey.swift; sourceTree = "<group>"; };
+		C0D3F0020000000000000005 /* JustifiedPhotoLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JustifiedPhotoLayoutTests.swift; sourceTree = "<group>"; };
 		BC2C36B0FC87FE8DD80A4C77 /* DateSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateSupport.swift; sourceTree = "<group>"; };
 		BD580E3BE2F80742851E4C6E /* PhotoPreviewPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewPresentationTests.swift; sourceTree = "<group>"; };
 		C01E5C1B960A82340825CA2B /* CalendarOccurrenceExpander.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarOccurrenceExpander.swift; sourceTree = "<group>"; };
@@ -324,6 +334,10 @@
 				A9C27A244961E86B2E0B0510 /* DesignTabBar.swift */,
 				4B8F1C53D0FDBEB509E809E1 /* DesignTopEdgeBackground.swift */,
 				2AA676000AC7E0320A51D735 /* EditableContentActions.swift */,
+				C0D3F0020000000000000001 /* JustifiedAttachmentFlow.swift */,
+				C0D3F0020000000000000002 /* JustifiedPhotoLayout.swift */,
+				C0D3F0020000000000000003 /* JustifiedPhotoTile.swift */,
+				C0D3F0020000000000000004 /* PhotoAspectRatioLayoutKey.swift */,
 				BA03DF9BC1CC5105C17BCC9E /* PhotoFlowLayout.swift */,
 				CB5003AD509D2DDB821C0CCD /* PhotoPreviewContext.swift */,
 				92CB2E0E9EAEF62E918A70E1 /* PhotoPreviewHost.swift */,
@@ -512,6 +526,14 @@
 			path = Home;
 			sourceTree = "<group>";
 		};
+		C0D3F0030000000000000001 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				C0D3F0020000000000000005 /* JustifiedPhotoLayoutTests.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
 		D695DD8C679D44459A9B834C /* Past */ = {
 			isa = PBXGroup;
 			children = (
@@ -532,6 +554,7 @@
 		FE62072690E95E9CF8E5E180 /* CoupleTests */ = {
 			isa = PBXGroup;
 			children = (
+				C0D3F0030000000000000001 /* Components */,
 				8CB1487BFA9C930538C99AA4 /* Core */,
 				210D2E1117AB036EFD1214D1 /* Features */,
 				9672BE264C96D4EEFB3AE581 /* Models */,
@@ -708,6 +731,10 @@
 				8254270C07806F1CDEF8856E /* PasskeyService.swift in Sources */,
 				998B471ADAA4E5155F2EA1BD /* PastPageView.swift in Sources */,
 				3CADA5F144CA5455F43B02E4 /* PastView.swift in Sources */,
+				C0D3F0010000000000000001 /* JustifiedAttachmentFlow.swift in Sources */,
+				C0D3F0010000000000000002 /* JustifiedPhotoLayout.swift in Sources */,
+				C0D3F0010000000000000003 /* JustifiedPhotoTile.swift in Sources */,
+				C0D3F0010000000000000004 /* PhotoAspectRatioLayoutKey.swift in Sources */,
 				136B7B0A0BE6E9EA568675CC /* PhotoFlowLayout.swift in Sources */,
 				ADCA2CDFC6A2BC7E3F6C5AC0 /* PhotoPreviewContext.swift in Sources */,
 				2CB79ACBB163902DA036D67C /* PhotoPreviewHost.swift in Sources */,
@@ -747,6 +774,7 @@
 				8386EF3028DBBAC3D7E56EC5 /* AppHapticsTests.swift in Sources */,
 				B4AADBB2B8E4899F389FCB00 /* AppStoreTests.swift in Sources */,
 				A1956724BAA6C906CF61D659 /* CoupleCoreTests.swift in Sources */,
+				C0D3F0010000000000000005 /* JustifiedPhotoLayoutTests.swift in Sources */,
 				062FE797585C2017DF312C5D /* MainPagerGestureStateTests.swift in Sources */,
 				58326B25C993CD986092B2AA /* OfflineSyncTests.swift in Sources */,
 				C3C0C8F6C7E999223CAA4EE4 /* PhotoPreviewPresentationTests.swift in Sources */,
