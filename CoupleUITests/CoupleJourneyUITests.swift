@@ -377,6 +377,19 @@ final class CoupleJourneyUITests: XCTestCase {
             "photoPreviewSource-past.pastPhotosScroll.50000000-0000-4000-8000-000000000001-70000000-0000-4000-8000-000000000001"
         ]
         XCTAssertTrue(firstPhoto.waitForExistence(timeout: 3))
+        let lastPhotoInFirstRow = app.buttons[
+            "photoPreviewSource-past.pastPhotosScroll.50000000-0000-4000-8000-000000000001-70000000-0000-4000-8000-000000000002"
+        ]
+        XCTAssertTrue(lastPhotoInFirstRow.waitForExistence(timeout: 3))
+        let photosScroll = app.scrollViews["pastPhotosScroll"]
+        let leadingInset = firstPhoto.frame.minX - photosScroll.frame.minX
+        let trailingInset = photosScroll.frame.maxX - lastPhotoInFirstRow.frame.maxX
+        XCTAssertEqual(trailingInset, leadingInset, accuracy: 1)
+        XCTAssertEqual(
+            firstPhoto.frame.width / lastPhotoInFirstRow.frame.width,
+            (2 / 3) / 1.5,
+            accuracy: 0.02
+        )
         firstPhoto.tap()
 
         let preview = app.descendants(matching: .any)

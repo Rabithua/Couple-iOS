@@ -12,6 +12,8 @@ enum AppTheme {
     static let futureContentBottomPadding: CGFloat = 80
     static let heroPhotoSpacing: CGFloat = 14
     static let heroPhotoScrollMargin: CGFloat = 8
+    static let photoGalleryIdealRowHeight: CGFloat = 144
+    static let photoGallerySpacing: CGFloat = 8
     static let composePromptBottomPadding: CGFloat = 38
     static let todoControlSize: CGFloat = 38
     static let todoRowSpacing: CGFloat = 0
