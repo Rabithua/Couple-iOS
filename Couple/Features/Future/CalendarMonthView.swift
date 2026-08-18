@@ -16,13 +16,15 @@ struct CalendarMonthView: View {
     var selectionDisabled = false
 
     var body: some View {
+        let weekdaySymbols = Calendar.current.veryShortStandaloneWeekdaySymbols
+
         VStack(alignment: .leading, spacing: 10) {
             Text(month.title)
                 .font(AppTheme.titleFont())
 
             HStack(spacing: 0) {
-                ForEach(Calendar.current.veryShortStandaloneWeekdaySymbols, id: \.self) { symbol in
-                    Text(symbol)
+                ForEach(weekdaySymbols.indices, id: \.self) { index in
+                    Text(weekdaySymbols[index])
                         .font(.caption.bold())
                         .foregroundStyle(AppTheme.muted)
                         .frame(maxWidth: .infinity, minHeight: 22)
