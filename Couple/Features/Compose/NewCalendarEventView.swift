@@ -51,7 +51,11 @@ struct NewCalendarEventView: View {
                     }
                 }
             }
-            .navigationTitle(editingEvent == nil ? "新日程" : "编辑日程")
+            .navigationTitle(
+                editingEvent == nil
+                    ? AppLocalization.string("新日程")
+                    : AppLocalization.string("编辑日程")
+            )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

@@ -16,18 +16,27 @@ extension Date {
         return formatter.string(from: self)
     }
 
-    var chineseDateTime: String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_Hans_CN")
-        formatter.dateFormat = "yyyy年M月d日 HH:mm"
-        return formatter.string(from: self)
+    func localizedDate(
+        locale: Locale,
+        style: Date.FormatStyle.DateStyle = .long
+    ) -> String {
+        formatted(Date.FormatStyle(date: style, time: .omitted, locale: locale))
     }
 
-    var chineseMonthTitle: String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_Hans_CN")
-        formatter.dateFormat = "yyyy年M月"
-        return formatter.string(from: self)
+    func localizedDateTime(
+        locale: Locale,
+        dateStyle: Date.FormatStyle.DateStyle = .long,
+        timeStyle: Date.FormatStyle.TimeStyle = .shortened
+    ) -> String {
+        formatted(Date.FormatStyle(date: dateStyle, time: timeStyle, locale: locale))
+    }
+
+    func localizedTime(locale: Locale) -> String {
+        formatted(Date.FormatStyle(date: .omitted, time: .shortened, locale: locale))
+    }
+
+    func localizedMonthTitle(locale: Locale) -> String {
+        formatted(Date.FormatStyle().year().month(.wide).locale(locale))
     }
 
     static func fromDateOnly(_ value: String) -> Date? {
@@ -37,6 +46,25 @@ extension Date {
         formatter.timeZone = .current
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter.date(from: value)
+    }
+}
+
+extension Calendar {
+    static func localizedGregorian(
+        locale: Locale,
+        timeZone: TimeZone = .autoupdatingCurrent
+    ) -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = locale
+        calendar.timeZone = timeZone
+        return calendar
+    }
+
+    var localizedVeryShortStandaloneWeekdaySymbols: [String] {
+        let symbols = veryShortStandaloneWeekdaySymbols
+        guard symbols.count == 7 else { return symbols }
+        let firstIndex = max(min(firstWeekday - 1, symbols.count - 1), 0)
+        return Array(symbols[firstIndex...] + symbols[..<firstIndex])
     }
 }
 
@@ -126,7 +154,9 @@ struct CalendarMonth: Identifiable, Hashable, Sendable {
     }
 
     var id: Date { start }
-    var title: String { start.chineseMonthTitle }
+    func title(locale: Locale) -> String {
+        start.localizedMonthTitle(locale: locale)
+    }
 
     static func make(startingAt date: Date, count: Int, calendar: Calendar = .current) -> [CalendarMonth] {
         guard let first = calendar.date(from: calendar.dateComponents([.year, .month], from: date)) else {
@@ -136,7 +166,8 @@ struct CalendarMonth: Identifiable, Hashable, Sendable {
             guard let month = calendar.date(byAdding: .month, value: offset, to: first),
                   let range = calendar.range(of: .day, in: .month, for: month) else { return nil }
             let weekday = calendar.component(.weekday, from: month)
-            var days = Array<Date?>(repeating: nil, count: weekday - 1)
+            let leadingEmptyDays = (weekday - calendar.firstWeekday + 7) % 7
+            var days = Array<Date?>(repeating: nil, count: leadingEmptyDays)
             days.append(contentsOf: range.compactMap { day in
                 calendar.date(byAdding: .day, value: day - 1, to: month)
             })

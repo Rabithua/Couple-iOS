@@ -1,0 +1,78 @@
+{
+  "sourceLanguage": "zh-Hans",
+  "strings": {
+    "CFBundleDisplayName": {
+      "comment": "Bundle display name",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "oursince"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "oursince"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "oursince"
+          }
+        }
+      }
+    },
+    "NSFaceIDUsageDescription": {
+      "comment": "Privacy - Face ID Usage Description",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use Face ID to securely sign in to your shared space."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用面容 ID 安全登录你们的共同空间。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用 Face ID 安全登入你們的共同空間。"
+          }
+        }
+      }
+    },
+    "NSPhotoLibraryUsageDescription": {
+      "comment": "Privacy - Photo Library Usage Description",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose photos to capture moments you share."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择照片来记录你们共同的时刻。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選擇照片來記錄你們共同的時刻。"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct CalendarMonthView: View {
+    @Environment(\.locale) private var locale
     let month: CalendarMonth
     let schedule: CalendarScheduleIndex
     var editEvent: @MainActor (CalendarEvent) -> Void = { _ in }
@@ -15,16 +16,17 @@ struct CalendarMonthView: View {
     var visibleAgendaDate: Date? = nil
     var selectionDisabled = false
 
-    private static let weekdaySymbols = ["日", "一", "二", "三", "四", "五", "六"]
-
     var body: some View {
+        let weekdaySymbols = calendar.localizedVeryShortStandaloneWeekdaySymbols
+
         VStack(alignment: .leading, spacing: 10) {
-            Text(month.title)
+            Text(month.title(locale: locale))
                 .font(AppTheme.titleFont())
+                .accessibilityIdentifier("calendarMonthTitle-\(month.start.dateOnlyString)")
 
             HStack(spacing: 0) {
-                ForEach(Self.weekdaySymbols, id: \.self) { symbol in
-                    Text(symbol)
+                ForEach(weekdaySymbols.indices, id: \.self) { index in
+                    Text(weekdaySymbols[index])
                         .font(.caption.bold())
                         .foregroundStyle(AppTheme.muted)
                         .frame(maxWidth: .infinity, minHeight: 22)
@@ -101,6 +103,10 @@ struct CalendarMonthView: View {
         schedule.hasScheduledItem(on: date, calendar: calendar)
     }
 
+    private var calendar: Calendar {
+        .localizedGregorian(locale: locale)
+    }
+
     private func scheduledEvents(on date: Date) -> [CalendarEvent] {
         schedule.events(on: date)
     }
@@ -112,7 +118,7 @@ struct CalendarMonthView: View {
     private func selectedSelection(in week: [Date?]) -> (date: Date, column: Int)? {
         guard let selectedDate,
               let column = week.firstIndex(where: { day in
-                  day.map { Calendar.current.isDate($0, inSameDayAs: selectedDate) } ?? false
+                  day.map { calendar.isDate($0, inSameDayAs: selectedDate) } ?? false
               }) else { return nil }
         return (selectedDate, column)
     }
@@ -121,17 +127,17 @@ struct CalendarMonthView: View {
         guard let expandedAgendaDate,
               week.contains(where: { day in
                   day.map {
-                      Calendar.current.isDate($0, inSameDayAs: expandedAgendaDate)
+                      calendar.isDate($0, inSameDayAs: expandedAgendaDate)
                   } ?? false
               }) else { return nil }
         return expandedAgendaDate
     }
 
     private func isSelected(_ date: Date) -> Bool {
-        selectedDate.map { Calendar.current.isDate($0, inSameDayAs: date) } ?? false
+        selectedDate.map { calendar.isDate($0, inSameDayAs: date) } ?? false
     }
 
     private func isAgendaVisible(on date: Date) -> Bool {
-        visibleAgendaDate.map { Calendar.current.isDate($0, inSameDayAs: date) } ?? false
+        visibleAgendaDate.map { calendar.isDate($0, inSameDayAs: date) } ?? false
     }
 }

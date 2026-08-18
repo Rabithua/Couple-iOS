@@ -5,11 +5,14 @@ struct CoupleApp: App {
     @Environment(\.scenePhase) private var scenePhase
     @State private var store = AppStore()
     @State private var haptics = AppHaptics()
+    @State private var language = AppLanguageStore()
 
     var body: some Scene {
         WindowGroup {
             AppRootView()
                 .environment(store)
+                .environment(language)
+                .environment(\.locale, language.selection.locale)
                 .task { await store.start() }
                 .onChange(of: scenePhase) { _, newPhase in
                     if newPhase == .active { store.handleForeground() }

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct CalendarDayAgendaView: View {
+    @Environment(\.locale) private var locale
     @Environment(AppHaptics.self) private var haptics
 
     let date: Date
@@ -44,7 +45,9 @@ struct CalendarDayAgendaView: View {
                 }
                 .buttonStyle(.plain)
                 .editableContentActions(
-                    deletionTitle: "删除日程“\(event.title)”？",
+                    deletionTitle: AppLocalization.string("deleteEventConfirmation",
+                        defaultValue: "删除日程“\(event.title)”？"
+                    ),
                     editAction: { editEvent(event) },
                     deleteAction: { try await deleteEvent(event) }
                 )
@@ -59,7 +62,9 @@ struct CalendarDayAgendaView: View {
                     setCompletion: setTodoCompletion
                 )
                 .editableContentActions(
-                    deletionTitle: "删除清单“\(todo.title)”？",
+                    deletionTitle: AppLocalization.string("deleteTodoConfirmation",
+                        defaultValue: "删除清单“\(todo.title)”？"
+                    ),
                     editAction: { editTodo(todo) },
                     deleteAction: { try await deleteTodo(todo) }
                 )
@@ -81,19 +86,20 @@ struct CalendarDayAgendaView: View {
         .opacity(isContentVisible ? 1 : 0)
         .allowsHitTesting(isContentVisible)
         .transition(.identity)
+        .accessibilityElement(children: .contain)
         .accessibilityHidden(!isContentVisible)
         .accessibilityIdentifier("calendarAgenda-\(date.dateOnlyString)")
     }
 
     private func eventTime(_ event: CalendarEvent) -> String {
-        if event.allDay { return "全天" }
-        let start = event.startTime.formatted(date: .omitted, time: .shortened)
+        if event.allDay { return AppLocalization.string("全天") }
+        let start = event.startTime.localizedTime(locale: locale)
         guard let endTime = event.endTime else { return start }
-        return "\(start)–\(endTime.formatted(date: .omitted, time: .shortened))"
+        return "\(start)–\(endTime.localizedTime(locale: locale))"
     }
 
     private func todoTime(_ todo: Todo) -> String {
-        todo.dueTime?.formatted(date: .omitted, time: .shortened) ?? "清单"
+        todo.dueTime?.localizedTime(locale: locale) ?? AppLocalization.string("清单")
     }
 
     private func beginCreatingEvent() {
@@ -147,7 +153,7 @@ private struct CalendarAgendaTodoRow: View {
             .buttonStyle(.plain)
             .disabled(completion.isDisabled)
             .accessibilityLabel(accessibilityLabel(completion.isCompleted))
-            .accessibilityHint("长按可以编辑或删除")
+            .accessibilityHint(AppLocalization.string("长按可以编辑或删除"))
         }
     }
 
@@ -156,6 +162,12 @@ private struct CalendarAgendaTodoRow: View {
     }
 
     private func accessibilityLabel(_ isCompleted: Bool) -> String {
-        isCompleted ? "重新打开\(todo.title)" : "完成\(todo.title)"
+        isCompleted
+            ? AppLocalization.string("reopenTodoAccessibilityLabel",
+                defaultValue: "重新打开\(todo.title)"
+            )
+            : AppLocalization.string("completeTodoAccessibilityLabel",
+                defaultValue: "完成\(todo.title)"
+            )
     }
 }

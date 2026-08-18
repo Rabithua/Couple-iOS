@@ -1,9 +1,17 @@
 import SwiftUI
 
 enum FutureMode: String, CaseIterable, Hashable {
-    case calendar = "日历"
-    case list = "清单"
-    case settings = "设置"
+    case calendar
+    case list
+    case settings
+
+    var title: String {
+        switch self {
+        case .calendar: AppLocalization.string("日历")
+        case .list: AppLocalization.string("清单")
+        case .settings: AppLocalization.string("设置")
+        }
+    }
 
     var pageIndex: Int {
         switch self {
@@ -16,6 +24,7 @@ enum FutureMode: String, CaseIterable, Hashable {
 
 struct FutureView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.locale) private var locale
     @Environment(AppHaptics.self) private var haptics
     @Environment(AppStore.self) private var store
     let mode: FutureMode
@@ -32,8 +41,6 @@ struct FutureView: View {
     @State private var visibleCalendarAgendaDate: Date?
     @State private var calendarTransitionID = UUID()
 
-    private static let calendarMonths = CalendarMonth.make(startingAt: .now, count: 12)
-
     var body: some View {
         DesignNavigationContainer {
             GeometryReader { proxy in
@@ -47,7 +54,7 @@ struct FutureView: View {
                     }
 
                     MainPagerPage(isActive: mode == .settings, size: proxy.size) {
-                        SettingsView()
+                        SettingsView(scrollingDisabled: verticalScrollingDisabled)
                     }
                 }
                 .offset(
@@ -60,14 +67,16 @@ struct FutureView: View {
         } navigationBar: {
             ZStack(alignment: .trailing) {
                 DesignTabBar(
-                    items: FutureMode.allCases.map { ($0, $0.rawValue) },
+                    items: FutureMode.allCases.map { ($0, $0.title) },
                     selection: mode,
                     select: selectMode
                 )
 
                 if mode != .settings {
                     Button(
-                        mode == .list ? "添加清单" : "添加日程",
+                        mode == .list
+                            ? AppLocalization.string("添加清单")
+                            : AppLocalization.string("添加日程"),
                         systemImage: "plus",
                         action: presentNewItem
                     )
@@ -96,7 +105,7 @@ struct FutureView: View {
     private var calendarContent: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 28) {
-                ForEach(Self.calendarMonths) { month in
+                ForEach(calendarMonths) { month in
                     CalendarMonthView(
                         month: month,
                         schedule: store.calendarScheduleIndex,
@@ -137,7 +146,9 @@ struct FutureView: View {
                         await store.setTodoCompletion(todo, completed: completed)
                     }
                     .editableContentActions(
-                        deletionTitle: "删除清单“\(todo.title)”？",
+                        deletionTitle: AppLocalization.string("deleteTodoConfirmation",
+                            defaultValue: "删除清单“\(todo.title)”？"
+                        ),
                         editAction: { editTodo(todo) },
                         deleteAction: { try await deleteTodo(todo) }
                     )
@@ -162,6 +173,14 @@ struct FutureView: View {
 
     private var pageAnimation: Animation? {
         reduceMotion ? nil : .smooth(duration: 0.32)
+    }
+
+    private var calendar: Calendar {
+        .localizedGregorian(locale: locale)
+    }
+
+    private var calendarMonths: [CalendarMonth] {
+        CalendarMonth.make(startingAt: .now, count: 12, calendar: calendar)
     }
 
     private func setCalendarTodoCompletion(_ todo: Todo, completed: Bool) async -> Bool {
@@ -313,11 +332,10 @@ struct FutureView: View {
     }
 
     private func isSameDay(_ lhs: Date?, as rhs: Date) -> Bool {
-        lhs.map { Calendar.current.isDate($0, inSameDayAs: rhs) } ?? false
+        lhs.map { calendar.isDate($0, inSameDayAs: rhs) } ?? false
     }
 
     private func canSlideCalendarSelection(from currentDate: Date, to nextDate: Date) -> Bool {
-        let calendar = Calendar.current
         return isSameDay(expandedCalendarDate, as: currentDate)
             && calendar.isDate(currentDate, equalTo: nextDate, toGranularity: .month)
             && calendarRow(for: currentDate, calendar: calendar)
@@ -338,7 +356,6 @@ struct FutureView: View {
     }
 
     private func eventStart(on date: Date) -> Date {
-        let calendar = Calendar.current
         let currentTime = calendar.dateComponents([.hour, .minute], from: .now)
         var selectedDate = calendar.dateComponents([.year, .month, .day], from: date)
         selectedDate.hour = currentTime.hour

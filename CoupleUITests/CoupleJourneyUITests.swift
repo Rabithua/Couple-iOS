@@ -6,7 +6,7 @@ final class CoupleJourneyUITests: XCTestCase {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing-demo", "-ui-testing-future"]
-        app.launch()
+        app.launchInSimplifiedChinese()
 
         app.buttons["设置"].tap()
 
@@ -22,13 +22,71 @@ final class CoupleJourneyUITests: XCTestCase {
         settingsForm.swipeUp()
         settingsForm.swipeUp()
         XCTAssertTrue(app.buttons["leaveSpaceButton"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["设置"].isSelected)
+
+        settingsForm.swipeRight()
+        XCTAssertTrue(app.buttons["清单"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["清单"].isSelected)
+    }
+
+    func testSettingsLanguagePickerSwitchesImmediately() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-future"]
+        app.launchInSimplifiedChinese()
+
+        openSettings(in: app, labels: ["设置", "Settings", "設定"])
+        chooseLanguage(in: app, labels: ["跟随系统", "System Default", "跟隨系統"])
+        XCTAssertTrue(app.buttons["设置"].waitForExistence(timeout: 5))
+
+        openSettings(in: app, labels: ["设置"])
+        chooseLanguage(in: app, labels: ["English"])
+        XCTAssertTrue(app.buttons["Calendar"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["List"].exists)
+        XCTAssertTrue(app.buttons["Settings"].exists)
+
+        app.buttons["Calendar"].tap()
+        let englishMonthTitle = app.staticTexts.matching(
+            NSPredicate(format: "identifier BEGINSWITH 'calendarMonthTitle-'")
+        ).firstMatch
+        XCTAssertTrue(englishMonthTitle.waitForExistence(timeout: 5))
+        XCTAssertEqual(englishMonthTitle.label, localizedMonthTitle(locale: "en_US"))
+
+        openSettings(in: app, labels: ["Settings"])
+        XCTAssertTrue(app.staticTexts["Preferences"].waitForExistence(timeout: 5))
+        chooseLanguage(in: app, labels: ["繁體中文"])
+        XCTAssertTrue(app.buttons["日曆"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["清單"].exists)
+        XCTAssertTrue(app.buttons["設定"].exists)
+
+        openSettings(in: app, labels: ["設定"])
+        XCTAssertTrue(app.staticTexts["個人資料"].waitForExistence(timeout: 5))
+        chooseLanguage(in: app, labels: ["跟隨系統"])
+        XCTAssertTrue(app.buttons["设置"].waitForExistence(timeout: 5))
+    }
+
+    func testEnglishComposePromptStaysOnOneLine() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-future"]
+        app.launchInSimplifiedChinese()
+
+        openSettings(in: app, labels: ["设置", "Settings", "設定"])
+        chooseLanguage(in: app, labels: ["English"])
+        app.buttons["Calendar"].tap()
+        app.swipeRight()
+
+        let composeButton = app.buttons["composeMemoryButton"]
+        XCTAssertTrue(composeButton.waitForExistence(timeout: 5))
+        XCTAssertGreaterThan(composeButton.frame.width, 180)
+        XCTAssertLessThanOrEqual(composeButton.frame.height, 48)
     }
 
     func testLongPressTodoOffersEditAndDeleteActions() {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing-demo", "-ui-testing-future"]
-        app.launch()
+        app.launchInSimplifiedChinese()
 
         app.buttons["清单"].tap()
         let todo = app.scrollViews["futureListScroll"]
@@ -42,11 +100,30 @@ final class CoupleJourneyUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["编辑清单"].waitForExistence(timeout: 2))
     }
 
+    func testListCompletionSupportsMultilineTitle() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-future"]
+        app.launch(language: "en", locale: "en_US")
+
+        app.buttons["List"].tap()
+        let title = "Let's go back to Lingyin Temple to fulfill our vow"
+        let list = app.scrollViews["futureListScroll"]
+        let titleText = list.staticTexts[title]
+        XCTAssertTrue(titleText.waitForExistence(timeout: 5))
+        XCTAssertGreaterThan(titleText.frame.height, 30)
+
+        list.buttons["Complete \(title)"].tap()
+
+        XCTAssertTrue(list.buttons["Reopen \(title)"].waitForExistence(timeout: 5))
+        XCTAssertGreaterThan(list.staticTexts[title].frame.height, 30)
+    }
+
     func testFutureAddButtonPresentsImmediately() {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing-demo", "-ui-testing-future"]
-        app.launch()
+        app.launchInSimplifiedChinese()
 
         let addButton = app.buttons["futureAddButton"]
         XCTAssertTrue(addButton.waitForExistence(timeout: 5))
@@ -69,7 +146,7 @@ final class CoupleJourneyUITests: XCTestCase {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing-demo", "-ui-testing-future"]
-        app.launch()
+        app.launchInSimplifiedChinese()
 
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
@@ -89,7 +166,10 @@ final class CoupleJourneyUITests: XCTestCase {
             "calendarAgenda-\(formatter.string(from: eventDate))"
         ]
         XCTAssertTrue(agenda.waitForExistence(timeout: 2))
-        XCTAssertTrue(app.buttons["calendarAgendaEvent-60000000-0000-4000-8000-000000000001"].exists)
+        XCTAssertTrue(
+            app.buttons["calendarAgendaEvent-60000000-0000-4000-8000-000000000001"]
+                .waitForExistence(timeout: 2)
+        )
         XCTAssertFalse(app.navigationBars["新日程"].exists)
 
         app.buttons["calendarAgendaNewEventButton"].tap()
@@ -100,7 +180,7 @@ final class CoupleJourneyUITests: XCTestCase {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing-demo", "-ui-testing-future"]
-        app.launch()
+        app.launchInSimplifiedChinese()
 
         let addButton = app.buttons["添加日程"]
         XCTAssertTrue(addButton.waitForExistence(timeout: 5))
@@ -163,7 +243,7 @@ final class CoupleJourneyUITests: XCTestCase {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing-demo", "-ui-testing-now"]
-        app.launch()
+        app.launchInSimplifiedChinese()
 
         XCTAssertTrue(app.staticTexts["在一起"].waitForExistence(timeout: 5))
 
@@ -195,7 +275,7 @@ final class CoupleJourneyUITests: XCTestCase {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing-demo", "-ui-testing-now"]
-        app.launch()
+        app.launchInSimplifiedChinese()
 
         let photoCarousel = app.scrollViews["featuredPhotoCarousel"]
         XCTAssertTrue(photoCarousel.waitForExistence(timeout: 5))
@@ -214,7 +294,7 @@ final class CoupleJourneyUITests: XCTestCase {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing-demo", "-ui-testing-past"]
-        app.launch()
+        app.launchInSimplifiedChinese()
 
         let allScroll = app.scrollViews["pastAllScroll"]
         XCTAssertTrue(allScroll.waitForExistence(timeout: 5))
@@ -243,7 +323,7 @@ final class CoupleJourneyUITests: XCTestCase {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing-demo", "-ui-testing-now"]
-        app.launch()
+        app.launchInSimplifiedChinese()
 
         let sourcePhoto = app.descendants(matching: .any)["featuredPhoto-0"]
         XCTAssertTrue(sourcePhoto.waitForExistence(timeout: 5))
@@ -286,7 +366,7 @@ final class CoupleJourneyUITests: XCTestCase {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing-demo", "-ui-testing-past"]
-        app.launch()
+        app.launchInSimplifiedChinese()
 
         let photosTab = app.buttons["照片"]
         XCTAssertTrue(photosTab.waitForExistence(timeout: 5))
@@ -340,7 +420,7 @@ final class CoupleJourneyUITests: XCTestCase {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing-demo", "-ui-testing-now"]
-        app.launch()
+        app.launchInSimplifiedChinese()
         XCTAssertTrue(app.staticTexts["在一起"].waitForExistence(timeout: 5))
 
         XCTAssertTrue(app.staticTexts["528"].exists)
@@ -384,7 +464,7 @@ final class CoupleJourneyUITests: XCTestCase {
 
         app.terminate()
         app.launchArguments = ["-ui-testing-demo", "-ui-testing-now"]
-        app.launch()
+        app.launchInSimplifiedChinese()
         let composeButton = app.buttons["composeMemoryButton"]
         XCTAssertTrue(composeButton.waitForExistence(timeout: 5))
         composeButton.tap()
@@ -406,7 +486,7 @@ final class CoupleJourneyUITests: XCTestCase {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing-demo", "-ui-testing-now"]
-        app.launch()
+        app.launchInSimplifiedChinese()
 
         var composeButton = app.buttons["composeMemoryButton"]
         XCTAssertTrue(composeButton.waitForExistence(timeout: 5))
@@ -453,5 +533,75 @@ final class CoupleJourneyUITests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["记录此刻"].waitForExistence(timeout: 3))
         XCTAssertEqual(app.navigationBars.matching(identifier: "记录此刻").count, 1)
+    }
+
+    func testPrimaryNavigationIsLocalizedInAllSupportedLanguages() {
+        continueAfterFailure = false
+        let expectations = [
+            (language: "zh-Hans", locale: "zh_CN", calendar: "日历", list: "清单", settings: "设置"),
+            (language: "en", locale: "en_US", calendar: "Calendar", list: "List", settings: "Settings"),
+            (language: "zh-Hant", locale: "zh_TW", calendar: "日曆", list: "清單", settings: "設定")
+        ]
+
+        for expectation in expectations {
+            let app = XCUIApplication()
+            app.launchArguments = ["-ui-testing-demo", "-ui-testing-future"]
+            app.launch(language: expectation.language, locale: expectation.locale)
+
+            XCTAssertTrue(app.buttons[expectation.calendar].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.buttons[expectation.list].exists)
+            XCTAssertTrue(app.buttons[expectation.settings].exists)
+            app.terminate()
+        }
+    }
+
+    private func openSettings(in app: XCUIApplication, labels: [String]) {
+        for label in labels {
+            let button = app.buttons[label]
+            if button.waitForExistence(timeout: 2) {
+                button.tap()
+                return
+            }
+        }
+        XCTFail("Settings tab was not available")
+    }
+
+    private func chooseLanguage(in app: XCUIApplication, labels: [String]) {
+        let picker = app.descendants(matching: .any)["appLanguagePicker"]
+        XCTAssertTrue(picker.waitForExistence(timeout: 5))
+        picker.tap()
+
+        for label in labels {
+            let button = app.buttons[label]
+            if button.waitForExistence(timeout: 2) {
+                button.tap()
+                return
+            }
+        }
+        XCTFail("Requested language option was not available")
+    }
+
+    private func localizedMonthTitle(locale identifier: String) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: identifier)
+        formatter.timeZone = .current
+        formatter.setLocalizedDateFormatFromTemplate("yMMMM")
+        return formatter.string(from: .now)
+    }
+}
+
+private extension XCUIApplication {
+    func launchInSimplifiedChinese() {
+        launch(language: "zh-Hans", locale: "zh_CN")
+    }
+
+    func launch(language: String, locale: String) {
+        launchArguments.append(contentsOf: [
+            "-ui-testing-reset-language",
+            "-AppleLanguages", "(\(language))",
+            "-AppleLocale", locale
+        ])
+        launch()
     }
 }

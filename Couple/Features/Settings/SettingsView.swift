@@ -1,8 +1,11 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @Environment(\.locale) private var locale
     @Environment(AppHaptics.self) private var haptics
+    @Environment(AppLanguageStore.self) private var language
     @Environment(AppStore.self) private var store
+    let scrollingDisabled: Bool
     @State private var startedOn = Date.now
     @State private var persistedStartedOn: Date?
     @State private var hasLoadedDraftValues = false
@@ -21,137 +24,181 @@ struct SettingsView: View {
 
     var body: some View {
         @Bindable var haptics = haptics
+        @Bindable var language = language
 
-        Form {
-            Section("个人资料") {
-                Button(action: presentNameEditor) {
-                    LabeledContent {
-                        HStack(spacing: 6) {
-                            Text(store.currentUser?.displayName ?? "未设置")
-                            Image(systemName: "chevron.right")
-                                .font(.caption.bold())
-                                .foregroundStyle(.tertiary)
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 32) {
+                settingsSection("个人资料") {
+                    Button(action: presentNameEditor) {
+                        LabeledContent {
+                            HStack(spacing: 6) {
+                                Text(store.currentUser?.displayName ?? AppLocalization.string("未设置"))
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(.tertiary)
+                            }
+                        } label: {
+                            Label("我的名字", systemImage: "person.crop.circle")
+                        }
+                    }
+                    .settingsRow()
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("editDisplayNameButton")
+
+                    ForEach(partnerMembers) { member in
+                        LabeledContent {
+                            Text(member.displayName)
+                        } label: {
+                            Label("另一半", systemImage: "heart")
+                        }
+                        .settingsRow()
+                    }
+                }
+
+                settingsSection("共同空间") {
+                    DatePicker("在一起的日期", selection: $startedOn, displayedComponents: .date)
+                        .settingsRow()
+                        .disabled(store.relationship?.couple == nil)
+                        .accessibilityIdentifier("startedOnDatePicker")
+
+                    if let invite = store.relationship?.pendingInvite {
+                        LabeledContent("邀请码", value: invite.code)
+                            .settingsRow()
+                        ShareLink(item: AppLocalization.string(
+                            "inviteShareMessage",
+                            defaultValue: "加入我们的共同空间，邀请码：\(invite.code)"
+                        )) {
+                                Label("分享邀请码", systemImage: "square.and.arrow.up")
+                            }
+                            .settingsRow()
+                    }
+                }
+
+                settingsSection("纪念日") {
+                    ForEach(store.anniversaries) { item in
+                        Label {
+                            VStack(alignment: .leading) {
+                                Text(item.title)
+                                Text(anniversaryDate(item))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .accessibilityIdentifier("anniversaryDate-\(item.id)")
+                            }
+                        } icon: {
+                            Image(systemName: "birthday.cake.fill")
+                        }
+                        .settingsRow()
+                        .editableContentActions(
+                            deletionTitle: AppLocalization.string(
+                                "deleteAnniversaryConfirmation",
+                                defaultValue: "删除纪念日“\(item.title)”？"
+                            ),
+                            editAction: { editingAnniversary = item },
+                            deleteAction: { try await store.deleteAnniversary(item) }
+                        )
+                    }
+
+                    Button("添加纪念日", systemImage: "plus", action: presentNewAnniversary)
+                        .settingsRow()
+                        .buttonStyle(.plain)
+                }
+
+                settingsSection("偏好") {
+                    Menu {
+                        ForEach(AppLanguage.allCases) { option in
+                            Button {
+                                language.selection = option
+                            } label: {
+                                if option == language.selection {
+                                    Label {
+                                        Text(verbatim: option.displayName)
+                                    } icon: {
+                                        Image(systemName: "checkmark")
+                                    }
+                                } else {
+                                    Text(verbatim: option.displayName)
+                                }
+                            }
                         }
                     } label: {
-                        Label("我的名字", systemImage: "person.crop.circle")
-                    }
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("editDisplayNameButton")
-
-                ForEach(partnerMembers) { member in
-                    LabeledContent {
-                        Text(member.displayName)
-                    } label: {
-                        Label("另一半", systemImage: "heart")
-                    }
-                }
-            }
-            .listRowSeparator(.hidden)
-
-            Section("共同空间") {
-                DatePicker("在一起的日期", selection: $startedOn, displayedComponents: .date)
-                    .disabled(store.relationship?.couple == nil)
-                    .accessibilityIdentifier("startedOnDatePicker")
-
-                if let invite = store.relationship?.pendingInvite {
-                    LabeledContent("邀请码", value: invite.code)
-                    ShareLink(item: "加入我们的共同空间，邀请码：\(invite.code)") {
-                        Label("分享邀请码", systemImage: "square.and.arrow.up")
-                    }
-                }
-            }
-            .listRowSeparator(.hidden)
-
-            Section {
-                ForEach(store.anniversaries) { item in
-                    Label {
-                        VStack(alignment: .leading) {
-                            Text(item.title)
-                            Text(item.date)
-                                .font(.caption)
+                        HStack(spacing: 12) {
+                            Label("应用语言", systemImage: "globe")
+                            Spacer()
+                            Text(verbatim: language.selection.displayName)
+                                .foregroundStyle(.secondary)
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.caption.bold())
                                 .foregroundStyle(.secondary)
                         }
-                    } icon: {
-                        Image(systemName: "birthday.cake.fill")
+                        .frame(maxWidth: .infinity)
                     }
-                    .editableContentActions(
-                        deletionTitle: "删除纪念日“\(item.title)”？",
-                        editAction: { editingAnniversary = item },
-                        deleteAction: { try await store.deleteAnniversary(item) }
+                    .settingsRow()
+                    .menuIndicator(.hidden)
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("appLanguagePicker")
+
+                    Toggle(isOn: $haptics.isEnabled) {
+                        Label(
+                            "震动反馈",
+                            systemImage: haptics.isEnabled ? "waveform" : "waveform.slash"
+                        )
+                    }
+                    .settingsRow()
+                    .accessibilityHint("控制应用内按钮、选择和操作结果的震动反馈")
+                    .accessibilityIdentifier("hapticsToggle")
+                }
+
+                settingsSection("连接") {
+                    LabeledContent("服务器", value: "oursince.com")
+                        .settingsRow()
+                    LabeledContent(
+                        "登录",
+                        value: store.isDemo ? AppLocalization.string("预览模式") : "Passkey"
                     )
+                    .settingsRow()
                 }
 
-                Button("添加纪念日", systemImage: "plus", action: presentNewAnniversary)
-            } header: {
-                Text("纪念日")
+                settingsSection {
+                    Button(role: .destructive) {
+                        haptics.play(.warning)
+                        showingLeaveConfirmation = true
+                    } label: {
+                        Label("退出空间", systemImage: "rectangle.portrait.and.arrow.right")
+                            .foregroundStyle(.red)
+                    }
+                    .settingsRow()
+                    .buttonStyle(.plain)
+                    .disabled(store.relationship?.couple == nil || isPerformingAccountAction)
+                    .accessibilityIdentifier("leaveSpaceButton")
+                    .confirmationDialog(
+                        "退出当前共同空间？",
+                        isPresented: $showingLeaveConfirmation,
+                        titleVisibility: .visible
+                    ) {
+                        Button("确认退出空间", role: .destructive, action: beginLeavingSpace)
+                        Button("取消", role: .cancel) {}
+                    } message: {
+                        Text("退出后你将无法再查看这个空间；共同记录会为另一位成员保留。")
+                    }
+
+                    Button(role: .destructive) {
+                        haptics.play(.warning)
+                        beginSigningOut()
+                    } label: {
+                        Label("退出登录", systemImage: "person.crop.circle.badge.xmark")
+                            .foregroundStyle(.red)
+                    }
+                    .settingsRow()
+                    .buttonStyle(.plain)
+                    .disabled(isPerformingAccountAction)
+                }
             }
-            .listRowSeparator(.hidden)
-
-            Section("偏好") {
-                Toggle(isOn: $haptics.isEnabled) {
-                    Label(
-                        "震动反馈",
-                        systemImage: haptics.isEnabled ? "waveform" : "waveform.slash"
-                    )
-                }
-                .accessibilityHint("控制应用内按钮、选择和操作结果的震动反馈")
-                .accessibilityIdentifier("hapticsToggle")
-            }
-            .listRowSeparator(.hidden)
-
-            Section("连接") {
-                LabeledContent("服务器", value: "oursince.com")
-                LabeledContent("登录", value: store.isDemo ? "预览模式" : "Passkey")
-            }
-            .listRowSeparator(.hidden)
-
-            Section {
-                Button(role: .destructive) {
-                    haptics.play(.warning)
-                    showingLeaveConfirmation = true
-                } label: {
-                    Label("退出空间", systemImage: "rectangle.portrait.and.arrow.right")
-                        .foregroundStyle(.red)
-                }
-                .disabled(store.relationship?.couple == nil || isPerformingAccountAction)
-                .accessibilityIdentifier("leaveSpaceButton")
-                .confirmationDialog(
-                    "退出当前共同空间？",
-                    isPresented: $showingLeaveConfirmation,
-                    titleVisibility: .visible
-                ) {
-                    Button("确认退出空间", role: .destructive, action: beginLeavingSpace)
-                    Button("取消", role: .cancel) {}
-                } message: {
-                    Text("退出后你将无法再查看这个空间；共同记录会为另一位成员保留。")
-                }
-
-                Button(role: .destructive) {
-                    haptics.play(.warning)
-                    beginSigningOut()
-                } label: {
-                    Label("退出登录", systemImage: "person.crop.circle.badge.xmark")
-                        .foregroundStyle(.red)
-                }
-                .disabled(isPerformingAccountAction)
-            }
-            .listRowSeparator(.hidden)
+            .padding(.horizontal, AppTheme.horizontalPadding)
+            .padding(.top, AppTheme.navigationBarHeight)
+            .padding(.bottom, AppTheme.futureContentBottomPadding)
         }
-        .formStyle(.grouped)
-        .scrollContentBackground(.hidden)
-        .contentMargins(
-            .horizontal,
-            0,
-            for: .scrollContent
-        )
-        .contentMargins(.top, AppTheme.navigationBarHeight, for: .scrollContent)
-        .contentMargins(
-            .bottom,
-            AppTheme.futureContentBottomPadding,
-            for: .scrollContent
-        )
         .scrollIndicators(.hidden)
+        .scrollDisabled(scrollingDisabled)
         .accessibilityIdentifier("settingsForm")
         .overlay {
             if isSavingName || isPerformingAccountAction {
@@ -176,14 +223,18 @@ struct SettingsView: View {
         } message: {
             Text("对方会在共同空间里看到这个名字。")
         }
-        .alert("还有 \(pendingChangeCount) 项尚未同步", isPresented: $showingUnsyncedLeave) {
+        .alert(AppLocalization.string("pendingChangeCountAlert",
+            defaultValue: "还有 \(pendingChangeCount) 项尚未同步"
+        ), isPresented: $showingUnsyncedLeave) {
             Button("先同步再退出", action: beginSyncThenLeave)
             Button("丢弃并退出", role: .destructive, action: beginDiscardingAndLeave)
             Button("取消", role: .cancel) {}
         } message: {
             Text("未同步的修改不会自动带出这个空间。")
         }
-        .alert("还有 \(pendingChangeCount) 项尚未同步", isPresented: $showingUnsyncedSignOut) {
+        .alert(AppLocalization.string("pendingChangeCountAlert",
+            defaultValue: "还有 \(pendingChangeCount) 项尚未同步"
+        ), isPresented: $showingUnsyncedSignOut) {
             Button("先同步", action: beginSyncThenSignOut)
             Button("丢弃并退出", role: .destructive, action: beginDiscardingAndSignOut)
             Button("取消", role: .cancel) {}
@@ -197,6 +248,25 @@ struct SettingsView: View {
         }
     }
 
+    @ViewBuilder
+    private func settingsSection<Content: View>(
+        _ title: LocalizedStringKey? = nil,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let title {
+                Text(title)
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+            }
+
+            VStack(spacing: 4) {
+                content()
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private var partnerMembers: [CoupleMember] {
         guard let currentUserID = store.currentUser?.id else {
             return store.relationship?.members ?? []
@@ -206,6 +276,10 @@ struct SettingsView: View {
 
     private var trimmedDisplayName: String {
         displayNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func anniversaryDate(_ anniversary: Anniversary) -> String {
+        Date.fromDateOnly(anniversary.date)?.localizedDate(locale: locale) ?? anniversary.date
     }
 
     private func loadDraftValues() {
@@ -280,7 +354,9 @@ struct SettingsView: View {
             if succeeded {
                 haptics.play(.success)
             } else {
-                presentError(store.errorMessage ?? "操作未能完成，请稍后重试。")
+                presentError(
+                    store.errorMessage ?? AppLocalization.string("操作未能完成，请稍后重试。")
+                )
             }
         }
     }
@@ -320,5 +396,12 @@ struct SettingsView: View {
         errorMessage = message
         showingError = true
         haptics.play(.error)
+    }
+}
+
+private extension View {
+    func settingsRow() -> some View {
+        frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
+            .contentShape(Rectangle())
     }
 }

@@ -41,7 +41,11 @@ struct NewTodoView: View {
                     .appHapticFeedback(.selection, trigger: visibility)
                 }
             }
-            .navigationTitle(editingTodo == nil ? "新清单" : "编辑清单")
+            .navigationTitle(
+                editingTodo == nil
+                    ? AppLocalization.string("新清单")
+                    : AppLocalization.string("编辑清单")
+            )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

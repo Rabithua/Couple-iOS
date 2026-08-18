@@ -16,6 +16,8 @@ struct ComposePullPrompt: View {
         Button(action: action) {
             Text("上拉记录此刻")
                 .font(.body)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
                 .foregroundStyle(AppTheme.muted)
                 .overlay {
                     if shouldAnimate {
@@ -37,11 +39,14 @@ struct ComposePullPrompt: View {
                         .mask {
                             Text("上拉记录此刻")
                                 .font(.body)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.75)
                         }
                         .allowsHitTesting(false)
                     }
                 }
-                .frame(width: 140, height: 44)
+                .frame(minHeight: 44)
+                .padding(.horizontal, AppTheme.horizontalPadding)
                 .contentShape(Rectangle())
                 .offset(y: reduceMotion ? 0 : -progress * 10)
                 .opacity(0.65 + progress * 0.35)

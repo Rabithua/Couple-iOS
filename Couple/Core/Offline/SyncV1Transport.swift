@@ -66,7 +66,7 @@ actor SyncV1Transport: SyncTransport {
                 continue
             }
             guard let width = record.width, let height = record.height else {
-                throw SyncTransportError.rejected("待上传照片缺少尺寸信息")
+                throw SyncTransportError.rejected(AppLocalization.string("待上传照片缺少尺寸信息"))
             }
             let bytes = try await store.pendingAttachment(relativePath: record.relativePath)
             var objectKey = record.uploadObjectKey
@@ -90,7 +90,7 @@ actor SyncV1Transport: SyncTransport {
         }
 
         guard serverIds.count == requestedIds.count else {
-            throw SyncTransportError.rejected("待上传照片记录不完整")
+            throw SyncTransportError.rejected(AppLocalization.string("待上传照片记录不完整"))
         }
         var payload = operation.payload
         payload.fields["attachmentIds"] = .strings(serverIds)
@@ -161,12 +161,12 @@ struct SyncV1Mutation: Encodable, Sendable {
         guard UUID(uuidString: operation.operationId) != nil,
               UUID(uuidString: operation.entityId) != nil,
               UUID(uuidString: deviceId) != nil else {
-            throw SyncTransportError.rejected("Sync v1 身份字段必须是 UUID")
+            throw SyncTransportError.rejected(AppLocalization.string("Sync v1 身份字段必须是 UUID"))
         }
         guard operation.hlc.wallTimeMilliseconds >= 0,
               String(operation.hlc.wallTimeMilliseconds).count <= 16,
               (0...Int64(Int32.max)).contains(operation.hlc.counter) else {
-            throw SyncTransportError.rejected("Sync v1 HLC 超出服务端支持范围")
+            throw SyncTransportError.rejected(AppLocalization.string("Sync v1 HLC 超出服务端支持范围"))
         }
         try Self.validate(operation)
         operationId = operation.operationId
@@ -181,33 +181,35 @@ struct SyncV1Mutation: Encodable, Sendable {
 
     private static func validate(_ operation: PendingOperation) throws {
         guard operation.entityType != .attachment else {
-            throw SyncTransportError.rejected("attachment 是只读同步实体")
+            throw SyncTransportError.rejected(AppLocalization.string("attachment 是只读同步实体"))
         }
         let groups = operation.changedFieldGroups
         if operation.mutationKind == .delete {
             guard groups == ["lifecycle"], operation.payload.fields.isEmpty else {
-                throw SyncTransportError.rejected("delete 只能提交 lifecycle 且不能携带 data")
+                throw SyncTransportError.rejected(AppLocalization.string("delete 只能提交 lifecycle 且不能携带 data"))
             }
             return
         }
         let definitions = mutableFields(for: operation.entityType)
         if operation.mutationKind == .create || operation.mutationKind == .restore {
             guard groups == Set(definitions.keys) else {
-                throw SyncTransportError.rejected("create/restore 必须提交实体的全部字段组")
+                throw SyncTransportError.rejected(AppLocalization.string("create/restore 必须提交实体的全部字段组"))
             }
             let requiredFields = Set(definitions.values.flatMap { $0 })
             guard requiredFields.isSubset(of: Set(operation.payload.fields.keys)) else {
-                throw SyncTransportError.rejected("create/restore 缺少完整 payload")
+                throw SyncTransportError.rejected(AppLocalization.string("create/restore 缺少完整 payload"))
             }
             return
         }
         guard !groups.isEmpty else {
-            throw SyncTransportError.rejected("update 至少需要一个 changedGroup")
+            throw SyncTransportError.rejected(AppLocalization.string("update 至少需要一个 changedGroup"))
         }
         for group in groups {
             guard let candidates = definitions[group],
                   !Set(candidates).isDisjoint(with: operation.payload.fields.keys) else {
-                throw SyncTransportError.rejected("update 的 \(group) 字段组没有对应字段")
+                throw SyncTransportError.rejected(AppLocalization.string("missingChangedGroupFields",
+                    defaultValue: "update 的 \(group) 字段组没有对应字段"
+                ))
             }
         }
     }
@@ -361,7 +363,9 @@ struct SyncV1Entity: Decodable, Sendable {
         reason: String?
     ) throws -> RemoteEntityChange {
         guard let type = SyncEntityType(rawValue: entityType) else {
-            throw APIError.decoding("未知同步实体类型：\(entityType)")
+            throw APIError.decoding(AppLocalization.string("unknownSyncEntityType",
+                defaultValue: "未知同步实体类型：\(entityType)"
+            ))
         }
         let wireKind: RemoteChangeKind
         if deleted || kind == "delete" {
@@ -400,7 +404,7 @@ struct SyncV1WireHLC: Decodable, Sendable {
               wallTimeMs.allSatisfy(\.isNumber),
               let wallTimeMilliseconds = Int64(wallTimeMs),
               (0...Int64(Int32.max)).contains(counter) else {
-            throw APIError.decoding("HLC wallTimeMs 或 counter 无效")
+            throw APIError.decoding(AppLocalization.string("HLC wallTimeMs 或 counter 无效"))
         }
         return HybridLogicalTimestamp(
             wallTimeMilliseconds: wallTimeMilliseconds,

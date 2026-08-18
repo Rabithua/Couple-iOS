@@ -165,6 +165,46 @@ struct MainPagerGestureStateTests {
         #expect(state.pageTranslation == 0)
     }
 
+    @Test("A mostly vertical drag in Settings remains scrolling")
+    func settingsDiagonalScrollDoesNotBecomePageSwipe() {
+        var state = MainPagerGestureState()
+
+        state.update(
+            translation: CGSize(width: -28, height: -16),
+            startLocation: CGPoint(x: 195, y: 500),
+            containerSize: containerSize,
+            bottomSafeAreaInset: 34,
+            route: .futureSettings
+        )
+
+        #expect(state.intent == .ignored)
+        #expect(state.blocksVerticalScrolling == false)
+        #expect(state.pageTranslation == 0)
+    }
+
+    @Test("A decisive horizontal drag in Settings still changes pages")
+    func settingsHorizontalDragBecomesPageSwipe() {
+        var state = MainPagerGestureState()
+
+        state.update(
+            translation: CGSize(width: 36, height: 12),
+            startLocation: CGPoint(x: 195, y: 500),
+            containerSize: containerSize,
+            bottomSafeAreaInset: 34,
+            route: .futureSettings
+        )
+
+        #expect(state.intent == .page)
+        #expect(state.blocksVerticalScrolling)
+        #expect(state.pageSourceRoute == .futureSettings)
+        #expect(
+            state.shouldCommitPageSwipe(
+                translation: CGSize(width: 48, height: 12),
+                predictedEndTranslation: CGSize(width: 100, height: 20)
+            )
+        )
+    }
+
     @Test("A page swipe keeps horizontal ownership until the drag ends")
     func pageSwipeKeepsHorizontalOwnershipUntilDragEnds() {
         var state = MainPagerGestureState()

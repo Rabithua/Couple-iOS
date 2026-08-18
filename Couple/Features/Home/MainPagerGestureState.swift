@@ -13,6 +13,7 @@ struct MainPagerGestureState: Equatable {
     private static let intentDecisionDistance: CGFloat = 12
     private static let ambiguousDecisionDistance: CGFloat = 24
     private static let pageAxisRatio: CGFloat = 1.6
+    private static let settingsPageAxisRatio: CGFloat = 2.2
     private static let pageCommitDistance: CGFloat = 36
     private static let projectedPageCommitDistance: CGFloat = 80
     private static let composeAxisRatio: CGFloat = 1.45
@@ -39,7 +40,9 @@ struct MainPagerGestureState: Equatable {
 
         let horizontal = abs(translation.width)
         let vertical = abs(translation.height)
-        guard horizontal > vertical * Self.pageAxisRatio else { return false }
+        guard horizontal > vertical * Self.pageAxisRatio(for: pageSourceRoute) else {
+            return false
+        }
 
         return horizontal >= Self.pageCommitDistance
             || abs(predictedEndTranslation.width) >= Self.projectedPageCommitDistance
@@ -69,7 +72,7 @@ struct MainPagerGestureState: Equatable {
         let distance = max(horizontal, vertical)
         guard distance >= Self.intentDecisionDistance else { return }
 
-        if horizontal > vertical * Self.pageAxisRatio {
+        if horizontal > vertical * Self.pageAxisRatio(for: route) {
             intent = .page
             pageTranslation = translation.width
             pageSourceRoute = route
@@ -118,5 +121,9 @@ struct MainPagerGestureState: Equatable {
             max(-verticalTranslation / Self.composeActivationDistance, 0),
             1
         )
+    }
+
+    private static func pageAxisRatio(for route: MainPagerRoute?) -> CGFloat {
+        route == .futureSettings ? settingsPageAxisRatio : pageAxisRatio
     }
 }

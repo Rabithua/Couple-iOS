@@ -55,16 +55,20 @@ struct PhotoPreviewPage: View {
                 )
             )
             .accessibilityLabel(attachment.filename)
-            .accessibilityValue(
-                "第 \(position) 张，共 \(total) 张，缩放 \(Int((displayScale * 100).rounded()))%"
-            )
+            .accessibilityValue(AppLocalization.string("photoPreviewPositionAndZoom",
+                defaultValue: "第 \(position) 张，共 \(total) 张，缩放 \(Int((displayScale * 100).rounded()))%"
+            ))
             .accessibilityHint("激活退出全屏预览，上下轻扫调整缩放")
             .accessibilityAddTraits(.isButton)
             .accessibilityAction {
                 dismissPreview()
             }
             .accessibilityAction(
-                named: Text(zoomState.isZoomed ? "复原图片" : "放大图片")
+                named: Text(
+                    zoomState.isZoomed
+                        ? AppLocalization.string("复原图片")
+                        : AppLocalization.string("放大图片")
+                )
             ) {
                 toggleZoom(
                     at: .center,

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct AppRootView: View {
+    @Environment(AppLanguageStore.self) private var language
     @Environment(AppStore.self) private var store
 
     var body: some View {
@@ -16,6 +17,7 @@ struct AppRootView: View {
                 MainPagerView()
             }
         }
+        .id(language.selection)
         .animation(.smooth(duration: 0.35), value: store.phase)
     }
 

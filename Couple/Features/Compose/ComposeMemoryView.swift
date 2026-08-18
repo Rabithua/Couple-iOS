@@ -54,7 +54,14 @@ struct ComposeMemoryView: View {
                             maxSelectionCount: 10,
                             matching: .images
                         ) {
-                            Label(photoCount == 0 ? "选择照片" : "已选择 \(photoCount) 张", systemImage: "photo.on.rectangle.angled")
+                            Label(
+                                photoCount == 0
+                                    ? AppLocalization.string("选择照片")
+                                    : AppLocalization.string("selectedPhotoCount",
+                                        defaultValue: "已选择 \(photoCount) 张"
+                                    ),
+                                systemImage: "photo.on.rectangle.angled"
+                            )
                         }
                         .appHapticFeedback(.selection, trigger: selectedItems)
 
@@ -103,7 +110,11 @@ struct ComposeMemoryView: View {
                     .appHapticFeedback(.selection, trigger: visibility)
                 }
             }
-            .navigationTitle(editingNote == nil ? "记录此刻" : "编辑动态")
+            .navigationTitle(
+                editingNote == nil
+                    ? AppLocalization.string("记录此刻")
+                    : AppLocalization.string("编辑动态")
+            )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
