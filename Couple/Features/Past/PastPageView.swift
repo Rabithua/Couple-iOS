@@ -186,12 +186,13 @@ private struct AssociatedNoteRow: View {
 }
 
 struct NoteMetadataRow: View {
+    @Environment(\.locale) private var locale
     let date: Date
     let trailing: String
 
     var body: some View {
         HStack {
-            Text(date.localizedDateTime)
+            Text(date.localizedDateTime(locale: locale))
             Spacer(minLength: 8)
             Text(trailing)
                 .lineLimit(1)

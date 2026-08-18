@@ -1,9 +1,11 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @Environment(\.locale) private var locale
     @Environment(AppHaptics.self) private var haptics
     @Environment(AppLanguageStore.self) private var language
     @Environment(AppStore.self) private var store
+    let scrollingDisabled: Bool
     @State private var startedOn = Date.now
     @State private var persistedStartedOn: Date?
     @State private var hasLoadedDraftValues = false
@@ -77,9 +79,10 @@ struct SettingsView: View {
                         Label {
                             VStack(alignment: .leading) {
                                 Text(item.title)
-                                Text(item.date)
+                                Text(anniversaryDate(item))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
+                                    .accessibilityIdentifier("anniversaryDate-\(item.id)")
                             }
                         } icon: {
                             Image(systemName: "birthday.cake.fill")
@@ -195,6 +198,7 @@ struct SettingsView: View {
             .padding(.bottom, AppTheme.futureContentBottomPadding)
         }
         .scrollIndicators(.hidden)
+        .scrollDisabled(scrollingDisabled)
         .accessibilityIdentifier("settingsForm")
         .overlay {
             if isSavingName || isPerformingAccountAction {
@@ -272,6 +276,10 @@ struct SettingsView: View {
 
     private var trimmedDisplayName: String {
         displayNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func anniversaryDate(_ anniversary: Anniversary) -> String {
+        Date.fromDateOnly(anniversary.date)?.localizedDate(locale: locale) ?? anniversary.date
     }
 
     private func loadDraftValues() {

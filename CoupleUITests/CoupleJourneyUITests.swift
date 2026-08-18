@@ -22,6 +22,11 @@ final class CoupleJourneyUITests: XCTestCase {
         settingsForm.swipeUp()
         settingsForm.swipeUp()
         XCTAssertTrue(app.buttons["leaveSpaceButton"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["设置"].isSelected)
+
+        settingsForm.swipeRight()
+        XCTAssertTrue(app.buttons["清单"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["清单"].isSelected)
     }
 
     func testSettingsLanguagePickerSwitchesImmediately() {
@@ -40,6 +45,13 @@ final class CoupleJourneyUITests: XCTestCase {
         XCTAssertTrue(app.buttons["List"].exists)
         XCTAssertTrue(app.buttons["Settings"].exists)
 
+        app.buttons["Calendar"].tap()
+        let englishMonthTitle = app.staticTexts.matching(
+            NSPredicate(format: "identifier BEGINSWITH 'calendarMonthTitle-'")
+        ).firstMatch
+        XCTAssertTrue(englishMonthTitle.waitForExistence(timeout: 5))
+        XCTAssertEqual(englishMonthTitle.label, localizedMonthTitle(locale: "en_US"))
+
         openSettings(in: app, labels: ["Settings"])
         XCTAssertTrue(app.staticTexts["Preferences"].waitForExistence(timeout: 5))
         chooseLanguage(in: app, labels: ["繁體中文"])
@@ -51,6 +63,23 @@ final class CoupleJourneyUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["個人資料"].waitForExistence(timeout: 5))
         chooseLanguage(in: app, labels: ["跟隨系統"])
         XCTAssertTrue(app.buttons["设置"].waitForExistence(timeout: 5))
+    }
+
+    func testEnglishComposePromptStaysOnOneLine() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-future"]
+        app.launchInSimplifiedChinese()
+
+        openSettings(in: app, labels: ["设置", "Settings", "設定"])
+        chooseLanguage(in: app, labels: ["English"])
+        app.buttons["Calendar"].tap()
+        app.swipeRight()
+
+        let composeButton = app.buttons["composeMemoryButton"]
+        XCTAssertTrue(composeButton.waitForExistence(timeout: 5))
+        XCTAssertGreaterThan(composeButton.frame.width, 180)
+        XCTAssertLessThanOrEqual(composeButton.frame.height, 48)
     }
 
     func testLongPressTodoOffersEditAndDeleteActions() {
@@ -532,6 +561,15 @@ final class CoupleJourneyUITests: XCTestCase {
         }
         XCTFail("Requested language option was not available")
     }
+
+    private func localizedMonthTitle(locale identifier: String) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: identifier)
+        formatter.timeZone = .current
+        formatter.setLocalizedDateFormatFromTemplate("yMMMM")
+        return formatter.string(from: .now)
+    }
 }
 
 private extension XCUIApplication {
@@ -541,6 +579,7 @@ private extension XCUIApplication {
 
     func launch(language: String, locale: String) {
         launchArguments.append(contentsOf: [
+            "-ui-testing-reset-language",
             "-AppleLanguages", "(\(language))",
             "-AppleLocale", locale
         ])

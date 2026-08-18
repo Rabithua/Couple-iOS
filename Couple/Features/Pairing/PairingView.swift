@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct PairingView: View {
+    @Environment(\.locale) private var locale
     @Environment(AppHaptics.self) private var haptics
     @Environment(AppStore.self) private var store
     @State private var inviteCode = ""
@@ -99,7 +100,9 @@ struct PairingView: View {
                 .accessibilityLabel(AppLocalization.string("inviteCodeAccessibilityLabel",
                     defaultValue: "邀请码 \(invite.code)"
                 ))
-            Text("有效期至 \(invite.expiresAt.formatted(date: .abbreviated, time: .shortened))")
+            Text(
+                "有效期至 \(invite.expiresAt.localizedDateTime(locale: locale, dateStyle: .abbreviated))"
+            )
                 .font(.caption)
                 .foregroundStyle(.secondary)
             ShareLink(item: AppLocalization.string("inviteShareMessage",

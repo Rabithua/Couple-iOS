@@ -17,8 +17,14 @@ final class AppLanguageStore {
         }
     }
 
-    init(userDefaults: UserDefaults = .standard) {
+    init(
+        userDefaults: UserDefaults = .standard,
+        arguments: [String] = ProcessInfo.processInfo.arguments
+    ) {
         self.userDefaults = userDefaults
+        if arguments.contains("-ui-testing-reset-language") {
+            userDefaults.removeObject(forKey: AppLanguage.userDefaultsKey)
+        }
         selection = AppLanguage.persisted(in: userDefaults)
     }
 }

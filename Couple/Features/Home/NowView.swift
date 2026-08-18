@@ -2,6 +2,7 @@ import SwiftUI
 
 struct NowView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.locale) private var locale
     @Environment(AppStore.self) private var store
     let composePullProgress: CGFloat
     let isActive: Bool
@@ -171,7 +172,10 @@ struct NowView: View {
                 HStack(alignment: .top, spacing: 9) {
                     AssociationArrow(height: 45)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text((anniversary.upcomingOccurrence() ?? Date()).localizedDateTime)
+                        Text(
+                            (anniversary.upcomingOccurrence() ?? Date())
+                                .localizedDateTime(locale: locale)
+                        )
                             .font(.caption)
                             .foregroundStyle(AppTheme.muted)
                         Label(anniversary.title, systemImage: "birthday.cake.fill")

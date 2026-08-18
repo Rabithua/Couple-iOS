@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct CalendarDayCell: View {
+    @Environment(\.locale) private var locale
     @Environment(AppHaptics.self) private var haptics
     let date: Date
     let events: [CalendarEvent]
@@ -20,12 +21,13 @@ struct CalendarDayCell: View {
     @State private var isDeleting = false
 
     var body: some View {
+        let calendar = Calendar.localizedGregorian(locale: locale)
         let hasScheduledItem = !events.isEmpty || !todos.isEmpty
-        let isToday = Calendar.current.isDateInToday(date)
+        let isToday = calendar.isDateInToday(date)
 
         Button(action: selectDay) {
             VStack(spacing: 2) {
-                Text(Calendar.current.component(.day, from: date), format: .number)
+                Text(calendar.component(.day, from: date), format: .number)
                     .font(.body.bold())
                     .foregroundStyle(isToday ? Color(.systemBackground) : AppTheme.muted)
                     .frame(width: 32, height: 32)
@@ -102,7 +104,7 @@ struct CalendarDayCell: View {
         } message: {
             Text(deleteErrorMessage)
         }
-        .accessibilityLabel(date.formatted(date: .complete, time: .omitted))
+        .accessibilityLabel(date.localizedDate(locale: locale, style: .complete))
         .accessibilityValue(accessibilityValue(isToday: isToday))
         .accessibilityHint(accessibilityHint(hasScheduledItem: hasScheduledItem))
         .accessibilityIdentifier("calendarDay-\(date.dateOnlyString)")
@@ -129,7 +131,7 @@ struct CalendarDayCell: View {
         }
         return values.isEmpty
             ? AppLocalization.string("无安排")
-            : values.formatted(.list(type: .and, width: .short))
+            : values.formatted(.list(type: .and, width: .short).locale(locale))
     }
 
     private func accessibilityHint(hasScheduledItem: Bool) -> String {

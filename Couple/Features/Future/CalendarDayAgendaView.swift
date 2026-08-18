@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct CalendarDayAgendaView: View {
+    @Environment(\.locale) private var locale
     @Environment(AppHaptics.self) private var haptics
 
     let date: Date
@@ -92,13 +93,13 @@ struct CalendarDayAgendaView: View {
 
     private func eventTime(_ event: CalendarEvent) -> String {
         if event.allDay { return AppLocalization.string("全天") }
-        let start = event.startTime.formatted(date: .omitted, time: .shortened)
+        let start = event.startTime.localizedTime(locale: locale)
         guard let endTime = event.endTime else { return start }
-        return "\(start)–\(endTime.formatted(date: .omitted, time: .shortened))"
+        return "\(start)–\(endTime.localizedTime(locale: locale))"
     }
 
     private func todoTime(_ todo: Todo) -> String {
-        todo.dueTime?.formatted(date: .omitted, time: .shortened) ?? AppLocalization.string("清单")
+        todo.dueTime?.localizedTime(locale: locale) ?? AppLocalization.string("清单")
     }
 
     private func beginCreatingEvent() {
