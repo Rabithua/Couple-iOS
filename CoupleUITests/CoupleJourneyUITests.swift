@@ -100,6 +100,25 @@ final class CoupleJourneyUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["编辑清单"].waitForExistence(timeout: 2))
     }
 
+    func testListCompletionSupportsMultilineTitle() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-future"]
+        app.launch(language: "en", locale: "en_US")
+
+        app.buttons["List"].tap()
+        let title = "Let's go back to Lingyin Temple to fulfill our vow"
+        let list = app.scrollViews["futureListScroll"]
+        let titleText = list.staticTexts[title]
+        XCTAssertTrue(titleText.waitForExistence(timeout: 5))
+        XCTAssertGreaterThan(titleText.frame.height, 30)
+
+        list.buttons["Complete \(title)"].tap()
+
+        XCTAssertTrue(list.buttons["Reopen \(title)"].waitForExistence(timeout: 5))
+        XCTAssertGreaterThan(list.staticTexts[title].frame.height, 30)
+    }
+
     func testFutureAddButtonPresentsImmediately() {
         continueAfterFailure = false
         let app = XCUIApplication()

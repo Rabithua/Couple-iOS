@@ -35,19 +35,25 @@ struct TodoCompletionTitle: View {
             .font(font)
             .lineLimit(lineLimit)
             .foregroundStyle(isCompleted ? AppTheme.muted : Color.primary)
+            .strikethrough(
+                lineLimit != 1 && isCompleted,
+                color: AppTheme.muted
+            )
             .overlay {
-                TodoCompletionStrike()
-                    .trim(from: 0, to: isCompleted ? 1 : 0)
-                    .stroke(
-                        isCompleted ? AppTheme.muted : Color.primary,
-                        style: StrokeStyle(
-                            lineWidth: AppTheme.todoCompletionStrikeWidth,
-                            lineCap: .round,
-                            lineJoin: .round
+                if lineLimit == 1 {
+                    TodoCompletionStrike()
+                        .trim(from: 0, to: isCompleted ? 1 : 0)
+                        .stroke(
+                            isCompleted ? AppTheme.muted : Color.primary,
+                            style: StrokeStyle(
+                                lineWidth: AppTheme.todoCompletionStrikeWidth,
+                                lineCap: .round,
+                                lineJoin: .round
+                            )
                         )
-                    )
-                    .frame(height: AppTheme.todoCompletionStrikeHeight)
-                    .accessibilityHidden(true)
+                        .frame(height: AppTheme.todoCompletionStrikeHeight)
+                        .accessibilityHidden(true)
+                }
             }
     }
 }
