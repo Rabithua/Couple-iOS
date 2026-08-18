@@ -23,3 +23,31 @@ struct TodoCompletionStrike: Shape {
         return path
     }
 }
+
+struct TodoCompletionTitle: View {
+    let title: String
+    let isCompleted: Bool
+    var font: Font? = nil
+    var lineLimit: Int? = nil
+
+    var body: some View {
+        Text(title)
+            .font(font)
+            .lineLimit(lineLimit)
+            .foregroundStyle(isCompleted ? AppTheme.muted : Color.primary)
+            .overlay {
+                TodoCompletionStrike()
+                    .trim(from: 0, to: isCompleted ? 1 : 0)
+                    .stroke(
+                        isCompleted ? AppTheme.muted : Color.primary,
+                        style: StrokeStyle(
+                            lineWidth: AppTheme.todoCompletionStrikeWidth,
+                            lineCap: .round,
+                            lineJoin: .round
+                        )
+                    )
+                    .frame(height: AppTheme.todoCompletionStrikeHeight)
+                    .accessibilityHidden(true)
+            }
+    }
+}

@@ -5,11 +5,13 @@ struct CalendarDayAgendaView: View {
 
     let date: Date
     let isContentVisible: Bool
+    let isInteractionDisabled: Bool
     let events: [CalendarEvent]
     let todos: [Todo]
     let createEvent: @MainActor (Date) -> Void
     let editEvent: @MainActor (CalendarEvent) -> Void
     let editTodo: @MainActor (Todo) -> Void
+    let setTodoCompletion: @MainActor (Todo, Bool) async -> Bool
     let deleteEvent: @MainActor (CalendarEvent) async throws -> Void
     let deleteTodo: @MainActor (Todo) async throws -> Void
 
@@ -50,18 +52,12 @@ struct CalendarDayAgendaView: View {
             }
 
             ForEach(todos) { todo in
-                Button(action: { open(todo) }) {
-                    LabeledContent {
-                        Text(todoTime(todo))
-                            .foregroundStyle(.secondary)
-                    } label: {
-                        Label(todo.title, systemImage: "checkmark.circle")
-                            .lineLimit(1)
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                    .contentShape(.rect)
-                }
-                .buttonStyle(.plain)
+                CalendarAgendaTodoRow(
+                    todo: todo,
+                    time: todoTime(todo),
+                    disabled: isInteractionDisabled,
+                    setCompletion: setTodoCompletion
+                )
                 .editableContentActions(
                     deletionTitle: "删除清单“\(todo.title)”？",
                     editAction: { editTodo(todo) },
@@ -109,9 +105,57 @@ struct CalendarDayAgendaView: View {
         haptics.play(.tap)
         editEvent(event)
     }
+}
 
-    private func open(_ todo: Todo) {
-        haptics.play(.tap)
-        editTodo(todo)
+private struct CalendarAgendaTodoRow: View {
+    @Environment(AppHaptics.self) private var haptics
+
+    let todo: Todo
+    let time: String
+    let disabled: Bool
+    let setCompletion: @MainActor (Todo, Bool) async -> Bool
+
+    var body: some View {
+        TodoCompletionInteraction(
+            todo: todo,
+            disabled: disabled,
+            setCompletion: commitCompletion
+        ) { completion in
+            Button {
+                haptics.playTodoCompletionChange(
+                    isCompleted: completion.isCompleted
+                )
+                completion.toggle()
+            } label: {
+                LabeledContent {
+                    Text(time)
+                        .foregroundStyle(.secondary)
+                } label: {
+                    Label {
+                        TodoCompletionTitle(
+                            title: todo.title,
+                            isCompleted: completion.isCompleted,
+                            lineLimit: 1
+                        )
+                    } icon: {
+                        TodoCheckboxSymbol(isChecked: completion.isCompleted)
+                    }
+                }
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .disabled(completion.isDisabled)
+            .accessibilityLabel(accessibilityLabel(completion.isCompleted))
+            .accessibilityHint("长按可以编辑或删除")
+        }
+    }
+
+    private func commitCompletion(_ completed: Bool) async -> Bool {
+        await setCompletion(todo, completed)
+    }
+
+    private func accessibilityLabel(_ isCompleted: Bool) -> String {
+        isCompleted ? "重新打开\(todo.title)" : "完成\(todo.title)"
     }
 }

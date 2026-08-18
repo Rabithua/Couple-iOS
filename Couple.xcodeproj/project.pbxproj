@@ -33,6 +33,8 @@
 		4F7E70AA36D8D52E1E87462F /* NowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31475F86AC39EF3B94050D5E /* NowView.swift */; };
 		55BF5D05D162644DB032EB6E /* OfflineModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 862492117B1F02A0757AD9D4 /* OfflineModels.swift */; };
 		5744B0F6700EF8FEC5F3BD9B /* TodoCompletionStrike.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BABCD37148C166C49F4ED67 /* TodoCompletionStrike.swift */; };
+		C5F4A9D8E7B64102A3C5D6E7 /* TodoCompletionInteraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7D9C2E41B6345809F12A3BC /* TodoCompletionInteraction.swift */; };
+		E1A7C3D95B6F4280A4E9C2D7 /* TodoCheckboxSymbol.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2B8D4EA6C704391B5FAC3E8 /* TodoCheckboxSymbol.swift */; };
 		57A3A270851D4BEC63F80896 /* TodoListRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1278F189711A3165F87E3EF /* TodoListRow.swift */; };
 		58326B25C993CD986092B2AA /* OfflineSyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE2ECDEDCFB3D956F1518170 /* OfflineSyncTests.swift */; };
 		599AC49C54505C142871D1F7 /* DateSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC2C36B0FC87FE8DD80A4C77 /* DateSupport.swift */; };
@@ -148,6 +150,8 @@
 		7A81E42508F7E7D0194DD054 /* SyncCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncCore.swift; sourceTree = "<group>"; };
 		7AEB29ED930F34D3894CA2FD /* PhotoPreviewZoomState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewZoomState.swift; sourceTree = "<group>"; };
 		7BABCD37148C166C49F4ED67 /* TodoCompletionStrike.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoCompletionStrike.swift; sourceTree = "<group>"; };
+		A7D9C2E41B6345809F12A3BC /* TodoCompletionInteraction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoCompletionInteraction.swift; sourceTree = "<group>"; };
+		F2B8D4EA6C704391B5FAC3E8 /* TodoCheckboxSymbol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoCheckboxSymbol.swift; sourceTree = "<group>"; };
 		7D4DFD3C9B314DFF0448D5EC /* MainPagerGestureStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainPagerGestureStateTests.swift; sourceTree = "<group>"; };
 		862492117B1F02A0757AD9D4 /* OfflineModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineModels.swift; sourceTree = "<group>"; };
 		866943AD76A71CCBB22D0F38 /* DesignNavigationContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignNavigationContainer.swift; sourceTree = "<group>"; };
@@ -318,6 +322,8 @@
 				E91DCB8536246EB9009DE781 /* PhotoPreviewView.swift */,
 				7AEB29ED930F34D3894CA2FD /* PhotoPreviewZoomState.swift */,
 				7BABCD37148C166C49F4ED67 /* TodoCompletionStrike.swift */,
+				A7D9C2E41B6345809F12A3BC /* TodoCompletionInteraction.swift */,
+				F2B8D4EA6C704391B5FAC3E8 /* TodoCheckboxSymbol.swift */,
 				D1278F189711A3165F87E3EF /* TodoListRow.swift */,
 			);
 			path = Components;
@@ -639,6 +645,7 @@
 				599AC49C54505C142871D1F7 /* DateSupport.swift in Sources */,
 				9A36D123731CC365037CADB7 /* DeferredTodoCompletionRow.swift in Sources */,
 				87796C37918793070E77674B /* DesignDecorations.swift in Sources */,
+				E1A7C3D95B6F4280A4E9C2D7 /* TodoCheckboxSymbol.swift in Sources */,
 				27109272F0CE02067665ADB8 /* DesignNavigationContainer.swift in Sources */,
 				279DE5398D791DA53A47BE5B /* DesignTabBar.swift in Sources */,
 				5C0043E59EB5E55E05A7DB3E /* DesignTopEdgeBackground.swift in Sources */,
@@ -676,6 +683,7 @@
 				C8029A9F3E617AF01677C912 /* SyncCore.swift in Sources */,
 				B9B0F1229A94B3B8237AB9F4 /* SyncV1Transport.swift in Sources */,
 				5744B0F6700EF8FEC5F3BD9B /* TodoCompletionStrike.swift in Sources */,
+				C5F4A9D8E7B64102A3C5D6E7 /* TodoCompletionInteraction.swift in Sources */,
 				065A75575DE29369DFFEFFAB /* TodoDisplayOrder.swift in Sources */,
 				57A3A270851D4BEC63F80896 /* TodoListRow.swift in Sources */,
 			);

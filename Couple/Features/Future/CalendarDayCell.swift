@@ -29,7 +29,10 @@ struct CalendarDayCell: View {
                     .font(.body.bold())
                     .foregroundStyle(isToday ? Color(.systemBackground) : AppTheme.muted)
                     .frame(width: 32, height: 32)
-                    .background(isToday ? Color.primary : .clear, in: .circle)
+                    .background(
+                        isToday ? Color.primary : .clear,
+                        in: .rect(cornerRadius: AppTheme.calendarTodayCornerRadius)
+                    )
 
                 Circle()
                     .fill(hasScheduledItem ? Color.primary.opacity(0.45) : .clear)

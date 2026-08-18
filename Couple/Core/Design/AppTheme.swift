@@ -21,7 +21,9 @@ enum AppTheme {
     static let todoCompletionExitOffset: CGFloat = 18
     static let todoCompletionStrikeHeight: CGFloat = 6
     static let todoCompletionStrikeWidth: CGFloat = 2
+    static let todoCompletionToggleDuration = 0.42
     static let calendarDayHeight: CGFloat = 50
+    static let calendarTodayCornerRadius: CGFloat = 10
     static let calendarAgendaCornerRadius: CGFloat = 16
     static let calendarAgendaTabCornerRadius: CGFloat = 12
     static let calendarAgendaJointCornerRadius: CGFloat = 8

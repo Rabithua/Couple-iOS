@@ -5,6 +5,7 @@ struct CalendarMonthView: View {
     let schedule: CalendarScheduleIndex
     var editEvent: @MainActor (CalendarEvent) -> Void = { _ in }
     var editTodo: @MainActor (Todo) -> Void = { _ in }
+    var setTodoCompletion: @MainActor (Todo, Bool) async -> Bool = { _, _ in false }
     var deleteEvent: @MainActor (CalendarEvent) async throws -> Void = { _ in }
     var deleteTodo: @MainActor (Todo) async throws -> Void = { _ in }
     var selectDate: @MainActor (Date) -> Void = { _ in }
@@ -68,11 +69,13 @@ struct CalendarMonthView: View {
                             CalendarDayAgendaView(
                                 date: agendaDate,
                                 isContentVisible: isAgendaVisible(on: agendaDate),
+                                isInteractionDisabled: selectionDisabled,
                                 events: scheduledEvents(on: agendaDate),
                                 todos: scheduledTodos(on: agendaDate),
                                 createEvent: createEvent,
                                 editEvent: editEvent,
                                 editTodo: editTodo,
+                                setTodoCompletion: setTodoCompletion,
                                 deleteEvent: deleteEvent,
                                 deleteTodo: deleteTodo
                             )

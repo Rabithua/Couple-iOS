@@ -59,6 +59,10 @@ final class AppHaptics {
         event = Event(sequence: nextSequence, feedback: feedback)
     }
 
+    func playTodoCompletionChange(isCompleted: Bool) {
+        play(isCompleted ? .selection : .success)
+    }
+
     nonisolated static func whenPresent<Value>(_: Value?, _ newValue: Value?) -> Bool {
         newValue != nil
     }

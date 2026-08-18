@@ -102,6 +102,7 @@ struct FutureView: View {
                         schedule: store.calendarScheduleIndex,
                         editEvent: editCalendarEvent,
                         editTodo: editTodo,
+                        setTodoCompletion: setCalendarTodoCompletion,
                         deleteEvent: deleteCalendarEvent,
                         deleteTodo: deleteTodo,
                         selectDate: selectCalendarDate,
@@ -161,6 +162,10 @@ struct FutureView: View {
 
     private var pageAnimation: Animation? {
         reduceMotion ? nil : .smooth(duration: 0.32)
+    }
+
+    private func setCalendarTodoCompletion(_ todo: Todo, completed: Bool) async -> Bool {
+        await store.setTodoCompletion(todo, completed: completed)
     }
 
     private func presentNewItem() {

@@ -37,9 +37,7 @@ struct TodoCheckButton: View {
 
     var body: some View {
         Button(action: toggleTodo) {
-            Image(systemName: isChecked ? "checkmark.square" : "square")
-                .font(.title2)
-                .contentTransition(.symbolEffect(.replace))
+            TodoCheckboxSymbol(isChecked: isChecked)
         }
         .buttonStyle(.plain)
         .frame(width: AppTheme.todoControlSize, height: AppTheme.todoControlSize)
@@ -48,7 +46,7 @@ struct TodoCheckButton: View {
     }
 
     private func toggleTodo() {
-        haptics.play(isChecked ? .selection : .success)
+        haptics.playTodoCompletionChange(isCompleted: isChecked)
         action()
     }
 
