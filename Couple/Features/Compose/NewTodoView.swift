@@ -43,8 +43,8 @@ struct NewTodoView: View {
             }
             .navigationTitle(
                 editingTodo == nil
-                    ? String(localized: "新清单")
-                    : String(localized: "编辑清单")
+                    ? AppLocalization.string("新清单")
+                    : AppLocalization.string("编辑清单")
             )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

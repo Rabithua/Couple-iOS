@@ -39,8 +39,8 @@ struct NewAnniversaryView: View {
             }
             .navigationTitle(
                 editingAnniversary == nil
-                    ? String(localized: "新纪念日")
-                    : String(localized: "编辑纪念日")
+                    ? AppLocalization.string("新纪念日")
+                    : AppLocalization.string("编辑纪念日")
             )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

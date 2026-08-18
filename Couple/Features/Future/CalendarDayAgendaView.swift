@@ -44,8 +44,7 @@ struct CalendarDayAgendaView: View {
                 }
                 .buttonStyle(.plain)
                 .editableContentActions(
-                    deletionTitle: String(
-                        localized: "deleteEventConfirmation",
+                    deletionTitle: AppLocalization.string("deleteEventConfirmation",
                         defaultValue: "删除日程“\(event.title)”？"
                     ),
                     editAction: { editEvent(event) },
@@ -62,8 +61,7 @@ struct CalendarDayAgendaView: View {
                     setCompletion: setTodoCompletion
                 )
                 .editableContentActions(
-                    deletionTitle: String(
-                        localized: "deleteTodoConfirmation",
+                    deletionTitle: AppLocalization.string("deleteTodoConfirmation",
                         defaultValue: "删除清单“\(todo.title)”？"
                     ),
                     editAction: { editTodo(todo) },
@@ -93,14 +91,14 @@ struct CalendarDayAgendaView: View {
     }
 
     private func eventTime(_ event: CalendarEvent) -> String {
-        if event.allDay { return String(localized: "全天") }
+        if event.allDay { return AppLocalization.string("全天") }
         let start = event.startTime.formatted(date: .omitted, time: .shortened)
         guard let endTime = event.endTime else { return start }
         return "\(start)–\(endTime.formatted(date: .omitted, time: .shortened))"
     }
 
     private func todoTime(_ todo: Todo) -> String {
-        todo.dueTime?.formatted(date: .omitted, time: .shortened) ?? String(localized: "清单")
+        todo.dueTime?.formatted(date: .omitted, time: .shortened) ?? AppLocalization.string("清单")
     }
 
     private func beginCreatingEvent() {
@@ -154,7 +152,7 @@ private struct CalendarAgendaTodoRow: View {
             .buttonStyle(.plain)
             .disabled(completion.isDisabled)
             .accessibilityLabel(accessibilityLabel(completion.isCompleted))
-            .accessibilityHint(String(localized: "长按可以编辑或删除"))
+            .accessibilityHint(AppLocalization.string("长按可以编辑或删除"))
         }
     }
 
@@ -164,12 +162,10 @@ private struct CalendarAgendaTodoRow: View {
 
     private func accessibilityLabel(_ isCompleted: Bool) -> String {
         isCompleted
-            ? String(
-                localized: "reopenTodoAccessibilityLabel",
+            ? AppLocalization.string("reopenTodoAccessibilityLabel",
                 defaultValue: "重新打开\(todo.title)"
             )
-            : String(
-                localized: "completeTodoAccessibilityLabel",
+            : AppLocalization.string("completeTodoAccessibilityLabel",
                 defaultValue: "完成\(todo.title)"
             )
     }

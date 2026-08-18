@@ -55,8 +55,7 @@ struct PhotoPreviewPage: View {
                 )
             )
             .accessibilityLabel(attachment.filename)
-            .accessibilityValue(String(
-                localized: "photoPreviewPositionAndZoom",
+            .accessibilityValue(AppLocalization.string("photoPreviewPositionAndZoom",
                 defaultValue: "第 \(position) 张，共 \(total) 张，缩放 \(Int((displayScale * 100).rounded()))%"
             ))
             .accessibilityHint("激活退出全屏预览，上下轻扫调整缩放")
@@ -67,8 +66,8 @@ struct PhotoPreviewPage: View {
             .accessibilityAction(
                 named: Text(
                     zoomState.isZoomed
-                        ? String(localized: "复原图片")
-                        : String(localized: "放大图片")
+                        ? AppLocalization.string("复原图片")
+                        : AppLocalization.string("放大图片")
                 )
             ) {
                 toggleZoom(

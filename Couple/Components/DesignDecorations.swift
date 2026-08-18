@@ -44,7 +44,7 @@ struct TodoCheckButton: View {
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint(
             isChecked && todo.completed == false
-                ? String(localized: "再次轻点可取消")
+                ? AppLocalization.string("再次轻点可取消")
                 : ""
         )
     }
@@ -57,17 +57,14 @@ struct TodoCheckButton: View {
     private var accessibilityLabel: String {
         if isChecked {
             return todo.completed
-                ? String(
-                    localized: "reopenTodoAccessibilityLabel",
+                ? AppLocalization.string("reopenTodoAccessibilityLabel",
                     defaultValue: "重新打开\(todo.title)"
                 )
-                : String(
-                    localized: "cancelTodoCompletionAccessibilityLabel",
+                : AppLocalization.string("cancelTodoCompletionAccessibilityLabel",
                     defaultValue: "取消完成\(todo.title)"
                 )
         }
-        return String(
-            localized: "completeTodoAccessibilityLabel",
+        return AppLocalization.string("completeTodoAccessibilityLabel",
             defaultValue: "完成\(todo.title)"
         )
     }

@@ -24,6 +24,35 @@ final class CoupleJourneyUITests: XCTestCase {
         XCTAssertTrue(app.buttons["leaveSpaceButton"].waitForExistence(timeout: 2))
     }
 
+    func testSettingsLanguagePickerSwitchesImmediately() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-future"]
+        app.launchInSimplifiedChinese()
+
+        openSettings(in: app, labels: ["设置", "Settings", "設定"])
+        chooseLanguage(in: app, labels: ["跟随系统", "System Default", "跟隨系統"])
+        XCTAssertTrue(app.buttons["设置"].waitForExistence(timeout: 5))
+
+        openSettings(in: app, labels: ["设置"])
+        chooseLanguage(in: app, labels: ["English"])
+        XCTAssertTrue(app.buttons["Calendar"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["List"].exists)
+        XCTAssertTrue(app.buttons["Settings"].exists)
+
+        openSettings(in: app, labels: ["Settings"])
+        XCTAssertTrue(app.staticTexts["Preferences"].waitForExistence(timeout: 5))
+        chooseLanguage(in: app, labels: ["繁體中文"])
+        XCTAssertTrue(app.buttons["日曆"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["清單"].exists)
+        XCTAssertTrue(app.buttons["設定"].exists)
+
+        openSettings(in: app, labels: ["設定"])
+        XCTAssertTrue(app.staticTexts["個人資料"].waitForExistence(timeout: 5))
+        chooseLanguage(in: app, labels: ["跟隨系統"])
+        XCTAssertTrue(app.buttons["设置"].waitForExistence(timeout: 5))
+    }
+
     func testLongPressTodoOffersEditAndDeleteActions() {
         continueAfterFailure = false
         let app = XCUIApplication()
@@ -476,6 +505,32 @@ final class CoupleJourneyUITests: XCTestCase {
             XCTAssertTrue(app.buttons[expectation.settings].exists)
             app.terminate()
         }
+    }
+
+    private func openSettings(in app: XCUIApplication, labels: [String]) {
+        for label in labels {
+            let button = app.buttons[label]
+            if button.waitForExistence(timeout: 2) {
+                button.tap()
+                return
+            }
+        }
+        XCTFail("Settings tab was not available")
+    }
+
+    private func chooseLanguage(in app: XCUIApplication, labels: [String]) {
+        let picker = app.descendants(matching: .any)["appLanguagePicker"]
+        XCTAssertTrue(picker.waitForExistence(timeout: 5))
+        picker.tap()
+
+        for label in labels {
+            let button = app.buttons[label]
+            if button.waitForExistence(timeout: 2) {
+                button.tap()
+                return
+            }
+        }
+        XCTFail("Requested language option was not available")
     }
 }
 

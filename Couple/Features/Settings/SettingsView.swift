@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(AppHaptics.self) private var haptics
+    @Environment(AppLanguageStore.self) private var language
     @Environment(AppStore.self) private var store
     @State private var startedOn = Date.now
     @State private var persistedStartedOn: Date?
@@ -21,13 +22,14 @@ struct SettingsView: View {
 
     var body: some View {
         @Bindable var haptics = haptics
+        @Bindable var language = language
 
         Form {
             Section("个人资料") {
                 Button(action: presentNameEditor) {
                     LabeledContent {
                         HStack(spacing: 6) {
-                            Text(store.currentUser?.displayName ?? String(localized: "未设置"))
+                            Text(store.currentUser?.displayName ?? AppLocalization.string("未设置"))
                             Image(systemName: "chevron.right")
                                 .font(.caption.bold())
                                 .foregroundStyle(.tertiary)
@@ -48,6 +50,7 @@ struct SettingsView: View {
                 }
             }
             .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
 
             Section("共同空间") {
                 DatePicker("在一起的日期", selection: $startedOn, displayedComponents: .date)
@@ -56,8 +59,7 @@ struct SettingsView: View {
 
                 if let invite = store.relationship?.pendingInvite {
                     LabeledContent("邀请码", value: invite.code)
-                    ShareLink(item: String(
-                        localized: "inviteShareMessage",
+                    ShareLink(item: AppLocalization.string("inviteShareMessage",
                         defaultValue: "加入我们的共同空间，邀请码：\(invite.code)"
                     )) {
                         Label("分享邀请码", systemImage: "square.and.arrow.up")
@@ -65,6 +67,7 @@ struct SettingsView: View {
                 }
             }
             .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
 
             Section {
                 ForEach(store.anniversaries) { item in
@@ -79,8 +82,7 @@ struct SettingsView: View {
                         Image(systemName: "birthday.cake.fill")
                     }
                     .editableContentActions(
-                        deletionTitle: String(
-                            localized: "deleteAnniversaryConfirmation",
+                        deletionTitle: AppLocalization.string("deleteAnniversaryConfirmation",
                             defaultValue: "删除纪念日“\(item.title)”？"
                         ),
                         editAction: { editingAnniversary = item },
@@ -93,8 +95,20 @@ struct SettingsView: View {
                 Text("纪念日")
             }
             .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
 
             Section("偏好") {
+                Picker(selection: $language.selection) {
+                    ForEach(AppLanguage.allCases) { option in
+                        Text(verbatim: option.displayName)
+                            .tag(option)
+                    }
+                } label: {
+                    Label("应用语言", systemImage: "globe")
+                }
+                .pickerStyle(.menu)
+                .accessibilityIdentifier("appLanguagePicker")
+
                 Toggle(isOn: $haptics.isEnabled) {
                     Label(
                         "震动反馈",
@@ -105,15 +119,17 @@ struct SettingsView: View {
                 .accessibilityIdentifier("hapticsToggle")
             }
             .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
 
             Section("连接") {
                 LabeledContent("服务器", value: "oursince.com")
                 LabeledContent(
                     "登录",
-                    value: store.isDemo ? String(localized: "预览模式") : "Passkey"
+                    value: store.isDemo ? AppLocalization.string("预览模式") : "Passkey"
                 )
             }
             .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
 
             Section {
                 Button(role: .destructive) {
@@ -146,12 +162,13 @@ struct SettingsView: View {
                 .disabled(isPerformingAccountAction)
             }
             .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
         .contentMargins(
             .horizontal,
-            0,
+            AppTheme.horizontalPadding,
             for: .scrollContent
         )
         .contentMargins(.top, AppTheme.navigationBarHeight, for: .scrollContent)
@@ -185,8 +202,7 @@ struct SettingsView: View {
         } message: {
             Text("对方会在共同空间里看到这个名字。")
         }
-        .alert(String(
-            localized: "pendingChangeCountAlert",
+        .alert(AppLocalization.string("pendingChangeCountAlert",
             defaultValue: "还有 \(pendingChangeCount) 项尚未同步"
         ), isPresented: $showingUnsyncedLeave) {
             Button("先同步再退出", action: beginSyncThenLeave)
@@ -195,8 +211,7 @@ struct SettingsView: View {
         } message: {
             Text("未同步的修改不会自动带出这个空间。")
         }
-        .alert(String(
-            localized: "pendingChangeCountAlert",
+        .alert(AppLocalization.string("pendingChangeCountAlert",
             defaultValue: "还有 \(pendingChangeCount) 项尚未同步"
         ), isPresented: $showingUnsyncedSignOut) {
             Button("先同步", action: beginSyncThenSignOut)
@@ -296,7 +311,7 @@ struct SettingsView: View {
                 haptics.play(.success)
             } else {
                 presentError(
-                    store.errorMessage ?? String(localized: "操作未能完成，请稍后重试。")
+                    store.errorMessage ?? AppLocalization.string("操作未能完成，请稍后重试。")
                 )
             }
         }

@@ -132,11 +132,11 @@ enum SyncTransportError: LocalizedError, Equatable, Sendable {
 
     var errorDescription: String? {
         switch self {
-        case .invalidCursor: String(localized: "同步游标失效，需要重新获取快照")
-        case .operationIdReused: String(localized: "同步操作标识已被用于不同内容")
-        case .tombstoneConflict: String(localized: "服务器已删除该内容，正在获取最终状态")
-        case .deviceReused: String(localized: "此安装的同步设备标识与服务器记录冲突")
-        case .liveConflict: String(localized: "服务器已有同标识内容，正在获取权威状态")
+        case .invalidCursor: AppLocalization.string("同步游标失效，需要重新获取快照")
+        case .operationIdReused: AppLocalization.string("同步操作标识已被用于不同内容")
+        case .tombstoneConflict: AppLocalization.string("服务器已删除该内容，正在获取最终状态")
+        case .deviceReused: AppLocalization.string("此安装的同步设备标识与服务器记录冲突")
+        case .liveConflict: AppLocalization.string("服务器已有同标识内容，正在获取权威状态")
         case .rejected(let message): message
         }
     }
@@ -310,7 +310,7 @@ actor SyncCoordinator {
                 try Task.checkCancellation()
                 exchangeCount += 1
                 guard exchangeCount <= 1_000 else {
-                    return .failed(String(localized: "同步分页超过安全上限"))
+                    return .failed(AppLocalization.string("同步分页超过安全上限"))
                 }
 
                 let operations = try await store.pendingOperations(limit: operationLimit, now: .now)
@@ -382,7 +382,7 @@ actor SyncCoordinator {
                     let resolvedCount = try await store.discardTombstonedOperations()
                     cursor = recoveryCursor
                     if resolvedCount == 0 {
-                        return .failed(String(localized: "服务器已删除该内容，但本地尚未收到对应墓碑"))
+                        return .failed(AppLocalization.string("服务器已删除该内容，但本地尚未收到对应墓碑"))
                     }
                     continue
                 }
@@ -397,11 +397,11 @@ actor SyncCoordinator {
                 if !unacknowledged.isEmpty {
                     try await store.fail(
                         operationIds: unacknowledged,
-                        message: String(localized: "服务端未确认操作"),
+                        message: AppLocalization.string("服务端未确认操作"),
                         now: .now,
                         retryBaseDelay: retryBaseDelay
                     )
-                    return .failed(String(localized: "服务端未确认操作"))
+                    return .failed(AppLocalization.string("服务端未确认操作"))
                 }
                 sendingIds = []
 

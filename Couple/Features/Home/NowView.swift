@@ -15,7 +15,7 @@ struct NowView: View {
 
     private var memberNames: String {
         let names = store.relationship?.members.map(\.displayName) ?? []
-        return names.isEmpty ? String(localized: "你们") : names.joined(separator: " & ")
+        return names.isEmpty ? AppLocalization.string("你们") : names.joined(separator: " & ")
     }
 
     private var featuredAttachments: [Attachment] {
@@ -116,7 +116,7 @@ struct NowView: View {
                         }
                             .accessibilityIdentifier("featuredPhoto-\(index)")
                             .editableContentActions(
-                                deletionTitle: String(localized: "删除这条动态及其中照片？"),
+                                deletionTitle: AppLocalization.string("删除这条动态及其中照片？"),
                                 editAction: {
                                     if let note { editingNote = note }
                                 },
@@ -181,8 +181,7 @@ struct NowView: View {
                 .padding(.horizontal, 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .editableContentActions(
-                    deletionTitle: String(
-                        localized: "deleteAnniversaryConfirmation",
+                    deletionTitle: AppLocalization.string("deleteAnniversaryConfirmation",
                         defaultValue: "删除纪念日“\(anniversary.title)”？"
                     ),
                     editAction: { editingAnniversary = anniversary },
@@ -207,8 +206,7 @@ struct NowView: View {
                     await store.setTodoCompletion(todo, completed: true)
                 }
                 .editableContentActions(
-                    deletionTitle: String(
-                        localized: "deleteTodoConfirmation",
+                    deletionTitle: AppLocalization.string("deleteTodoConfirmation",
                         defaultValue: "删除清单“\(todo.title)”？"
                     ),
                     editAction: { editingTodo = todo },
@@ -251,7 +249,7 @@ struct NowView: View {
 
     private func dayUnit(for count: Int) -> String {
         count == 1
-            ? String(localized: "dayUnitSingular", defaultValue: "天")
-            : String(localized: "dayUnitPlural", defaultValue: "天")
+            ? AppLocalization.string("dayUnitSingular", defaultValue: "天")
+            : AppLocalization.string("dayUnitPlural", defaultValue: "天")
     }
 }

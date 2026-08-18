@@ -34,8 +34,8 @@ struct EditableContentActionsModifier: ViewModifier {
             } message: {
                 Text(deleteErrorMessage)
             }
-            .accessibilityAction(named: Text(String(localized: "编辑")), beginEditing)
-            .accessibilityAction(named: Text(String(localized: "删除")), requestDeletion)
+            .accessibilityAction(named: Text(AppLocalization.string("编辑")), beginEditing)
+            .accessibilityAction(named: Text(AppLocalization.string("删除")), requestDeletion)
     }
 
     private func beginEditing() {
@@ -63,7 +63,7 @@ struct EditableContentActionsModifier: ViewModifier {
         } catch {
             let message = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
             deleteErrorMessage = message.isEmpty
-                ? String(localized: "操作失败，请稍后重试")
+                ? AppLocalization.string("操作失败，请稍后重试")
                 : message
             isShowingDeleteError = true
             haptics.play(.error)

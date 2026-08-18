@@ -7,9 +7,9 @@ enum FutureMode: String, CaseIterable, Hashable {
 
     var title: String {
         switch self {
-        case .calendar: String(localized: "日历")
-        case .list: String(localized: "清单")
-        case .settings: String(localized: "设置")
+        case .calendar: AppLocalization.string("日历")
+        case .list: AppLocalization.string("清单")
+        case .settings: AppLocalization.string("设置")
         }
     }
 
@@ -76,8 +76,8 @@ struct FutureView: View {
                 if mode != .settings {
                     Button(
                         mode == .list
-                            ? String(localized: "添加清单")
-                            : String(localized: "添加日程"),
+                            ? AppLocalization.string("添加清单")
+                            : AppLocalization.string("添加日程"),
                         systemImage: "plus",
                         action: presentNewItem
                     )
@@ -147,8 +147,7 @@ struct FutureView: View {
                         await store.setTodoCompletion(todo, completed: completed)
                     }
                     .editableContentActions(
-                        deletionTitle: String(
-                            localized: "deleteTodoConfirmation",
+                        deletionTitle: AppLocalization.string("deleteTodoConfirmation",
                             defaultValue: "删除清单“\(todo.title)”？"
                         ),
                         editAction: { editTodo(todo) },

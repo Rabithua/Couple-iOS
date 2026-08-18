@@ -53,8 +53,8 @@ struct NewCalendarEventView: View {
             }
             .navigationTitle(
                 editingEvent == nil
-                    ? String(localized: "新日程")
-                    : String(localized: "编辑日程")
+                    ? AppLocalization.string("新日程")
+                    : AppLocalization.string("编辑日程")
             )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

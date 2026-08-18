@@ -46,8 +46,7 @@ struct CalendarDayCell: View {
         .contextMenu {
             ForEach(events) { event in
                 Button(
-                    String(
-                        localized: "editEventAccessibilityLabel",
+                    AppLocalization.string("editEventAccessibilityLabel",
                         defaultValue: "编辑日程：\(event.title)"
                     ),
                     systemImage: "pencil"
@@ -58,8 +57,7 @@ struct CalendarDayCell: View {
                     requestDeletion(.event(event))
                 } label: {
                     Label(
-                        String(
-                            localized: "deleteEventAccessibilityLabel",
+                        AppLocalization.string("deleteEventAccessibilityLabel",
                             defaultValue: "删除日程：\(event.title)"
                         ),
                         systemImage: "trash"
@@ -71,8 +69,7 @@ struct CalendarDayCell: View {
 
             ForEach(todos) { todo in
                 Button(
-                    String(
-                        localized: "editTodoAccessibilityLabel",
+                    AppLocalization.string("editTodoAccessibilityLabel",
                         defaultValue: "编辑清单：\(todo.title)"
                     ),
                     systemImage: "pencil"
@@ -83,8 +80,7 @@ struct CalendarDayCell: View {
                     requestDeletion(.todo(todo))
                 } label: {
                     Label(
-                        String(
-                            localized: "deleteTodoAccessibilityLabel",
+                        AppLocalization.string("deleteTodoAccessibilityLabel",
                             defaultValue: "删除清单：\(todo.title)"
                         ),
                         systemImage: "trash"
@@ -93,7 +89,7 @@ struct CalendarDayCell: View {
             }
         }
         .confirmationDialog(
-            pendingDeletion?.confirmationTitle ?? String(localized: "确认删除？"),
+            pendingDeletion?.confirmationTitle ?? AppLocalization.string("确认删除？"),
             isPresented: $isShowingDeleteConfirmation,
             titleVisibility: .visible
         ) {
@@ -119,30 +115,28 @@ struct CalendarDayCell: View {
 
     private func accessibilityValue(isToday: Bool) -> String {
         var values: [String] = []
-        if isToday { values.append(String(localized: "今天")) }
-        if isSelected { values.append(String(localized: "已展开")) }
+        if isToday { values.append(AppLocalization.string("今天")) }
+        if isSelected { values.append(AppLocalization.string("已展开")) }
         if !events.isEmpty {
-            values.append(String(
-                localized: "calendarEventCount",
+            values.append(AppLocalization.string("calendarEventCount",
                 defaultValue: "\(events.count) 个日程"
             ))
         }
         if !todos.isEmpty {
-            values.append(String(
-                localized: "todoCount",
+            values.append(AppLocalization.string("todoCount",
                 defaultValue: "\(todos.count) 个清单"
             ))
         }
         return values.isEmpty
-            ? String(localized: "无安排")
+            ? AppLocalization.string("无安排")
             : values.formatted(.list(type: .and, width: .short))
     }
 
     private func accessibilityHint(hasScheduledItem: Bool) -> String {
-        if isSelected { return String(localized: "轻点收起当天安排") }
+        if isSelected { return AppLocalization.string("轻点收起当天安排") }
         return hasScheduledItem
-            ? String(localized: "轻点展开当天安排，长按管理")
-            : String(localized: "轻点展开并新建日程")
+            ? AppLocalization.string("轻点展开当天安排，长按管理")
+            : AppLocalization.string("轻点展开并新建日程")
     }
 
     private func beginEditing(_ event: CalendarEvent) {
@@ -183,7 +177,7 @@ struct CalendarDayCell: View {
         } catch {
             let message = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
             deleteErrorMessage = message.isEmpty
-                ? String(localized: "操作失败，请稍后重试")
+                ? AppLocalization.string("操作失败，请稍后重试")
                 : message
             isShowingDeleteError = true
             haptics.play(.error)
@@ -197,12 +191,10 @@ private enum PendingDeletion {
 
     var confirmationTitle: String {
         switch self {
-        case .event(let event): String(
-            localized: "deleteEventConfirmation",
+        case .event(let event): AppLocalization.string("deleteEventConfirmation",
             defaultValue: "删除日程“\(event.title)”？"
         )
-        case .todo(let todo): String(
-            localized: "deleteTodoConfirmation",
+        case .todo(let todo): AppLocalization.string("deleteTodoConfirmation",
             defaultValue: "删除清单“\(todo.title)”？"
         )
         }

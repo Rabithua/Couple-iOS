@@ -56,9 +56,8 @@ struct ComposeMemoryView: View {
                         ) {
                             Label(
                                 photoCount == 0
-                                    ? String(localized: "选择照片")
-                                    : String(
-                                        localized: "selectedPhotoCount",
+                                    ? AppLocalization.string("选择照片")
+                                    : AppLocalization.string("selectedPhotoCount",
                                         defaultValue: "已选择 \(photoCount) 张"
                                     ),
                                 systemImage: "photo.on.rectangle.angled"
@@ -113,8 +112,8 @@ struct ComposeMemoryView: View {
             }
             .navigationTitle(
                 editingNote == nil
-                    ? String(localized: "记录此刻")
-                    : String(localized: "编辑动态")
+                    ? AppLocalization.string("记录此刻")
+                    : AppLocalization.string("编辑动态")
             )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

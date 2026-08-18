@@ -114,7 +114,7 @@ final class AppStore {
         }
         guard localStoreInitializationError == nil, let offlineStore else {
             errorMessage = localStoreInitializationError?.localizedDescription
-                ?? String(localized: "本地数据库无法打开")
+                ?? AppLocalization.string("本地数据库无法打开")
             phase = .signedOut
             return
         }
@@ -619,7 +619,7 @@ final class AppStore {
             throw APIError.server(
                 status: 400,
                 code: "VALIDATION_ERROR",
-                message: String(localized: "名字需要在 1 到 100 个字符之间")
+                message: AppLocalization.string("名字需要在 1 到 100 个字符之间")
             )
         }
         guard let currentUser else { throw APIError.missingSession }
@@ -899,7 +899,7 @@ final class AppStore {
         }
         guard let offlineStore else {
             errorMessage = localStoreInitializationError?.localizedDescription
-                ?? String(localized: "本地数据库无法打开")
+                ?? AppLocalization.string("本地数据库无法打开")
             return false
         }
 
@@ -925,8 +925,7 @@ final class AppStore {
             currentUser = nil
             relationship = nil
             clearLoadedContent()
-            errorMessage = String(
-                localized: "leaveSpaceCleanupFailed",
+            errorMessage = AppLocalization.string("leaveSpaceCleanupFailed",
                 defaultValue: "已经退出空间，但本地数据未能安全清理。为保护空间数据，已退出登录：\(error.localizedDescription)"
             )
             phase = .signedOut
@@ -945,7 +944,7 @@ final class AppStore {
         guard let offlineStore else {
             await api.clearSession()
             errorMessage = localStoreInitializationError?.localizedDescription
-                ?? String(localized: "本地数据库无法打开")
+                ?? AppLocalization.string("本地数据库无法打开")
             return false
         }
 
@@ -958,8 +957,7 @@ final class AppStore {
             currentUser = nil
             relationship = nil
             clearLoadedContent()
-            errorMessage = String(
-                localized: "recoverSpaceCleanupFailed",
+            errorMessage = AppLocalization.string("recoverSpaceCleanupFailed",
                 defaultValue: "上次退出空间后的本地数据仍未安全清理，请重试：\(error.localizedDescription)"
             )
             return false
@@ -1050,7 +1048,7 @@ final class AppStore {
         } catch {
             let message = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
             errorMessage = message.isEmpty
-                ? String(localized: "操作失败，请稍后重试")
+                ? AppLocalization.string("操作失败，请稍后重试")
                 : message
         }
     }

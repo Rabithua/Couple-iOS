@@ -23,15 +23,13 @@ enum APIError: LocalizedError, Sendable, Equatable {
 
     var errorDescription: String? {
         switch self {
-        case .invalidResponse: String(localized: "服务器返回了无效响应")
+        case .invalidResponse: AppLocalization.string("服务器返回了无效响应")
         case .server(_, _, let message): message
-        case .decoding(let detail): String(
-            localized: "dataDecodingFailed",
+        case .decoding(let detail): AppLocalization.string("dataDecodingFailed",
             defaultValue: "数据解析失败：\(detail)"
         )
-        case .missingSession: String(localized: "登录已过期，请重新登录")
-        case .uploadFailed(let status): String(
-            localized: "photoUploadFailed",
+        case .missingSession: AppLocalization.string("登录已过期，请重新登录")
+        case .uploadFailed(let status): AppLocalization.string("photoUploadFailed",
             defaultValue: "照片上传失败（HTTP \(status)）"
         )
         }

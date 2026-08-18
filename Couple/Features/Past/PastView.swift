@@ -8,10 +8,10 @@ enum PastFilter: String, CaseIterable, Hashable {
 
     var title: String {
         switch self {
-        case .completed: String(localized: "共同完成")
-        case .anniversaries: String(localized: "纪念日")
-        case .photos: String(localized: "照片")
-        case .all: String(localized: "全部")
+        case .completed: AppLocalization.string("共同完成")
+        case .anniversaries: AppLocalization.string("纪念日")
+        case .photos: AppLocalization.string("照片")
+        case .all: AppLocalization.string("全部")
         }
     }
 

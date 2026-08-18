@@ -21,12 +21,10 @@ enum OfflineStoreError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .missingEntity(let type, let id): String(
-            localized: "missingLocalEntity",
+        case .missingEntity(let type, let id): AppLocalization.string("missingLocalEntity",
             defaultValue: "本地找不到 \(type.rawValue)：\(id)"
         )
-        case .corruptStoredValue(let name): String(
-            localized: "corruptLocalData",
+        case .corruptStoredValue(let name): AppLocalization.string("corruptLocalData",
             defaultValue: "本地数据损坏：\(name)"
         )
         }
@@ -1079,7 +1077,7 @@ final class OfflineStore: SyncStore {
             if operation.mutationKind == MutationKind.restore.rawValue {
                 operation.state = OutboxState.rejected.rawValue
                 operation.nextRetryAt = nil
-                operation.lastError = String(localized: "恢复操作的 HLC 不晚于服务器墓碑")
+                operation.lastError = AppLocalization.string("恢复操作的 HLC 不晚于服务器墓碑")
                 operation.updatedAt = .now
                 resolvedCount += 1
                 continue

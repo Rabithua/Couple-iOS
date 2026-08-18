@@ -9,6 +9,10 @@
 /* Begin PBXBuildFile section */
 		0C0A11A2D5404E17B3170011 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 0C0A11A2D5404E17B3170021 /* Localizable.xcstrings */; };
 		0C0A11A2D5404E17B3170012 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 0C0A11A2D5404E17B3170022 /* InfoPlist.xcstrings */; };
+		0C0A11A2D5404E17B3170111 /* AppLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0A11A2D5404E17B3170101 /* AppLanguage.swift */; };
+		0C0A11A2D5404E17B3170112 /* AppLanguageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0A11A2D5404E17B3170102 /* AppLanguageStore.swift */; };
+		0C0A11A2D5404E17B3170113 /* AppLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0A11A2D5404E17B3170103 /* AppLocalization.swift */; };
+		0C0A11A2D5404E17B3170114 /* AppLanguageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0A11A2D5404E17B3170104 /* AppLanguageTests.swift */; };
 		062FE797585C2017DF312C5D /* MainPagerGestureStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D4DFD3C9B314DFF0448D5EC /* MainPagerGestureStateTests.swift */; };
 		065A75575DE29369DFFEFFAB /* TodoDisplayOrder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49D779C659FFA44AF6FD0E2F /* TodoDisplayOrder.swift */; };
 		07EADADB98D07E9CFD339E78 /* FutureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E15C236C8EDF6B1B9903587 /* FutureView.swift */; };
@@ -111,6 +115,10 @@
 /* Begin PBXFileReference section */
 		0C0A11A2D5404E17B3170021 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		0C0A11A2D5404E17B3170022 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		0C0A11A2D5404E17B3170101 /* AppLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLanguage.swift; sourceTree = "<group>"; };
+		0C0A11A2D5404E17B3170102 /* AppLanguageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLanguageStore.swift; sourceTree = "<group>"; };
+		0C0A11A2D5404E17B3170103 /* AppLocalization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLocalization.swift; sourceTree = "<group>"; };
+		0C0A11A2D5404E17B3170104 /* AppLanguageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLanguageTests.swift; sourceTree = "<group>"; };
 		041507648A3CCDBE8F9EE374 /* AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
 		0D7B4CB9E2F7481AA30C6D95 /* CalendarDayAgendaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarDayAgendaView.swift; sourceTree = "<group>"; };
 		3E7A91C5B4D24F6081A9E2C7 /* CalendarAgendaBackgroundShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarAgendaBackgroundShape.swift; sourceTree = "<group>"; };
@@ -393,6 +401,7 @@
 			isa = PBXGroup;
 			children = (
 				27F29B22DD5480E282313AA0 /* API */,
+				0C0A11A2D5404E17B3170152 /* Localization */,
 				20CB92BAC9B7C102AB588BF2 /* Offline */,
 				D1371DF5827C01B18C3292ED /* AppHapticsTests.swift */,
 				0CF5521BB5120D926EB3D944 /* TodoDisplayOrderTests.swift */,
@@ -424,6 +433,7 @@
 				5ADE25D9BC11DCBA8885A08F /* API */,
 				877B0724597DA6088DB1CF1A /* Auth */,
 				4F3372D05A61CAAF8723DAB2 /* Design */,
+				0C0A11A2D5404E17B3170151 /* Localization */,
 				AE7EC65B5D9E0E8278CF0794 /* Offline */,
 				A13EE0C3AC228A8445B07DC3 /* Utilities */,
 			);
@@ -438,6 +448,24 @@
 				49D779C659FFA44AF6FD0E2F /* TodoDisplayOrder.swift */,
 			);
 			path = Utilities;
+			sourceTree = "<group>";
+		};
+		0C0A11A2D5404E17B3170151 /* Localization */ = {
+			isa = PBXGroup;
+			children = (
+				0C0A11A2D5404E17B3170101 /* AppLanguage.swift */,
+				0C0A11A2D5404E17B3170102 /* AppLanguageStore.swift */,
+				0C0A11A2D5404E17B3170103 /* AppLocalization.swift */,
+			);
+			path = Localization;
+			sourceTree = "<group>";
+		};
+		0C0A11A2D5404E17B3170152 /* Localization */ = {
+			isa = PBXGroup;
+			children = (
+				0C0A11A2D5404E17B3170104 /* AppLanguageTests.swift */,
+			);
+			path = Localization;
 			sourceTree = "<group>";
 		};
 		A3870AE8460D949563064634 /* App */ = {
@@ -634,6 +662,9 @@
 				ACC4099C181A162958FF5DFA /* APIClient.swift in Sources */,
 				B8F6E5EDFDAAC36669A60F3C /* APIModels.swift in Sources */,
 				A305144BE24908FBE2BB7292 /* APIService.swift in Sources */,
+				0C0A11A2D5404E17B3170111 /* AppLanguage.swift in Sources */,
+				0C0A11A2D5404E17B3170112 /* AppLanguageStore.swift in Sources */,
+				0C0A11A2D5404E17B3170113 /* AppLocalization.swift in Sources */,
 				4ECED4BF55946E402A50FA69 /* AppHapticFeedbackModifier.swift in Sources */,
 				419F2E16BC943623B6CDEE8B /* AppHaptics.swift in Sources */,
 				86A4A4A8125260287A48F14B /* AppRootView.swift in Sources */,
@@ -712,6 +743,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				5D4EEB077DC0CB1DDF99915F /* APIClientTests.swift in Sources */,
+				0C0A11A2D5404E17B3170114 /* AppLanguageTests.swift in Sources */,
 				8386EF3028DBBAC3D7E56EC5 /* AppHapticsTests.swift in Sources */,
 				B4AADBB2B8E4899F389FCB00 /* AppStoreTests.swift in Sources */,
 				A1956724BAA6C906CF61D659 /* CoupleCoreTests.swift in Sources */,

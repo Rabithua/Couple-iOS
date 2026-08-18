@@ -16,8 +16,8 @@ actor AttachmentFileStore {
 
         var errorDescription: String? {
             switch self {
-            case .applicationSupportUnavailable: String(localized: "无法访问应用支持目录")
-            case .invalidRelativePath: String(localized: "附件路径无效")
+            case .applicationSupportUnavailable: AppLocalization.string("无法访问应用支持目录")
+            case .invalidRelativePath: AppLocalization.string("附件路径无效")
             }
         }
     }

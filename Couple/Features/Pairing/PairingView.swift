@@ -96,15 +96,13 @@ struct PairingView: View {
             Text(invite.code)
                 .font(.largeTitle.monospaced().bold())
                 .textSelection(.enabled)
-                .accessibilityLabel(String(
-                    localized: "inviteCodeAccessibilityLabel",
+                .accessibilityLabel(AppLocalization.string("inviteCodeAccessibilityLabel",
                     defaultValue: "邀请码 \(invite.code)"
                 ))
             Text("有效期至 \(invite.expiresAt.formatted(date: .abbreviated, time: .shortened))")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            ShareLink(item: String(
-                localized: "inviteShareMessage",
+            ShareLink(item: AppLocalization.string("inviteShareMessage",
                 defaultValue: "加入我们的共同空间，邀请码：\(invite.code)"
             )) {
                 Label("分享邀请码", systemImage: "square.and.arrow.up")
