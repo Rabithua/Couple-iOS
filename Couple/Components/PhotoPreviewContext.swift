@@ -5,17 +5,18 @@ struct PhotoPreviewContext {
 
     static let disabled = PhotoPreviewContext(
         activeTransitionID: nil,
+        viewportSize: .zero,
         updateSourceFrame: { _, _ in },
-        present: { _, _, _, _, _ in }
+        present: { _, _, _, _ in }
     )
 
     let activeTransitionID: PhotoPreviewTransitionID?
+    let viewportSize: CGSize
     let updateSourceFrame: @MainActor (PhotoPreviewTransitionID, CGRect) -> Void
     let present: @MainActor (
         String,
         [Attachment],
         String,
-        CGRect,
         PhotoPreviewTransitionStyle
     ) -> Void
 }

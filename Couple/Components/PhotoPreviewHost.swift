@@ -7,49 +7,54 @@ struct PhotoPreviewHost<Content: View>: View {
     @State private var transitionProgress: CGFloat = 0
     @State private var transitionSourceFrame = CGRect.zero
     @State private var transitionStyle = PhotoPreviewTransitionStyle.plain
-    @State private var sourceFrames: [PhotoPreviewTransitionID: CGRect] = [:]
+    @State private var sourceFrameRegistry = PhotoPreviewSourceFrameRegistry()
     let canPresent: @MainActor () -> Bool
     let onPresentationChanged: @MainActor (Bool) -> Void
     @ViewBuilder let content: Content
 
     var body: some View {
-        ZStack {
-            content
-                .environment(\.photoPreviewContext, previewContext)
-                .allowsHitTesting(presentation == nil)
-                .accessibilityHidden(presentation != nil)
-
-            Color.black
-                .opacity(
-                    presentation == nil
-                        ? 0
-                        : Double(min(transitionProgress * 2, 1))
-                )
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
-
-            if let presentation {
-                PhotoPreviewView(
-                    presentation: presentation,
-                    dismiss: dismissPreview
-                )
-                .id(ObjectIdentifier(presentation))
-                .opacity(previewOpacity)
-                .allowsHitTesting(!isTransitioning)
-                .accessibilityHidden(isTransitioning)
-                .transition(reduceMotion ? .opacity : .identity)
-                .ignoresSafeArea(.container, edges: .all)
-                .zIndex(1)
-
-                if isTransitioning,
-                   let attachment = presentation.selectedAttachment {
-                    PhotoPreviewTransitionImage(
-                        attachment: attachment,
-                        sourceFrame: transitionSourceFrame,
-                        progress: transitionProgress,
-                        style: transitionStyle
+        GeometryReader { proxy in
+            ZStack {
+                content
+                    .environment(
+                        \.photoPreviewContext,
+                        previewContext(viewportSize: proxy.size)
                     )
-                    .zIndex(2)
+                    .allowsHitTesting(presentation == nil)
+                    .accessibilityHidden(presentation != nil)
+
+                Color.black
+                    .opacity(
+                        presentation == nil
+                            ? 0
+                            : Double(min(transitionProgress * 2, 1))
+                    )
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+
+                if let presentation {
+                    PhotoPreviewView(
+                        presentation: presentation,
+                        dismiss: dismissPreview
+                    )
+                    .id(ObjectIdentifier(presentation))
+                    .opacity(previewOpacity)
+                    .allowsHitTesting(!isTransitioning)
+                    .accessibilityHidden(isTransitioning)
+                    .transition(reduceMotion ? .opacity : .identity)
+                    .ignoresSafeArea(.container, edges: .all)
+                    .zIndex(1)
+
+                    if isTransitioning,
+                       let attachment = presentation.selectedAttachment {
+                        PhotoPreviewTransitionImage(
+                            attachment: attachment,
+                            sourceFrame: transitionSourceFrame,
+                            progress: transitionProgress,
+                            style: transitionStyle
+                        )
+                        .zIndex(2)
+                    }
                 }
             }
         }
@@ -59,10 +64,11 @@ struct PhotoPreviewHost<Content: View>: View {
         }
     }
 
-    private var previewContext: PhotoPreviewContext {
+    private func previewContext(viewportSize: CGSize) -> PhotoPreviewContext {
         PhotoPreviewContext(
             activeTransitionID: presentation?.selectedTransitionID,
-            updateSourceFrame: updateSourceFrame,
+            viewportSize: viewportSize,
+            updateSourceFrame: sourceFrameRegistry.update,
             present: presentPreview
         )
     }
@@ -80,7 +86,6 @@ struct PhotoPreviewHost<Content: View>: View {
         groupID: String,
         attachments: [Attachment],
         selectedAttachmentID: String,
-        sourceFrame: CGRect,
         style: PhotoPreviewTransitionStyle
     ) {
         guard canPresent(),
@@ -92,7 +97,7 @@ struct PhotoPreviewHost<Content: View>: View {
               ) else { return }
 
         let transitionID = nextPresentation.transitionID(for: selectedAttachmentID)
-        let resolvedSourceFrame = sourceFrames[transitionID] ?? sourceFrame
+        let resolvedSourceFrame = sourceFrameRegistry.frame(for: transitionID) ?? .zero
         guard reduceMotion || isUsable(resolvedSourceFrame) else { return }
 
         withoutAnimation {
@@ -122,7 +127,7 @@ struct PhotoPreviewHost<Content: View>: View {
         guard let currentPresentation = presentation else { return }
 
         let destinationFrame = currentPresentation.selectedTransitionID
-            .flatMap { sourceFrames[$0] }
+            .flatMap { sourceFrameRegistry.frame(for: $0) }
         let resolvedSourceFrame = destinationFrame ?? transitionSourceFrame
 
         withoutAnimation {
@@ -149,14 +154,6 @@ struct PhotoPreviewHost<Content: View>: View {
                 }
             }
         }
-    }
-
-    private func updateSourceFrame(
-        _ transitionID: PhotoPreviewTransitionID,
-        _ frame: CGRect
-    ) {
-        guard isUsable(frame), sourceFrames[transitionID] != frame else { return }
-        sourceFrames[transitionID] = frame
     }
 
     private func isUsable(_ frame: CGRect) -> Bool {

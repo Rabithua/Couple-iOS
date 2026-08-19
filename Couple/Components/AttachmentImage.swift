@@ -1,6 +1,5 @@
 import Foundation
 import SwiftUI
-import UIKit
 
 actor AttachmentImageCache {
     static let shared = AttachmentImageCache()
@@ -49,6 +48,19 @@ actor AttachmentImageCache {
             throw error
         }
     }
+
+    func image(
+        for attachment: Attachment,
+        maximumPixelDimension: Int?,
+        api: APIClient
+    ) async throws -> UIImage? {
+        guard let data = try await data(for: attachment, api: api) else { return nil }
+        try Task.checkCancellation()
+        return AttachmentImageDecoder.image(
+            from: data,
+            maximumPixelDimension: maximumPixelDimension
+        )
+    }
 }
 
 @MainActor
@@ -67,7 +79,9 @@ struct AttachmentImage: View {
     let attachment: Attachment
     var contentMode: ContentMode = .fit
     var placeholderColor: Color?
+    var maximumDisplayDimension: CGFloat?
     @Environment(AppStore.self) private var store
+    @Environment(\.displayScale) private var displayScale
     @State private var image: UIImage?
     @State private var resolvedCacheKey: String?
     @State private var failed = false
@@ -107,8 +121,11 @@ struct AttachmentImage: View {
             resolvedCacheKey = nil
             failed = false
             do {
-                guard let data = try await AttachmentImageCache.shared.data(for: attachment, api: store.api),
-                      let decodedImage = UIImage(data: data) else {
+                guard let decodedImage = try await AttachmentImageCache.shared.image(
+                    for: attachment,
+                    maximumPixelDimension: requestedPixelDimension,
+                    api: store.api
+                ) else {
                     failed = true
                     resolvedCacheKey = cacheKey
                     return
@@ -136,7 +153,21 @@ struct AttachmentImage: View {
     }
 
     private var cacheKey: String {
-        "\(attachment.id)|\(attachment.url ?? "")|\(attachment.demoAssetName ?? "")"
+        let dimension = requestedPixelDimension.map(String.init) ?? "full"
+        return "\(attachment.id)|\(attachment.url ?? "")|\(attachment.demoAssetName ?? "")|\(dimension)"
+    }
+
+    private var requestedPixelDimension: Int? {
+        guard let maximumDisplayDimension,
+              maximumDisplayDimension.isFinite,
+              maximumDisplayDimension > 0 else { return nil }
+
+        let requiredPixels = Int(ceil(maximumDisplayDimension * displayScale))
+        let bucketSize = 256
+        return max(
+            ((requiredPixels + bucketSize - 1) / bucketSize) * bucketSize,
+            bucketSize
+        )
     }
 
     private var displayedImage: UIImage? {
