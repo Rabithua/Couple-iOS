@@ -6,6 +6,7 @@ struct DeferredTodoCompletionRow: View {
     let todo: Todo
     let disabled: Bool
     let commitCompletion: @MainActor () async -> Bool
+    let open: @MainActor () -> Void
 
     @State private var isCompleting = false
     @State private var strikeProgress: CGFloat = 0
@@ -21,23 +22,31 @@ struct DeferredTodoCompletionRow: View {
             )
             .disabled(disabled)
 
-            Text(todo.title)
-                .font(AppTheme.titleFont())
-                .lineLimit(1)
-                .overlay {
-                    TodoCompletionStrike()
-                        .trim(from: 0, to: displayedStrikeProgress)
-                        .stroke(
-                            Color.primary,
-                            style: StrokeStyle(
-                                lineWidth: AppTheme.todoCompletionStrikeWidth,
-                                lineCap: .round,
-                                lineJoin: .round
+            Button(action: open) {
+                Text(todo.title)
+                    .font(AppTheme.titleFont())
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .overlay {
+                        TodoCompletionStrike()
+                            .trim(from: 0, to: displayedStrikeProgress)
+                            .stroke(
+                                Color.primary,
+                                style: StrokeStyle(
+                                    lineWidth: AppTheme.todoCompletionStrikeWidth,
+                                    lineCap: .round,
+                                    lineJoin: .round
+                                )
                             )
-                        )
-                        .frame(height: AppTheme.todoCompletionStrikeHeight)
-                        .accessibilityHidden(true)
+                            .frame(height: AppTheme.todoCompletionStrikeHeight)
+                            .accessibilityHidden(true)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    .contentShape(.rect)
                 }
+            .buttonStyle(.plain)
+            .accessibilityHint(AppLocalization.string("编辑清单"))
+            .accessibilityIdentifier("todoTitleButton-\(todo.id)")
         }
         .compositingGroup()
         .opacity(1 - dismissalProgress)

@@ -59,7 +59,8 @@ struct CalendarDayAgendaView: View {
                     todo: todo,
                     time: todoTime(todo),
                     disabled: isInteractionDisabled,
-                    setCompletion: setTodoCompletion
+                    setCompletion: setTodoCompletion,
+                    open: { editTodo(todo) }
                 )
                 .editableContentActions(
                     deletionTitle: AppLocalization.string("deleteTodoConfirmation",
@@ -68,7 +69,6 @@ struct CalendarDayAgendaView: View {
                     editAction: { editTodo(todo) },
                     deleteAction: { try await deleteTodo(todo) }
                 )
-                .accessibilityIdentifier("calendarAgendaTodo-\(todo.id)")
             }
 
             Button(action: beginCreatingEvent) {
@@ -120,6 +120,7 @@ private struct CalendarAgendaTodoRow: View {
     let time: String
     let disabled: Bool
     let setCompletion: @MainActor (Todo, Bool) async -> Bool
+    let open: @MainActor () -> Void
 
     var body: some View {
         TodoCompletionInteraction(
@@ -127,33 +128,32 @@ private struct CalendarAgendaTodoRow: View {
             disabled: disabled,
             setCompletion: commitCompletion
         ) { completion in
-            Button {
-                haptics.playTodoCompletionChange(
-                    isCompleted: completion.isCompleted
+            HStack(spacing: 4) {
+                TodoCheckButton(
+                    todo: todo,
+                    isChecked: completion.isCompleted,
+                    action: completion.toggle
                 )
-                completion.toggle()
-            } label: {
-                LabeledContent {
-                    Text(time)
-                        .foregroundStyle(.secondary)
-                } label: {
-                    Label {
+                .disabled(completion.isDisabled)
+
+                Button(action: openTodo) {
+                    LabeledContent {
+                        Text(time)
+                            .lineLimit(1)
+                            .foregroundStyle(.secondary)
+                    } label: {
                         TodoCompletionTitle(
                             title: todo.title,
-                            isCompleted: completion.isCompleted,
-                            lineLimit: 1
+                            isCompleted: completion.isCompleted
                         )
-                    } icon: {
-                        TodoCheckboxSymbol(isChecked: completion.isCompleted)
                     }
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    .contentShape(.rect)
                 }
-                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                .contentShape(.rect)
+                .buttonStyle(.plain)
+                .accessibilityHint(AppLocalization.string("编辑清单"))
+                .accessibilityIdentifier("todoTitleButton-\(todo.id)")
             }
-            .buttonStyle(.plain)
-            .disabled(completion.isDisabled)
-            .accessibilityLabel(accessibilityLabel(completion.isCompleted))
-            .accessibilityHint(AppLocalization.string("长按可以编辑或删除"))
         }
     }
 
@@ -161,13 +161,8 @@ private struct CalendarAgendaTodoRow: View {
         await setCompletion(todo, completed)
     }
 
-    private func accessibilityLabel(_ isCompleted: Bool) -> String {
-        isCompleted
-            ? AppLocalization.string("reopenTodoAccessibilityLabel",
-                defaultValue: "重新打开\(todo.title)"
-            )
-            : AppLocalization.string("completeTodoAccessibilityLabel",
-                defaultValue: "完成\(todo.title)"
-            )
+    private func openTodo() {
+        haptics.play(.tap)
+        open()
     }
 }

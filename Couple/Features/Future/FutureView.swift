@@ -143,10 +143,15 @@ struct FutureView: View {
                 ForEach(orderedTodos) { todo in
                     TodoListRow(
                         todo: todo,
-                        disabled: store.pendingTodoIDs.contains(todo.id)
-                    ) { completed in
-                        await store.setTodoCompletion(todo, completed: completed)
-                    }
+                        disabled: store.pendingTodoIDs.contains(todo.id),
+                        setCompletion: { completed in
+                            await store.setTodoCompletion(todo, completed: completed)
+                        },
+                        open: {
+                            haptics.play(.tap)
+                            editTodo(todo)
+                        }
+                    )
                     .editableContentActions(
                         deletionTitle: AppLocalization.string("deleteTodoConfirmation",
                             defaultValue: "删除清单“\(todo.title)”？"

@@ -15,7 +15,7 @@ enum AppTheme {
     static let photoGalleryIdealRowHeight: CGFloat = 144
     static let photoGallerySpacing: CGFloat = 8
     static let composePromptBottomPadding: CGFloat = 38
-    static let todoControlSize: CGFloat = 38
+    static let todoControlSize: CGFloat = 44
     static let todoRowSpacing: CGFloat = 0
     static let todoCompletionStrikeDelay: Duration = .milliseconds(140)
     static let todoCompletionHoldDuration: Duration = .milliseconds(1_460)

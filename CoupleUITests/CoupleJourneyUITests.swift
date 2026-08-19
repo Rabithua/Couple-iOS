@@ -102,7 +102,7 @@ final class CoupleJourneyUITests: XCTestCase {
         assertUsesMediumContentSheet(editorNavigationBar, in: app)
     }
 
-    func testListCompletionSupportsMultilineTitle() {
+    func testTodoListUsesSingleLineTitlesAndSeparateInteractions() {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing-demo", "-ui-testing-future"]
@@ -110,15 +110,87 @@ final class CoupleJourneyUITests: XCTestCase {
 
         app.buttons["List"].tap()
         let title = "Let's go back to Lingyin Temple to fulfill our vow"
+        let todoID = "40000000-0000-4000-8000-000000000001"
         let list = app.scrollViews["futureListScroll"]
         let titleText = list.staticTexts[title]
         XCTAssertTrue(titleText.waitForExistence(timeout: 5))
-        XCTAssertGreaterThan(titleText.frame.height, 30)
+
+        let titleButton = list.buttons["todoTitleButton-\(todoID)"]
+        XCTAssertTrue(titleButton.waitForExistence(timeout: 2))
+        XCTAssertLessThanOrEqual(titleButton.frame.height, 44.5)
+        let checkbox = list.buttons["Complete \(title)"]
+        XCTAssertTrue(checkbox.exists)
+        XCTAssertGreaterThanOrEqual(checkbox.frame.height, 43.5)
+        titleButton.tap()
+        XCTAssertTrue(app.navigationBars["Edit List Item"].waitForExistence(timeout: 2))
+        app.buttons["Cancel"].tap()
 
         list.buttons["Complete \(title)"].tap()
 
         XCTAssertTrue(list.buttons["Reopen \(title)"].waitForExistence(timeout: 5))
-        XCTAssertGreaterThan(list.staticTexts[title].frame.height, 30)
+        XCTAssertLessThanOrEqual(
+            list.buttons["todoTitleButton-\(todoID)"].frame.height,
+            44.5
+        )
+    }
+
+    func testHomeTodoTitleOpensEditorWithoutChangingCompletion() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-now"]
+        app.launchInSimplifiedChinese()
+
+        let title = "一起去灵隐寺还愿吧"
+        let todoID = "40000000-0000-4000-8000-000000000001"
+        let nowScroll = app.scrollViews["nowScroll"]
+        XCTAssertTrue(nowScroll.waitForExistence(timeout: 5))
+        let titleButton = nowScroll.buttons["todoTitleButton-\(todoID)"]
+        XCTAssertTrue(titleButton.waitForExistence(timeout: 5))
+        for _ in 0..<3 where titleButton.isHittable == false {
+            nowScroll.swipeUp()
+        }
+        XCTAssertTrue(titleButton.isHittable)
+        XCTAssertTrue(nowScroll.buttons["完成\(title)"].exists)
+
+        titleButton.tap()
+
+        XCTAssertTrue(app.navigationBars["编辑清单"].waitForExistence(timeout: 2))
+        app.buttons["取消"].tap()
+        XCTAssertTrue(nowScroll.buttons["完成\(title)"].waitForExistence(timeout: 3))
+    }
+
+    func testCalendarAgendaTodoSeparatesTitleAndCheckbox() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-future"]
+        app.launchInSimplifiedChinese()
+
+        guard let todoDate = Calendar.current.date(byAdding: .day, value: 7, to: .now) else {
+            return XCTFail("Unable to make the demo todo date")
+        }
+        let todoID = "40000000-0000-4000-8000-000000000001"
+        let dateIdentifier = todoDate.dateOnlyTestIdentifier
+        let day = app.buttons["calendarDay-\(dateIdentifier)"]
+        XCTAssertTrue(day.waitForExistence(timeout: 5))
+        day.tap()
+
+        let agenda = app.descendants(matching: .any)["calendarAgenda-\(dateIdentifier)"]
+        XCTAssertTrue(agenda.waitForExistence(timeout: 3))
+        let titleButton = agenda.buttons["todoTitleButton-\(todoID)"]
+        XCTAssertTrue(titleButton.waitForExistence(timeout: 2))
+        let checkbox = agenda.buttons["完成一起去灵隐寺还愿吧"]
+        XCTAssertTrue(checkbox.exists)
+        XCTAssertGreaterThanOrEqual(checkbox.frame.height, 43.5)
+
+        titleButton.tap()
+        XCTAssertTrue(app.navigationBars["编辑清单"].waitForExistence(timeout: 2))
+        app.buttons["取消"].tap()
+
+        agenda.buttons["完成一起去灵隐寺还愿吧"].tap()
+        XCTAssertTrue(
+            agenda.buttons["重新打开一起去灵隐寺还愿吧"]
+                .waitForExistence(timeout: 5)
+        )
     }
 
     func testFutureAddButtonPresentsImmediately() {
@@ -637,5 +709,16 @@ private extension XCUIApplication {
             "-AppleLocale", locale
         ])
         launch()
+    }
+}
+
+private extension Date {
+    var dateOnlyTestIdentifier: String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: self)
     }
 }
