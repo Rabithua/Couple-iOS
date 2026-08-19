@@ -25,6 +25,39 @@ struct CalendarDayCell: View {
         let hasScheduledItem = !events.isEmpty || !todos.isEmpty
         let isToday = calendar.isDateInToday(date)
 
+        Group {
+            if hasScheduledItem {
+                dayButton(calendar: calendar, isToday: isToday, hasScheduledItem: true)
+                    .contextMenu { scheduledItemMenu }
+                    .confirmationDialog(
+                        pendingDeletion?.confirmationTitle ?? AppLocalization.string("确认删除？"),
+                        isPresented: $isShowingDeleteConfirmation,
+                        titleVisibility: .visible
+                    ) {
+                        Button("删除", role: .destructive, action: beginDeleting)
+                        Button("取消", role: .cancel) {}
+                    } message: {
+                        Text("删除后会从双方设备同步移除。")
+                    }
+                    .alert("删除失败", isPresented: $isShowingDeleteError) {
+                    } message: {
+                        Text(deleteErrorMessage)
+                    }
+            } else {
+                dayButton(calendar: calendar, isToday: isToday, hasScheduledItem: false)
+            }
+        }
+        .accessibilityLabel(date.localizedDate(locale: locale, style: .complete))
+        .accessibilityValue(accessibilityValue(isToday: isToday))
+        .accessibilityHint(accessibilityHint(hasScheduledItem: hasScheduledItem))
+        .accessibilityIdentifier("calendarDay-\(date.dateOnlyString)")
+    }
+
+    private func dayButton(
+        calendar: Calendar,
+        isToday: Bool,
+        hasScheduledItem: Bool
+    ) -> some View {
         Button(action: selectDay) {
             VStack(spacing: 2) {
                 Text(calendar.component(.day, from: date), format: .number)
@@ -45,69 +78,53 @@ struct CalendarDayCell: View {
         }
         .buttonStyle(.plain)
         .disabled(isSelectionDisabled)
-        .contextMenu {
-            ForEach(events) { event in
-                Button(
-                    AppLocalization.string("editEventAccessibilityLabel",
-                        defaultValue: "编辑日程：\(event.title)"
-                    ),
-                    systemImage: "pencil"
-                ) {
-                    beginEditing(event)
-                }
-                Button(role: .destructive) {
-                    requestDeletion(.event(event))
-                } label: {
-                    Label(
-                        AppLocalization.string("deleteEventAccessibilityLabel",
-                            defaultValue: "删除日程：\(event.title)"
-                        ),
-                        systemImage: "trash"
-                    )
-                }
+    }
+
+    @ViewBuilder
+    private var scheduledItemMenu: some View {
+        ForEach(events) { event in
+            Button(
+                AppLocalization.string("editEventAccessibilityLabel",
+                    defaultValue: "编辑日程：\(event.title)"
+                ),
+                systemImage: "pencil"
+            ) {
+                beginEditing(event)
             }
-
-            if !events.isEmpty, !todos.isEmpty { Divider() }
-
-            ForEach(todos) { todo in
-                Button(
-                    AppLocalization.string("editTodoAccessibilityLabel",
-                        defaultValue: "编辑清单：\(todo.title)"
+            Button(role: .destructive) {
+                requestDeletion(.event(event))
+            } label: {
+                Label(
+                    AppLocalization.string("deleteEventAccessibilityLabel",
+                        defaultValue: "删除日程：\(event.title)"
                     ),
-                    systemImage: "pencil"
-                ) {
-                    beginEditing(todo)
-                }
-                Button(role: .destructive) {
-                    requestDeletion(.todo(todo))
-                } label: {
-                    Label(
-                        AppLocalization.string("deleteTodoAccessibilityLabel",
-                            defaultValue: "删除清单：\(todo.title)"
-                        ),
-                        systemImage: "trash"
-                    )
-                }
+                    systemImage: "trash"
+                )
             }
         }
-        .confirmationDialog(
-            pendingDeletion?.confirmationTitle ?? AppLocalization.string("确认删除？"),
-            isPresented: $isShowingDeleteConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("删除", role: .destructive, action: beginDeleting)
-            Button("取消", role: .cancel) {}
-        } message: {
-            Text("删除后会从双方设备同步移除。")
+
+        if !events.isEmpty, !todos.isEmpty { Divider() }
+
+        ForEach(todos) { todo in
+            Button(
+                AppLocalization.string("editTodoAccessibilityLabel",
+                    defaultValue: "编辑清单：\(todo.title)"
+                ),
+                systemImage: "pencil"
+            ) {
+                beginEditing(todo)
+            }
+            Button(role: .destructive) {
+                requestDeletion(.todo(todo))
+            } label: {
+                Label(
+                    AppLocalization.string("deleteTodoAccessibilityLabel",
+                        defaultValue: "删除清单：\(todo.title)"
+                    ),
+                    systemImage: "trash"
+                )
+            }
         }
-        .alert("删除失败", isPresented: $isShowingDeleteError) {
-        } message: {
-            Text(deleteErrorMessage)
-        }
-        .accessibilityLabel(date.localizedDate(locale: locale, style: .complete))
-        .accessibilityValue(accessibilityValue(isToday: isToday))
-        .accessibilityHint(accessibilityHint(hasScheduledItem: hasScheduledItem))
-        .accessibilityIdentifier("calendarDay-\(date.dateOnlyString)")
     }
 
     private func selectDay() {

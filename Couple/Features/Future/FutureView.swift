@@ -40,6 +40,7 @@ struct FutureView: View {
     @State private var expandedCalendarDate: Date?
     @State private var visibleCalendarAgendaDate: Date?
     @State private var calendarTransitionID = UUID()
+    @State private var calendarMonthCache = CalendarMonthCache()
 
     var body: some View {
         DesignNavigationContainer {
@@ -121,6 +122,7 @@ struct FutureView: View {
                         visibleAgendaDate: visibleCalendarAgendaDate,
                         selectionDisabled: calendarSelectionDisabled
                     )
+                    .equatable()
                 }
             }
             .padding(.horizontal, AppTheme.horizontalPadding)
@@ -180,7 +182,7 @@ struct FutureView: View {
     }
 
     private var calendarMonths: [CalendarMonth] {
-        CalendarMonth.make(startingAt: .now, count: 12, calendar: calendar)
+        calendarMonthCache.months(locale: locale)
     }
 
     private func setCalendarTodoCompletion(_ todo: Todo, completed: Bool) async -> Bool {
@@ -412,6 +414,37 @@ struct FutureView: View {
 
     private func deleteCalendarEvent(_ event: CalendarEvent) async throws {
         try await store.deleteCalendarEvent(event)
+    }
+}
+
+private final class CalendarMonthCache {
+    private struct Key: Equatable {
+        let localeIdentifier: String
+        let timeZoneIdentifier: String
+        let year: Int
+        let month: Int
+    }
+
+    private var key: Key?
+    private var cachedMonths: [CalendarMonth] = []
+
+    func months(locale: Locale, now: Date = .now) -> [CalendarMonth] {
+        let calendar = Calendar.localizedGregorian(locale: locale)
+        let nextKey = Key(
+            localeIdentifier: locale.identifier,
+            timeZoneIdentifier: calendar.timeZone.identifier,
+            year: calendar.component(.year, from: now),
+            month: calendar.component(.month, from: now)
+        )
+        if key != nextKey {
+            key = nextKey
+            cachedMonths = CalendarMonth.make(
+                startingAt: now,
+                count: 12,
+                calendar: calendar
+            )
+        }
+        return cachedMonths
     }
 }
 

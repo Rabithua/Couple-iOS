@@ -13,10 +13,18 @@ struct JustifiedPhotoTile: View {
                     attachments: attachments,
                     attachment: attachment
                 ) {
-                    AttachmentImage(attachment: attachment, contentMode: .fill)
+                    AttachmentImage(
+                        attachment: attachment,
+                        contentMode: .fill,
+                        maximumDisplayDimension: 640
+                    )
                 }
             } else {
-                AttachmentImage(attachment: attachment, contentMode: .fill)
+                AttachmentImage(
+                    attachment: attachment,
+                    contentMode: .fill,
+                    maximumDisplayDimension: 640
+                )
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

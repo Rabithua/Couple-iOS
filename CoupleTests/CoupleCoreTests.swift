@@ -49,6 +49,14 @@ final class CoupleCoreTests: XCTestCase {
         XCTAssertEqual(calendar.component(.day, from: try XCTUnwrap(month.days[32])), 30)
     }
 
+    func testDateOnlyParsingKeepsStrictCalendarDates() throws {
+        let date = try XCTUnwrap(Date.fromDateOnly("2026-08-19"))
+
+        XCTAssertEqual(date.dateOnlyString, "2026-08-19")
+        XCTAssertNil(Date.fromDateOnly("2026-02-30"))
+        XCTAssertNil(Date.fromDateOnly("2026/08/19"))
+    }
+
     func testCalendarScheduleIndexMarksTodoDueDateAsScheduled() throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!

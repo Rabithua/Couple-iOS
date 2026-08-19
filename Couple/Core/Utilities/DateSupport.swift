@@ -8,12 +8,13 @@ extension Date {
     }
 
     var dateOnlyString: String {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = .current
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.string(from: self)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        let components = calendar.dateComponents([.year, .month, .day], from: self)
+        guard let year = components.year,
+              let month = components.month,
+              let day = components.day else { return "" }
+        return String(format: "%04d-%02d-%02d", year, month, day)
     }
 
     func localizedDate(
@@ -40,12 +41,21 @@ extension Date {
     }
 
     static func fromDateOnly(_ value: String) -> Date? {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = .current
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.date(from: value)
+        let parts = value.split(separator: "-", omittingEmptySubsequences: false)
+        guard parts.count == 3,
+              let year = Int(parts[0]),
+              let month = Int(parts[1]),
+              let day = Int(parts[2]) else { return nil }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        guard let date = calendar.date(
+            from: DateComponents(year: year, month: month, day: day)
+        ) else { return nil }
+        let resolved = calendar.dateComponents([.year, .month, .day], from: date)
+        guard resolved.year == year,
+              resolved.month == month,
+              resolved.day == day else { return nil }
+        return date
     }
 }
 

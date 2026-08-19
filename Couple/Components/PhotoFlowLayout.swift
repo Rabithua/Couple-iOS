@@ -58,29 +58,35 @@ struct AttachmentFlow: View {
     var body: some View {
         PhotoFlowLayout {
             ForEach(attachments) { attachment in
+                let itemWidth = Self.itemWidth(
+                    height: height,
+                    aspectRatio: attachment.aspectRatio
+                )
                 if let previewGroupID, attachment.isImage {
                     PhotoPreviewSource(
                         groupID: previewGroupID,
                         attachments: attachments,
                         attachment: attachment
                     ) {
-                        AttachmentImage(attachment: attachment, contentMode: .fit)
+                        AttachmentImage(
+                            attachment: attachment,
+                            contentMode: .fit,
+                            maximumDisplayDimension: max(itemWidth, height)
+                        )
                             .frame(
-                                width: Self.itemWidth(
-                                    height: height,
-                                    aspectRatio: attachment.aspectRatio
-                                ),
+                                width: itemWidth,
                                 height: height
                             )
                             .clipped()
                     }
                 } else {
-                    AttachmentImage(attachment: attachment, contentMode: .fit)
+                    AttachmentImage(
+                        attachment: attachment,
+                        contentMode: .fit,
+                        maximumDisplayDimension: max(itemWidth, height)
+                    )
                         .frame(
-                            width: Self.itemWidth(
-                                height: height,
-                                aspectRatio: attachment.aspectRatio
-                            ),
+                            width: itemWidth,
                             height: height
                         )
                         .clipped()

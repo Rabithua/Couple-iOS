@@ -92,6 +92,10 @@ struct NowView: View {
             ScrollView(.horizontal) {
                 HStack(alignment: .bottom, spacing: AppTheme.heroPhotoSpacing) {
                     ForEach(Array(featuredAttachments.enumerated()), id: \.element.id) { index, attachment in
+                        let photoWidth = AttachmentFlow.itemWidth(
+                            height: 120,
+                            aspectRatio: attachment.aspectRatio
+                        )
                         let note = store.notes.first { candidate in
                             candidate.attachments.contains { $0.id == attachment.id }
                         }
@@ -102,12 +106,13 @@ struct NowView: View {
                             attachment: attachment,
                             transitionStyle: .featuredPhoto
                         ) {
-                            AttachmentImage(attachment: attachment, contentMode: .fit)
+                            AttachmentImage(
+                                attachment: attachment,
+                                contentMode: .fit,
+                                maximumDisplayDimension: max(photoWidth, 120)
+                            )
                                 .frame(
-                                    width: AttachmentFlow.itemWidth(
-                                        height: 120,
-                                        aspectRatio: attachment.aspectRatio
-                                    ),
+                                    width: photoWidth,
                                     height: 120
                                 )
                                 .clipped()

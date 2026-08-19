@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct CalendarMonthView: View {
+struct CalendarMonthView: View, @MainActor Equatable {
     @Environment(\.locale) private var locale
     let month: CalendarMonth
     let schedule: CalendarScheduleIndex
@@ -15,6 +15,15 @@ struct CalendarMonthView: View {
     var expandedAgendaDate: Date? = nil
     var visibleAgendaDate: Date? = nil
     var selectionDisabled = false
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.month == rhs.month
+            && lhs.schedule == rhs.schedule
+            && lhs.selectedDate == rhs.selectedDate
+            && lhs.expandedAgendaDate == rhs.expandedAgendaDate
+            && lhs.visibleAgendaDate == rhs.visibleAgendaDate
+            && lhs.selectionDisabled == rhs.selectionDisabled
+    }
 
     var body: some View {
         let weekdaySymbols = calendar.localizedVeryShortStandaloneWeekdaySymbols

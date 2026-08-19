@@ -97,7 +97,9 @@ final class CoupleJourneyUITests: XCTestCase {
         XCTAssertTrue(app.buttons["编辑"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.buttons["删除"].exists)
         app.buttons["编辑"].tap()
-        XCTAssertTrue(app.navigationBars["编辑清单"].waitForExistence(timeout: 2))
+        let editorNavigationBar = app.navigationBars["编辑清单"]
+        XCTAssertTrue(editorNavigationBar.waitForExistence(timeout: 2))
+        assertUsesMediumContentSheet(editorNavigationBar, in: app)
     }
 
     func testListCompletionSupportsMultilineTitle() {
@@ -128,7 +130,9 @@ final class CoupleJourneyUITests: XCTestCase {
         let addButton = app.buttons["futureAddButton"]
         XCTAssertTrue(addButton.waitForExistence(timeout: 5))
         addButton.tap()
-        XCTAssertTrue(app.navigationBars["新日程"].waitForExistence(timeout: 2))
+        let eventNavigationBar = app.navigationBars["新日程"]
+        XCTAssertTrue(eventNavigationBar.waitForExistence(timeout: 2))
+        assertUsesMediumContentSheet(eventNavigationBar, in: app)
         XCTAssertEqual(app.navigationBars.matching(identifier: "新日程").count, 1)
         let endTimeToggle = app.switches["结束时间"]
         XCTAssertTrue(endTimeToggle.waitForExistence(timeout: 2))
@@ -138,7 +142,9 @@ final class CoupleJourneyUITests: XCTestCase {
         app.buttons["清单"].tap()
         XCTAssertTrue(app.buttons["清单"].isSelected)
         app.buttons["futureAddButton"].tap()
-        XCTAssertTrue(app.navigationBars["新清单"].waitForExistence(timeout: 2))
+        let todoNavigationBar = app.navigationBars["新清单"]
+        XCTAssertTrue(todoNavigationBar.waitForExistence(timeout: 2))
+        assertUsesMediumContentSheet(todoNavigationBar, in: app)
         XCTAssertEqual(app.navigationBars.matching(identifier: "新清单").count, 1)
     }
 
@@ -601,6 +607,21 @@ final class CoupleJourneyUITests: XCTestCase {
         formatter.timeZone = .current
         formatter.setLocalizedDateFormatFromTemplate("yMMMM")
         return formatter.string(from: .now)
+    }
+
+    private func assertUsesMediumContentSheet(
+        _ navigationBar: XCUIElement,
+        in app: XCUIApplication,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        XCTAssertGreaterThan(
+            navigationBar.frame.minY,
+            app.frame.height * 0.3,
+            "Expected the content editor to begin in a medium-height sheet",
+            file: file,
+            line: line
+        )
     }
 }
 

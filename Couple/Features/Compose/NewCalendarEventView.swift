@@ -84,6 +84,7 @@ struct NewCalendarEventView: View {
                 initializeEndIfNeeded(oldValue: oldValue, newValue: newValue)
             }
         }
+        .contentEditorSheetPresentation()
     }
 
     private func cancel() {

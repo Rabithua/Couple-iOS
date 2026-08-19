@@ -2,7 +2,6 @@ import SwiftUI
 
 struct PhotoPreviewSource<Content: View>: View {
     @Environment(\.photoPreviewContext) private var previewContext
-    @State private var sourceFrame = CGRect.zero
     let groupID: String
     let attachments: [Attachment]
     let attachment: Attachment
@@ -19,11 +18,14 @@ struct PhotoPreviewSource<Content: View>: View {
         .accessibilityIdentifier(
             "photoPreviewSource-\(groupID)-\(attachment.id)"
         )
-        .onGeometryChange(for: CGRect.self) { proxy in
-            proxy.frame(in: .named(PhotoPreviewContext.coordinateSpaceName))
+        .onGeometryChange(for: CGRect?.self) { proxy in
+            let frame = proxy.frame(in: .named(PhotoPreviewContext.coordinateSpaceName))
+            let viewport = CGRect(origin: .zero, size: previewContext.viewportSize)
+            return frame.intersects(viewport) ? frame : nil
         } action: { frame in
-            sourceFrame = frame
-            previewContext.updateSourceFrame(transitionID, frame)
+            if let frame {
+                previewContext.updateSourceFrame(transitionID, frame)
+            }
         }
     }
 
@@ -39,7 +41,6 @@ struct PhotoPreviewSource<Content: View>: View {
             groupID,
             attachments,
             attachment.id,
-            sourceFrame,
             transitionStyle
         )
     }
