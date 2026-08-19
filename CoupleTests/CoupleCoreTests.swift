@@ -93,6 +93,64 @@ final class CoupleCoreTests: XCTestCase {
         XCTAssertFalse(schedule.hasScheduledItem(on: otherDate, calendar: calendar))
     }
 
+    func testCalendarScheduleIndexTracksEarliestScheduledDate() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let eventDate = try XCTUnwrap(calendar.date(from: DateComponents(
+            year: 2025,
+            month: 3,
+            day: 8,
+            hour: 18
+        )))
+        let todoDate = try XCTUnwrap(calendar.date(from: DateComponents(
+            year: 2025,
+            month: 2,
+            day: 14,
+            hour: 20
+        )))
+        let event = CalendarEvent(
+            id: "event",
+            coupleId: "couple",
+            ownerId: "owner",
+            title: "Event",
+            description: nil,
+            allDay: false,
+            startTime: eventDate,
+            endTime: nil,
+            timezone: "UTC",
+            yearly: false,
+            visibility: .shared,
+            reminderOffset: nil,
+            createdAt: eventDate,
+            updatedAt: eventDate,
+            occurrenceId: nil,
+            recurrenceSourceId: nil
+        )
+        let todo = Todo(
+            id: "todo",
+            coupleId: "couple",
+            ownerId: "owner",
+            title: "Todo",
+            note: nil,
+            dueTime: todoDate,
+            visibility: .shared,
+            completed: false,
+            completedAt: nil,
+            completedBy: nil,
+            reminderOffset: nil,
+            createdAt: todoDate,
+            updatedAt: todoDate
+        )
+
+        let schedule = CalendarScheduleIndex(
+            events: [event],
+            todos: [todo],
+            calendar: calendar
+        )
+
+        XCTAssertEqual(schedule.earliestScheduledDate, calendar.startOfDay(for: todoDate))
+    }
+
     @MainActor
     func testDemoStoreLoadsCompleteHomeData() async {
         let store = AppStore(

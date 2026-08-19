@@ -3,6 +3,7 @@ import Foundation
 struct CalendarScheduleIndex: Equatable, Sendable {
     private let eventsByDay: [Date: [CalendarEvent]]
     private let todosByDay: [Date: [Todo]]
+    let earliestScheduledDate: Date?
 
     init(
         events: [CalendarEvent] = [],
@@ -29,6 +30,9 @@ struct CalendarScheduleIndex: Equatable, Sendable {
 
         eventsByDay = groupedEvents
         todosByDay = groupedTodos
+        earliestScheduledDate = [groupedEvents.keys.min(), groupedTodos.keys.min()]
+            .compactMap { $0 }
+            .min()
     }
 
     func events(on date: Date, calendar: Calendar = .current) -> [CalendarEvent] {

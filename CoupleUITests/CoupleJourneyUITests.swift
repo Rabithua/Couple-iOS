@@ -254,6 +254,49 @@ final class CoupleJourneyUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["新日程"].waitForExistence(timeout: 2))
     }
 
+    func testCalendarCanBrowseAndOpenPastMonth() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-future"]
+        app.launchInSimplifiedChinese()
+
+        let calendar = Calendar.current
+        guard let previousMonth = calendar.date(byAdding: .month, value: -1, to: .now),
+              let currentMonthStart = calendar.date(
+                from: calendar.dateComponents([.year, .month], from: .now)
+              ),
+              let previousMonthStart = calendar.date(
+                from: calendar.dateComponents([.year, .month], from: previousMonth)
+              ),
+              let pastDate = calendar.date(byAdding: .day, value: 14, to: previousMonthStart)
+        else {
+            return XCTFail("Unable to make a date in the previous month")
+        }
+
+        let calendarScroll = app.scrollViews["futureCalendarScroll"]
+        XCTAssertTrue(calendarScroll.waitForExistence(timeout: 5))
+        XCTAssertTrue(
+            app.staticTexts[
+                "calendarMonthTitle-\(currentMonthStart.dateOnlyTestIdentifier)"
+            ].waitForExistence(timeout: 5)
+        )
+
+        let pastDay = app.buttons["calendarDay-\(pastDate.dateOnlyTestIdentifier)"]
+        for _ in 0..<4 where pastDay.isHittable == false {
+            calendarScroll.swipeDown()
+        }
+        XCTAssertTrue(pastDay.isHittable)
+
+        pastDay.tap()
+
+        XCTAssertTrue(
+            app.descendants(matching: .any)[
+                "calendarAgenda-\(pastDate.dateOnlyTestIdentifier)"
+            ].waitForExistence(timeout: 3)
+        )
+        XCTAssertTrue(app.buttons["calendarAgendaNewEventButton"].exists)
+    }
+
     func testFutureHorizontalSwipesDoNotOpenNewItem() {
         continueAfterFailure = false
         let app = XCUIApplication()
