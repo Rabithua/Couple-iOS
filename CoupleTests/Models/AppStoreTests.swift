@@ -4,6 +4,67 @@ import Testing
 
 @MainActor
 struct AppStoreTests {
+    @Test("Demo data never contains an empty note")
+    func demoDataContainsNoEmptyNotes() {
+        #expect(SampleData.notes.allSatisfy { $0.hasRecordContent })
+    }
+
+    @Test("A todo association cannot create an empty note")
+    func todoAssociationCannotCreateEmptyNote() async {
+        let store = AppStore(
+            environment: ["COUPLE_DEMO_MODE": "1"],
+            arguments: ["CoupleTests"]
+        )
+        await store.start()
+        let originalNotes = store.notes
+
+        do {
+            try await store.addMemory(
+                content: " \n ",
+                photos: [],
+                anniversaryId: nil,
+                todoId: SampleData.todos[0].id,
+                visibility: .shared
+            )
+            Issue.record("Expected empty note creation to fail")
+        } catch Note.CreationError.empty {
+            #expect(store.notes == originalNotes)
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+    }
+
+    @Test("Offline storage rejects an empty note before writing data")
+    func offlineStorageRejectsEmptyNote() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appending(path: "EmptyMemoryTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try OfflineStore.makeInMemory(attachmentRoot: root)
+
+        do {
+            _ = try await store.createMemory(
+                coupleId: "couple",
+                ownerId: "owner",
+                content: "\t",
+                photos: [],
+                anniversaryId: nil,
+                anniversaryTitle: nil,
+                todoId: "todo",
+                todoTitle: "关联清单",
+                visibility: .shared
+            )
+            Issue.record("Expected empty note creation to fail")
+        } catch Note.CreationError.empty {
+            let snapshot = try await store.loadSnapshot()
+            #expect(snapshot.notes.isEmpty)
+            #expect(
+                try await store.pendingOperations(limit: 100, now: .distantFuture).isEmpty
+            )
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+    }
+
     @Test("Past filters do not replace the home note collection")
     func pastFiltersDoNotReplaceHomeNotes() async {
         let store = AppStore(
@@ -16,7 +77,6 @@ struct AppStoreTests {
         await store.selectNotes(.photos)
 
         #expect(store.notes == homeNotes)
-        #expect(store.pastNotes.count < homeNotes.count)
         #expect(store.pastNotes.allSatisfy { note in
             note.attachments.contains(where: \.isImage)
         })
@@ -35,6 +95,7 @@ struct AppStoreTests {
 
         #expect(!photoNotes.isEmpty)
         #expect(photoNotes.allSatisfy { $0.attachments.contains(where: \.isImage) })
+        #expect(store.pastNotes.isEmpty)
         #expect(store.pastNotes.allSatisfy { $0.todoId != nil })
         #expect(store.pastNotes(for: .photos) == photoNotes)
     }

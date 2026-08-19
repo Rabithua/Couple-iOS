@@ -228,6 +228,20 @@ struct NoteAssociation: Codable, Identifiable, Hashable, Sendable {
 }
 
 struct Note: Codable, Identifiable, Hashable, Sendable {
+    enum CreationError: LocalizedError, Equatable, Sendable {
+        case empty
+
+        var errorDescription: String? {
+            switch self {
+            case .empty:
+                AppLocalization.string(
+                    "emptyMemoryError",
+                    defaultValue: "请写下内容或选择照片"
+                )
+            }
+        }
+    }
+
     let id: String
     let coupleId: String
     let ownerId: String
@@ -239,6 +253,21 @@ struct Note: Codable, Identifiable, Hashable, Sendable {
     var updatedAt: Date
     var associations: [NoteAssociation]
     var attachments: [Attachment]
+
+    var hasRecordContent: Bool {
+        Self.hasRecordContent(text: content, attachmentCount: attachments.count)
+    }
+
+    static func hasRecordContent(text: String, attachmentCount: Int) -> Bool {
+        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || attachmentCount > 0
+    }
+
+    static func validateCreation(text: String, attachmentCount: Int) throws {
+        guard hasRecordContent(text: text, attachmentCount: attachmentCount) else {
+            throw CreationError.empty
+        }
+    }
 }
 
 struct NotesPage: Codable, Sendable {
