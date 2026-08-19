@@ -297,6 +297,54 @@ final class CoupleJourneyUITests: XCTestCase {
         XCTAssertTrue(app.buttons["calendarAgendaNewEventButton"].exists)
     }
 
+    func testCalendarMonthTitleStaysPinnedAsMonthChanges() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-future"]
+        app.launchInSimplifiedChinese()
+
+        let calendar = Calendar.current
+        guard let currentMonthStart = calendar.date(
+            from: calendar.dateComponents([.year, .month], from: .now)
+        ), let nextMonthStart = calendar.date(
+            byAdding: .month,
+            value: 1,
+            to: currentMonthStart
+        ) else {
+            return XCTFail("Unable to make calendar month dates")
+        }
+
+        let calendarScroll = app.scrollViews["futureCalendarScroll"]
+        XCTAssertTrue(calendarScroll.waitForExistence(timeout: 5))
+        let currentTitle = app.staticTexts[
+            "calendarMonthTitle-\(currentMonthStart.dateOnlyTestIdentifier)"
+        ]
+        XCTAssertTrue(currentTitle.waitForExistence(timeout: 5))
+        let pinnedY = currentTitle.frame.minY
+        let nextTitle = app.staticTexts[
+            "calendarMonthTitle-\(nextMonthStart.dateOnlyTestIdentifier)"
+        ]
+
+        for _ in 0..<5 {
+            guard nextTitle.exists == false || nextTitle.frame.minY > pinnedY + 4 else {
+                break
+            }
+            calendarScroll.coordinate(
+                withNormalizedOffset: CGVector(dx: 0.5, dy: 0.62)
+            ).press(
+                forDuration: 0.05,
+                thenDragTo: calendarScroll.coordinate(
+                    withNormalizedOffset: CGVector(dx: 0.5, dy: 0.42)
+                ),
+                withVelocity: .slow,
+                thenHoldForDuration: 0
+            )
+        }
+
+        XCTAssertTrue(nextTitle.isHittable)
+        XCTAssertEqual(nextTitle.frame.minY, pinnedY, accuracy: 4)
+    }
+
     func testFutureHorizontalSwipesDoNotOpenNewItem() {
         continueAfterFailure = false
         let app = XCUIApplication()

@@ -66,6 +66,14 @@ final class AppHaptics {
     nonisolated static func whenPresent<Value>(_: Value?, _ newValue: Value?) -> Bool {
         newValue != nil
     }
+
+    nonisolated static func changedBetweenPresentValues<Value: Equatable>(
+        _ oldValue: Value?,
+        _ newValue: Value?
+    ) -> Bool {
+        guard let oldValue, let newValue else { return false }
+        return oldValue != newValue
+    }
 }
 
 extension View {
