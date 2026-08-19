@@ -3,6 +3,7 @@ import SwiftUI
 struct NowView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.locale) private var locale
+    @Environment(AppHaptics.self) private var haptics
     @Environment(AppStore.self) private var store
     let composePullProgress: CGFloat
     let isActive: Bool
@@ -47,6 +48,7 @@ struct NowView: View {
             .scrollIndicators(.hidden)
             .scrollDisabled(verticalScrollingDisabled)
             .refreshable { await store.refreshContent() }
+            .accessibilityIdentifier("nowScroll")
 
             pullToCompose
         }
@@ -210,10 +212,15 @@ struct NowView: View {
             ForEach(activeTodos) { todo in
                 DeferredTodoCompletionRow(
                     todo: todo,
-                    disabled: store.pendingTodoIDs.contains(todo.id)
-                ) {
-                    await store.setTodoCompletion(todo, completed: true)
-                }
+                    disabled: store.pendingTodoIDs.contains(todo.id),
+                    commitCompletion: {
+                        await store.setTodoCompletion(todo, completed: true)
+                    },
+                    open: {
+                        haptics.play(.tap)
+                        editingTodo = todo
+                    }
+                )
                 .editableContentActions(
                     deletionTitle: AppLocalization.string("deleteTodoConfirmation",
                         defaultValue: "删除清单“\(todo.title)”？"

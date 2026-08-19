@@ -38,9 +38,10 @@ struct TodoCheckButton: View {
     var body: some View {
         Button(action: toggleTodo) {
             TodoCheckboxSymbol(isChecked: isChecked)
+                .frame(width: AppTheme.todoControlSize, height: AppTheme.todoControlSize)
+                .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .frame(width: AppTheme.todoControlSize, height: AppTheme.todoControlSize)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint(
             isChecked && todo.completed == false
