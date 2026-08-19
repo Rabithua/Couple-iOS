@@ -42,6 +42,7 @@ struct FutureView: View {
     @State private var calendarTransitionID = UUID()
     @State private var calendarMonthCache = CalendarMonthCache()
     @State private var hasPositionedCalendar = false
+    @State private var visibleCalendarMonth: Date?
 
     var body: some View {
         DesignNavigationContainer {
@@ -105,10 +106,14 @@ struct FutureView: View {
     }
 
     private var calendarContent: some View {
-        ScrollViewReader { scrollProxy in
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 28) {
-                    ForEach(calendarMonths) { month in
+        ScrollView {
+            LazyVStack(
+                alignment: .leading,
+                spacing: 28,
+                pinnedViews: [.sectionHeaders]
+            ) {
+                ForEach(calendarMonths) { month in
+                    Section {
                         CalendarMonthView(
                             month: month,
                             schedule: store.calendarScheduleIndex,
@@ -125,24 +130,39 @@ struct FutureView: View {
                             selectionDisabled: calendarSelectionDisabled
                         )
                         .equatable()
-                        .id(month.id)
+                    } header: {
+                        Text(month.title(locale: locale))
+                            .font(AppTheme.titleFont())
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.bottom, 10)
+                            .background(Color(.systemBackground))
+                            .accessibilityIdentifier(
+                                "calendarMonthTitle-\(month.start.dateOnlyString)"
+                            )
                     }
+                    .id(month.id)
                 }
-                .padding(.horizontal, AppTheme.horizontalPadding)
-                .padding(.bottom, AppTheme.futureContentBottomPadding)
             }
-            .scrollIndicators(.hidden)
-            .scrollDisabled(verticalScrollingDisabled)
-            .contentMargins(.top, AppTheme.navigationBarHeight, for: .scrollContent)
-            .refreshable { await store.refreshContent() }
-            .accessibilityIdentifier("futureCalendarScroll")
-            .task(id: currentCalendarMonthStart) {
-                guard hasPositionedCalendar == false else { return }
-                await Task.yield()
-                scrollProxy.scrollTo(currentCalendarMonthStart, anchor: .top)
-                hasPositionedCalendar = true
-            }
+            .scrollTargetLayout()
+            .padding(.horizontal, AppTheme.horizontalPadding)
+            .padding(.bottom, AppTheme.futureContentBottomPadding)
         }
+        .scrollIndicators(.hidden)
+        .scrollDisabled(verticalScrollingDisabled)
+        .scrollPosition(id: $visibleCalendarMonth, anchor: .top)
+        .contentMargins(.top, AppTheme.navigationBarHeight, for: .scrollContent)
+        .refreshable { await store.refreshContent() }
+        .accessibilityIdentifier("futureCalendarScroll")
+        .task(id: currentCalendarMonthStart) {
+            guard hasPositionedCalendar == false else { return }
+            visibleCalendarMonth = currentCalendarMonthStart
+            hasPositionedCalendar = true
+        }
+        .appHapticFeedback(
+            .selection,
+            trigger: visibleCalendarMonth,
+            condition: AppHaptics.changedBetweenPresentValues
+        )
     }
 
     private var todoContent: some View {

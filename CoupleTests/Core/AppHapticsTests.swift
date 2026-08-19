@@ -36,6 +36,16 @@ final class AppHapticsTests: XCTestCase {
         XCTAssertFalse(AppHaptics.whenPresent("first error", nil))
     }
 
+    func testPresentValueChangeRequiresTwoDifferentValues() {
+        XCTAssertFalse(
+            AppHaptics.changedBetweenPresentValues(Optional<String>.none, nil)
+        )
+        XCTAssertFalse(AppHaptics.changedBetweenPresentValues(nil, "August"))
+        XCTAssertFalse(AppHaptics.changedBetweenPresentValues("August", nil))
+        XCTAssertFalse(AppHaptics.changedBetweenPresentValues("August", "August"))
+        XCTAssertTrue(AppHaptics.changedBetweenPresentValues("August", "September"))
+    }
+
     func testDisabledHapticsSuppressEventsAndPersistPreference() {
         let userDefaults = makeUserDefaults()
         let haptics = AppHaptics(userDefaults: userDefaults)

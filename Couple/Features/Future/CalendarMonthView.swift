@@ -29,10 +29,6 @@ struct CalendarMonthView: View, @MainActor Equatable {
         let weekdaySymbols = calendar.localizedVeryShortStandaloneWeekdaySymbols
 
         VStack(alignment: .leading, spacing: 10) {
-            Text(month.title(locale: locale))
-                .font(AppTheme.titleFont())
-                .accessibilityIdentifier("calendarMonthTitle-\(month.start.dateOnlyString)")
-
             HStack(spacing: 0) {
                 ForEach(weekdaySymbols.indices, id: \.self) { index in
                     Text(weekdaySymbols[index])
