@@ -8,14 +8,10 @@ struct MainPagerView: View {
     @State private var route: MainPagerRoute
     @State private var showingComposer = false
     @State private var photoCarouselFrame = ViewFrameStore()
-    @State private var pageSwipeStartedInPhotoCarousel = false
-    @State private var isTrackingMainGesture = false
+    @State private var gestureSession = MainPagerGestureSession()
     @State private var mainGestureState = MainPagerGestureState()
-    @State private var composerPresentedForCurrentGesture = false
-    @State private var suppressComposerTapForCurrentEvent = false
     @State private var suppressFutureCalendarSelection = false
     @State private var calendarSelectionSuppressionID = UUID()
-    @State private var photoPreviewSuppressedUntil = Date.distantPast
     @State private var isPhotoPreviewPresented = false
     @GestureState private var isMainGestureActive = false
 
@@ -88,7 +84,7 @@ struct MainPagerView: View {
                     including: isPhotoPreviewPresented ? .none : .all
                 )
                 .onChange(of: isMainGestureActive) { wasActive, isActive in
-                    guard wasActive, !isActive, isTrackingMainGesture else { return }
+                    guard wasActive, !isActive, gestureSession.isTracking else { return }
                     withAnimation(pageAnimation) {
                         resetMainGestureTracking()
                     }
@@ -121,13 +117,17 @@ struct MainPagerView: View {
     }
 
     private var verticalScrollingDisabled: Bool {
-        mainGestureState.blocksVerticalScrolling && !pageSwipeStartedInPhotoCarousel
+        mainGestureState.blocksVerticalScrolling
+            && !gestureSession.pageSwipeStartedInPhotoCarousel
     }
 
     private func pageDragOffset(forSameSection sameSection: Bool) -> CGFloat {
         guard mainGestureState.intent == .page else { return 0 }
         let sourceRoute = mainGestureState.pageSourceRoute ?? route
-        guard !(sourceRoute == .now && pageSwipeStartedInPhotoCarousel) else { return 0 }
+        guard !(
+            sourceRoute == .now
+                && gestureSession.pageSwipeStartedInPhotoCarousel
+        ) else { return 0 }
 
         let translation = mainGestureState.pageTranslation
         guard translation != 0 else { return 0 }
@@ -148,7 +148,9 @@ struct MainPagerView: View {
     ) -> some Gesture {
         DragGesture(minimumDistance: 8, coordinateSpace: .named("mainPager"))
             .updating($isMainGestureActive) { _, isActive, _ in
-                isActive = true
+                if !isActive {
+                    isActive = true
+                }
             }
             .onChanged { value in
                 trackMainGesture(
@@ -171,10 +173,10 @@ struct MainPagerView: View {
         containerSize: CGSize,
         bottomSafeAreaInset: CGFloat
     ) {
-        if !isTrackingMainGesture {
-            isTrackingMainGesture = true
+        if !gestureSession.isTracking {
+            gestureSession.isTracking = true
             suppressPhotoPreviewAfterDrag()
-            pageSwipeStartedInPhotoCarousel = route == .now
+            gestureSession.pageSwipeStartedInPhotoCarousel = route == .now
                 && photoCarouselFrame.frame.contains(value.startLocation)
         }
 
@@ -203,8 +205,8 @@ struct MainPagerView: View {
             route: route
         )
 
-        let intent = mainGestureState.intent
-        let didReachComposeThreshold = mainGestureState.shouldPresentComposer
+        let intent = gestureSession.state.intent
+        let didReachComposeThreshold = gestureSession.state.shouldPresentComposer
 
         if intent == .page {
             suppressComposerTapAfterPageSwipe()
@@ -229,8 +231,8 @@ struct MainPagerView: View {
         bottomSafeAreaInset: CGFloat,
         route: MainPagerRoute
     ) {
-        let previousIntent = mainGestureState.intent
-        var updatedState = mainGestureState
+        let previousIntent = gestureSession.state.intent
+        var updatedState = gestureSession.state
         updatedState.update(
             translation: translation,
             startLocation: startLocation,
@@ -238,21 +240,25 @@ struct MainPagerView: View {
             bottomSafeAreaInset: bottomSafeAreaInset,
             route: route
         )
-        guard updatedState != mainGestureState else { return }
+        guard updatedState != gestureSession.state else { return }
 
-        mainGestureState = updatedState
+        gestureSession.state = updatedState
+        if updatedState.intent == .page || updatedState.intent == .compose,
+           updatedState != mainGestureState {
+            mainGestureState = updatedState
+        }
         if previousIntent != .page, updatedState.intent == .page {
             beginSuppressingFutureCalendarSelection()
         }
     }
 
     private func handlePageSwipe(_ value: DragGesture.Value) {
-        guard mainGestureState.shouldCommitPageSwipe(
+        guard gestureSession.state.shouldCommitPageSwipe(
             translation: value.translation,
             predictedEndTranslation: value.predictedEndTranslation
         ) else { return }
 
-        if route == .now, pageSwipeStartedInPhotoCarousel {
+        if route == .now, gestureSession.pageSwipeStartedInPhotoCarousel {
             return
         }
 
@@ -276,8 +282,8 @@ struct MainPagerView: View {
     }
 
     private func presentComposer() {
-        guard !suppressComposerTapForCurrentEvent else {
-            suppressComposerTapForCurrentEvent = false
+        guard !gestureSession.suppressComposerTapForCurrentEvent else {
+            gestureSession.suppressComposerTapForCurrentEvent = false
             return
         }
         haptics.play(.tap)
@@ -286,24 +292,24 @@ struct MainPagerView: View {
 
     private func presentComposerIfThresholdReached() {
         guard route == .now,
-              mainGestureState.shouldPresentComposer,
-              !composerPresentedForCurrentGesture else { return }
+              gestureSession.state.shouldPresentComposer,
+              !gestureSession.composerPresentedForCurrentGesture else { return }
 
-        composerPresentedForCurrentGesture = true
+        gestureSession.composerPresentedForCurrentGesture = true
         haptics.play(.selection)
         showingComposer = true
     }
 
     private func suppressComposerTapAfterPageSwipe() {
-        suppressComposerTapForCurrentEvent = true
+        gestureSession.suppressComposerTapForCurrentEvent = true
         Task { @MainActor in
             await Task.yield()
-            suppressComposerTapForCurrentEvent = false
+            gestureSession.suppressComposerTapForCurrentEvent = false
         }
     }
 
     private func canPresentPhotoPreview() -> Bool {
-        Date.now >= photoPreviewSuppressedUntil
+        Date.now >= gestureSession.photoPreviewSuppressedUntil
     }
 
     private func updatePhotoPreviewPresentation(_ isPresented: Bool) {
@@ -314,14 +320,15 @@ struct MainPagerView: View {
     }
 
     private func suppressPhotoPreviewAfterDrag() {
-        photoPreviewSuppressedUntil = Date.now.addingTimeInterval(0.2)
+        gestureSession.photoPreviewSuppressedUntil = Date.now.addingTimeInterval(0.2)
     }
 
     private func resetMainGestureTracking() {
-        mainGestureState.reset()
-        composerPresentedForCurrentGesture = false
-        isTrackingMainGesture = false
-        pageSwipeStartedInPhotoCarousel = false
+        gestureSession.reset()
+        let resetState = MainPagerGestureState()
+        if mainGestureState != resetState {
+            mainGestureState = resetState
+        }
         releaseFutureCalendarSelectionAfterCurrentEvent()
     }
 
@@ -348,5 +355,22 @@ struct MainPagerView: View {
     private func loadActivePastNotes() async {
         guard let filter = route.pastFilter else { return }
         await store.selectNotes(filter.query)
+    }
+}
+
+@MainActor
+private final class MainPagerGestureSession {
+    var state = MainPagerGestureState()
+    var isTracking = false
+    var pageSwipeStartedInPhotoCarousel = false
+    var composerPresentedForCurrentGesture = false
+    var suppressComposerTapForCurrentEvent = false
+    var photoPreviewSuppressedUntil = Date.distantPast
+
+    func reset() {
+        state.reset()
+        isTracking = false
+        pageSwipeStartedInPhotoCarousel = false
+        composerPresentedForCurrentGesture = false
     }
 }

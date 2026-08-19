@@ -54,6 +54,13 @@ actor AttachmentImageCache {
         maximumPixelDimension: Int?,
         api: APIClient
     ) async throws -> UIImage? {
+        if let assetName = attachment.demoAssetName {
+            return AttachmentImageDecoder.image(
+                named: assetName,
+                maximumPixelDimension: maximumPixelDimension
+            )
+        }
+
         guard let data = try await data(for: attachment, api: api) else { return nil }
         try Task.checkCancellation()
         return AttachmentImageDecoder.image(
@@ -88,11 +95,7 @@ struct AttachmentImage: View {
 
     var body: some View {
         Group {
-            if let asset = attachment.demoAssetName {
-                Image(asset)
-                    .resizable()
-                    .aspectRatio(contentMode: contentMode)
-            } else if let displayedImage {
+            if let displayedImage {
                 Image(uiImage: displayedImage)
                     .resizable()
                     .aspectRatio(contentMode: contentMode)
@@ -108,8 +111,6 @@ struct AttachmentImage: View {
         }
         .clipped()
         .task(id: cacheKey) {
-            guard attachment.demoAssetName == nil else { return }
-
             if let cachedImage = Self.cachedImage(forKey: cacheKey) {
                 image = cachedImage
                 resolvedCacheKey = cacheKey

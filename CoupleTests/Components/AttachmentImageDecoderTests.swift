@@ -21,6 +21,29 @@ struct AttachmentImageDecoderTests {
         #expect(decodedImage.width == decodedImage.height * 2)
     }
 
+    @Test func namedAssetsDownsampleAcrossColorSpaces() throws {
+        let assetNames = [
+            "MemoryCeiling",
+            "MemoryLake",
+            "MemoryMan",
+            "MemoryToast",
+            "MemoryWoman",
+            "MemoryWoman2"
+        ]
+
+        for assetName in assetNames {
+            let image = try #require(
+                AttachmentImageDecoder.image(
+                    named: assetName,
+                    maximumPixelDimension: 512
+                )
+            )
+            let decodedImage = try #require(image.cgImage)
+
+            #expect(max(decodedImage.width, decodedImage.height) == 512)
+        }
+    }
+
     private func makeJPEG(size: CGSize) throws -> Data {
         let width = Int(size.width)
         let height = Int(size.height)
