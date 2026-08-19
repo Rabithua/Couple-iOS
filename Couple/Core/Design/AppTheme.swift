@@ -56,6 +56,11 @@ extension View {
         background(Color(.systemBackground).ignoresSafeArea())
     }
 
+    func contentEditorSheetPresentation() -> some View {
+        presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+    }
+
     func appProminentButtonStyle() -> some View {
         buttonStyle(.borderedProminent)
             .foregroundStyle(Color(.systemBackground))

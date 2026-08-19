@@ -68,6 +68,7 @@ struct NewTodoView: View {
                 set: { if !$0 { errorMessage = nil } }
             )) { Button("好", role: .cancel, action: acknowledgeError) } message: { Text(errorMessage ?? "") }
         }
+        .contentEditorSheetPresentation()
     }
 
     private func cancel() {

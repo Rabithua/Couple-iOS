@@ -153,6 +153,7 @@ struct ComposeMemoryView: View {
                 Text(localError ?? "")
             }
         }
+        .contentEditorSheetPresentation()
     }
 
     private var isValid: Bool {
