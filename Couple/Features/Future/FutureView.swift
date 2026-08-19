@@ -135,7 +135,6 @@ struct FutureView: View {
                             .font(AppTheme.titleFont())
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.bottom, 10)
-                            .background(Color(.systemBackground))
                             .accessibilityIdentifier(
                                 "calendarMonthTitle-\(month.start.dateOnlyString)"
                             )
