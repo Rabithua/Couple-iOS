@@ -24,10 +24,16 @@ struct CalendarDayCell: View {
         let calendar = Calendar.localizedGregorian(locale: locale)
         let hasScheduledItem = !events.isEmpty || !todos.isEmpty
         let isToday = calendar.isDateInToday(date)
+        let isPast = date < calendar.startOfDay(for: .now)
 
         Group {
             if hasScheduledItem {
-                dayButton(calendar: calendar, isToday: isToday, hasScheduledItem: true)
+                dayButton(
+                    calendar: calendar,
+                    isToday: isToday,
+                    isPast: isPast,
+                    hasScheduledItem: true
+                )
                     .contextMenu { scheduledItemMenu }
                     .confirmationDialog(
                         pendingDeletion?.confirmationTitle ?? AppLocalization.string("确认删除？"),
@@ -44,7 +50,12 @@ struct CalendarDayCell: View {
                         Text(deleteErrorMessage)
                     }
             } else {
-                dayButton(calendar: calendar, isToday: isToday, hasScheduledItem: false)
+                dayButton(
+                    calendar: calendar,
+                    isToday: isToday,
+                    isPast: isPast,
+                    hasScheduledItem: false
+                )
             }
         }
         .accessibilityLabel(date.localizedDate(locale: locale, style: .complete))
@@ -56,13 +67,18 @@ struct CalendarDayCell: View {
     private func dayButton(
         calendar: Calendar,
         isToday: Bool,
+        isPast: Bool,
         hasScheduledItem: Bool
     ) -> some View {
         Button(action: selectDay) {
             VStack(spacing: 2) {
                 Text(calendar.component(.day, from: date), format: .number)
                     .font(.body.bold())
-                    .foregroundStyle(isToday ? Color(.systemBackground) : AppTheme.muted)
+                    .foregroundStyle(
+                        isToday
+                            ? Color(.systemBackground)
+                            : AppTheme.muted.opacity(isPast ? 0.55 : 1)
+                    )
                     .frame(width: 32, height: 32)
                     .background(
                         isToday ? Color.primary : .clear,
@@ -72,6 +88,7 @@ struct CalendarDayCell: View {
                 Circle()
                     .fill(hasScheduledItem ? Color.primary.opacity(0.45) : .clear)
                     .frame(width: 3, height: 3)
+                    .opacity(isPast ? 0.6 : 1)
             }
             .frame(maxWidth: .infinity, minHeight: AppTheme.calendarDayHeight)
             .contentShape(.rect)

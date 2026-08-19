@@ -41,6 +41,7 @@ struct FutureView: View {
     @State private var visibleCalendarAgendaDate: Date?
     @State private var calendarTransitionID = UUID()
     @State private var calendarMonthCache = CalendarMonthCache()
+    @State private var hasPositionedCalendar = false
 
     var body: some View {
         DesignNavigationContainer {
@@ -104,35 +105,44 @@ struct FutureView: View {
     }
 
     private var calendarContent: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 28) {
-                ForEach(calendarMonths) { month in
-                    CalendarMonthView(
-                        month: month,
-                        schedule: store.calendarScheduleIndex,
-                        editEvent: editCalendarEvent,
-                        editTodo: editTodo,
-                        setTodoCompletion: setCalendarTodoCompletion,
-                        deleteEvent: deleteCalendarEvent,
-                        deleteTodo: deleteTodo,
-                        selectDate: selectCalendarDate,
-                        createEvent: presentCalendarEvent,
-                        selectedDate: selectedCalendarDate,
-                        expandedAgendaDate: expandedCalendarDate,
-                        visibleAgendaDate: visibleCalendarAgendaDate,
-                        selectionDisabled: calendarSelectionDisabled
-                    )
-                    .equatable()
+        ScrollViewReader { scrollProxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 28) {
+                    ForEach(calendarMonths) { month in
+                        CalendarMonthView(
+                            month: month,
+                            schedule: store.calendarScheduleIndex,
+                            editEvent: editCalendarEvent,
+                            editTodo: editTodo,
+                            setTodoCompletion: setCalendarTodoCompletion,
+                            deleteEvent: deleteCalendarEvent,
+                            deleteTodo: deleteTodo,
+                            selectDate: selectCalendarDate,
+                            createEvent: presentCalendarEvent,
+                            selectedDate: selectedCalendarDate,
+                            expandedAgendaDate: expandedCalendarDate,
+                            visibleAgendaDate: visibleCalendarAgendaDate,
+                            selectionDisabled: calendarSelectionDisabled
+                        )
+                        .equatable()
+                        .id(month.id)
+                    }
                 }
+                .padding(.horizontal, AppTheme.horizontalPadding)
+                .padding(.bottom, AppTheme.futureContentBottomPadding)
             }
-            .padding(.horizontal, AppTheme.horizontalPadding)
-            .padding(.bottom, AppTheme.futureContentBottomPadding)
+            .scrollIndicators(.hidden)
+            .scrollDisabled(verticalScrollingDisabled)
+            .contentMargins(.top, AppTheme.navigationBarHeight, for: .scrollContent)
+            .refreshable { await store.refreshContent() }
+            .accessibilityIdentifier("futureCalendarScroll")
+            .task(id: currentCalendarMonthStart) {
+                guard hasPositionedCalendar == false else { return }
+                await Task.yield()
+                scrollProxy.scrollTo(currentCalendarMonthStart, anchor: .top)
+                hasPositionedCalendar = true
+            }
         }
-        .scrollIndicators(.hidden)
-        .scrollDisabled(verticalScrollingDisabled)
-        .contentMargins(.top, AppTheme.navigationBarHeight, for: .scrollContent)
-        .refreshable { await store.refreshContent() }
-        .accessibilityIdentifier("futureCalendarScroll")
     }
 
     private var todoContent: some View {
@@ -187,7 +197,24 @@ struct FutureView: View {
     }
 
     private var calendarMonths: [CalendarMonth] {
-        calendarMonthCache.months(locale: locale)
+        calendarMonthCache.months(
+            locale: locale,
+            historyStart: calendarHistoryStartDate
+        )
+    }
+
+    private var currentCalendarMonthStart: Date {
+        calendar.date(
+            from: calendar.dateComponents([.year, .month], from: .now)
+        ) ?? .now
+    }
+
+    private var calendarHistoryStartDate: Date? {
+        let relationshipStart = store.relationship?.couple?.startedOn
+            .flatMap(Date.fromDateOnly)
+        return [relationshipStart, store.calendarScheduleIndex.earliestScheduledDate]
+            .compactMap { $0 }
+            .min()
     }
 
     private func setCalendarTodoCompletion(_ todo: Todo, completed: Bool) async -> Bool {
@@ -428,24 +455,48 @@ private final class CalendarMonthCache {
         let timeZoneIdentifier: String
         let year: Int
         let month: Int
+        let historyStartYear: Int
+        let historyStartMonth: Int
     }
 
     private var key: Key?
     private var cachedMonths: [CalendarMonth] = []
 
-    func months(locale: Locale, now: Date = .now) -> [CalendarMonth] {
+    func months(
+        locale: Locale,
+        now: Date = .now,
+        historyStart: Date? = nil
+    ) -> [CalendarMonth] {
         let calendar = Calendar.localizedGregorian(locale: locale)
+        guard let currentMonth = calendar.date(
+            from: calendar.dateComponents([.year, .month], from: now)
+        ), let oneYearAgo = calendar.date(byAdding: .year, value: -1, to: currentMonth),
+           let lastMonth = calendar.date(byAdding: .month, value: 11, to: currentMonth)
+        else { return [] }
+
+        let requestedHistoryStart = historyStart.map { min($0, oneYearAgo) } ?? oneYearAgo
+        guard let firstMonth = calendar.date(
+            from: calendar.dateComponents([.year, .month], from: requestedHistoryStart)
+        ) else { return [] }
+
         let nextKey = Key(
             localeIdentifier: locale.identifier,
             timeZoneIdentifier: calendar.timeZone.identifier,
             year: calendar.component(.year, from: now),
-            month: calendar.component(.month, from: now)
+            month: calendar.component(.month, from: now),
+            historyStartYear: calendar.component(.year, from: firstMonth),
+            historyStartMonth: calendar.component(.month, from: firstMonth)
         )
         if key != nextKey {
             key = nextKey
+            let monthCount = calendar.dateComponents(
+                [.month],
+                from: firstMonth,
+                to: lastMonth
+            ).month.map { $0 + 1 } ?? 24
             cachedMonths = CalendarMonth.make(
-                startingAt: now,
-                count: 12,
+                startingAt: firstMonth,
+                count: monthCount,
                 calendar: calendar
             )
         }
