@@ -522,6 +522,8 @@ final class AppStore {
         todoId: String?,
         visibility: Visibility
     ) async throws {
+        try Note.validateCreation(text: content, attachmentCount: photos.count)
+
         if isDemo {
             let note = Note(
                 id: UUID().uuidString,

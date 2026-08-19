@@ -117,7 +117,11 @@ extension APIClient {
     }
 
     func createNote(_ request: CreateNoteRequest) async throws -> Note {
-        try await self.request("/notes", method: .post, body: request)
+        try Note.validateCreation(
+            text: request.content,
+            attachmentCount: request.attachmentIds.count
+        )
+        return try await self.request("/notes", method: .post, body: request)
     }
 
     func todos(filter: String = "all") async throws -> [Todo] {

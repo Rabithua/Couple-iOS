@@ -157,9 +157,10 @@ struct ComposeMemoryView: View {
     }
 
     private var isValid: Bool {
-        !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            || !photos.isEmpty
-            || editingNote?.attachments.isEmpty == false
+        Note.hasRecordContent(
+            text: content,
+            attachmentCount: photos.count + (editingNote?.attachments.count ?? 0)
+        )
     }
 
     private func cancel() {

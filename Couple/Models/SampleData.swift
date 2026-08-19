@@ -61,22 +61,6 @@ enum SampleData {
         )
     }
 
-    static let completedTodo = Todo(
-        id: "40000000-0000-4000-8000-000000000099",
-        coupleId: relationship.couple!.id,
-        ownerId: user.id,
-        title: AppLocalization.string("去灵隐寺还愿吧"),
-        note: nil,
-        dueTime: nil,
-        visibility: .shared,
-        completed: true,
-        completedAt: now,
-        completedBy: partner.id,
-        reminderOffset: nil,
-        createdAt: now.addingTimeInterval(-172_800),
-        updatedAt: now
-    )
-
     static let attachments: [Attachment] = [
         demoAttachment(id: 1, asset: "MemoryWoman", width: 800, height: 1_200),
         demoAttachment(id: 2, asset: "MemoryMan", width: 1_800, height: 1_200),
@@ -125,19 +109,6 @@ enum SampleData {
             updatedAt: now.addingTimeInterval(-2_100_000),
             associations: [.init(type: .anniversary, id: anniversary.id, title: anniversary.title)],
             attachments: Array(attachments[2...4])
-        ),
-        Note(
-            id: "50000000-0000-4000-8000-000000000004",
-            coupleId: relationship.couple!.id,
-            ownerId: user.id,
-            content: "",
-            visibility: .shared,
-            anniversaryId: nil,
-            todoId: completedTodo.id,
-            createdAt: now.addingTimeInterval(-2_400_000),
-            updatedAt: now.addingTimeInterval(-2_400_000),
-            associations: [.init(type: .todo, id: completedTodo.id, title: completedTodo.title)],
-            attachments: []
         )
     ]
 

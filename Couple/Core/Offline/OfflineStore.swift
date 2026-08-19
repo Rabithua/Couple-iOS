@@ -621,6 +621,8 @@ final class OfflineStore: SyncStore {
         visibility: Visibility,
         now: Date = .now
     ) async throws -> Note {
+        try Note.validateCreation(text: content, attachmentCount: photos.count)
+
         let memoryId = UUID().uuidString.lowercased()
         var staged: [StagedAttachment] = []
         do {
