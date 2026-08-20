@@ -38,6 +38,8 @@ enum AppTheme {
     static let calendarRowTransferDuration = 0.38
     static let calendarRowTransferBounce = 0.22
     static let calendarAgendaFadeDuration = 0.18
+    static let calendarReturnToTodayTravelDuration = 0.44
+    static let calendarReturnToTodayFocusDuration = 0.18
     static let contentTop: CGFloat = 75
     static let muted = Color.secondary
     static let faint = Color.primary.opacity(0.08)

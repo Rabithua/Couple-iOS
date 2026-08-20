@@ -385,21 +385,38 @@ struct FutureView: View {
     }
 
     private func scrollToToday(using proxy: ScrollViewProxy, request: Int) {
-        proxy.scrollTo(
-            CalendarScrollTarget.month(currentCalendarMonthStart),
-            anchor: .top
-        )
-
-        Task { @MainActor in
-            await Task.yield()
-            guard scrollToTodayRequest == request else { return }
-            if reduceMotion {
+        if reduceMotion {
+            proxy.scrollTo(
+                CalendarScrollTarget.month(currentCalendarMonthStart),
+                anchor: .top
+            )
+            Task { @MainActor in
+                await Task.yield()
+                guard scrollToTodayRequest == request else { return }
                 proxy.scrollTo(
                     CalendarScrollTarget.today(currentCalendarDayStart),
                     anchor: .center
                 )
-            } else {
-                withAnimation(.smooth(duration: 0.32)) {
+            }
+            return
+        }
+
+        withAnimation(
+            .smooth(duration: AppTheme.calendarReturnToTodayTravelDuration),
+            completionCriteria: .logicallyComplete
+        ) {
+            proxy.scrollTo(
+                CalendarScrollTarget.month(currentCalendarMonthStart),
+                anchor: .top
+            )
+        } completion: {
+            guard scrollToTodayRequest == request else { return }
+            Task { @MainActor in
+                await Task.yield()
+                guard scrollToTodayRequest == request else { return }
+                withAnimation(
+                    .smooth(duration: AppTheme.calendarReturnToTodayFocusDuration)
+                ) {
                     proxy.scrollTo(
                         CalendarScrollTarget.today(currentCalendarDayStart),
                         anchor: .center
