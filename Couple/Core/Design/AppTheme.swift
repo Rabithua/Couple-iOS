@@ -60,8 +60,8 @@ extension View {
         background(Color(.systemBackground).ignoresSafeArea())
     }
 
-    func contentEditorSheetPresentation() -> some View {
-        presentationDetents([.medium])
+    func contentEditorSheetPresentation(detent: PresentationDetent = .medium) -> some View {
+        presentationDetents([detent])
             .presentationDragIndicator(.visible)
     }
 

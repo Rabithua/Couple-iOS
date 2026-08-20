@@ -34,6 +34,7 @@ struct ComposeMemoryView: View {
                 Section {
                     TextField("写下此刻……", text: $content, axis: .vertical)
                         .lineLimit(5...12)
+                        .accessibilityIdentifier("memoryContentField")
                 }
 
                 Section("照片") {
@@ -168,7 +169,7 @@ struct ComposeMemoryView: View {
                 Text(localError ?? "")
             }
         }
-        .contentEditorSheetPresentation()
+        .contentEditorSheetPresentation(detent: .large)
     }
 
     private var isValid: Bool {

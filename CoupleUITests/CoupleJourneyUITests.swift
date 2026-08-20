@@ -890,6 +890,37 @@ final class CoupleJourneyUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["一起去灵隐寺还愿吧"].waitForExistence(timeout: 3))
     }
 
+    func testComposerSheetDoesNotMoveWhenKeyboardAppears() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-now"]
+        app.launchInSimplifiedChinese()
+
+        let composeButton = app.buttons["composeMemoryButton"]
+        XCTAssertTrue(composeButton.waitForExistence(timeout: 5))
+        composeButton.tap()
+
+        let navigationBar = app.navigationBars["记录此刻"]
+        XCTAssertTrue(navigationBar.waitForExistence(timeout: 3))
+        let initialTop = navigationBar.frame.minY
+        XCTAssertLessThan(
+            initialTop,
+            app.frame.height * 0.2,
+            "The memory composer should begin at the large detent"
+        )
+
+        let contentField = app.textFields["memoryContentField"]
+        XCTAssertTrue(contentField.waitForExistence(timeout: 2))
+        contentField.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 3))
+        XCTAssertEqual(
+            navigationBar.frame.minY,
+            initialTop,
+            accuracy: 2,
+            "Focusing the composer must not move the sheet container"
+        )
+    }
+
     func testComposerCapturesLocationAndPersistsIt() {
         continueAfterFailure = false
         let app = XCUIApplication()
