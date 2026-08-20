@@ -4,72 +4,65 @@ struct OnboardingSpaceChoiceView: View {
     let select: (OnboardingSpaceAction) -> Void
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 28) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("我们的空间")
-                        .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                    Text("创建一个新的共同空间，或使用邀请码加入对方。")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                }
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 26) {
+                    Text("加入空间还是创建空间？")
+                        .font(.system(.title, design: .rounded, weight: .medium))
+                        .fixedSize(horizontal: false, vertical: true)
 
-                VStack(spacing: 14) {
-                    choiceButton(
-                        title: "创建空间",
-                        subtitle: "生成邀请码，邀请你的另一半",
-                        systemImage: "plus",
-                        action: .create
-                    )
-                    choiceButton(
-                        title: "加入空间",
-                        subtitle: "输入对方分享的 8 位邀请码",
-                        systemImage: "link",
-                        action: .join
-                    )
+                    VStack(spacing: 26) {
+                        choiceButton(
+                            title: "创建空间",
+                            subtitle: "创建一个属于你们的空间",
+                            action: .create,
+                            height: cardHeight(for: proxy.size.height)
+                        )
+                        choiceButton(
+                            title: "加入空间",
+                            subtitle: "如果你已经有邀请码的话",
+                            action: .join,
+                            height: cardHeight(for: proxy.size.height)
+                        )
+                    }
                 }
-
-                Text("共同空间最多两个人；邀请码有效期为 7 天。")
-                    .font(.footnote)
-                    .foregroundStyle(.tertiary)
+                .padding(.horizontal, AppTheme.horizontalPadding)
+                .padding(.top, 24)
+                .padding(.bottom, 24)
+                .frame(maxWidth: 620, alignment: .leading)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: proxy.size.height, alignment: .top)
             }
-            .padding(24)
-            .frame(maxWidth: 620, alignment: .leading)
-            .frame(maxWidth: .infinity)
+            .scrollIndicators(.hidden)
         }
-        .scrollIndicators(.hidden)
         .accessibilityIdentifier("onboardingSpaceChoice")
     }
 
     private func choiceButton(
         title: LocalizedStringKey,
         subtitle: LocalizedStringKey,
-        systemImage: String,
-        action: OnboardingSpaceAction
+        action: OnboardingSpaceAction,
+        height: CGFloat
     ) -> some View {
         Button { select(action) } label: {
-            HStack(spacing: 16) {
-                Image(systemName: systemImage)
-                    .font(.title2.bold())
-                    .frame(width: 36)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title).font(.title3.bold())
-                    Text(subtitle)
-                        .font(.subheadline)
-                        .opacity(0.82)
-                }
-                Spacer(minLength: 8)
-                Image(systemName: "chevron.right")
-                    .font(.headline)
+            VStack(spacing: 5) {
+                Text(title)
+                    .font(.system(.title, design: .rounded, weight: .bold))
+                Text(subtitle)
+                    .font(.system(.body, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.5))
             }
             .foregroundStyle(.white)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 18)
-            .frame(maxWidth: .infinity, minHeight: 88, alignment: .leading)
-            .background(AppTheme.accent, in: .rect(cornerRadius: 20))
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
+            .background(AppTheme.accent, in: .rect(cornerRadius: 12))
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("onboarding\(action.rawValue.capitalized)SpaceButton")
+    }
+
+    private func cardHeight(for availableHeight: CGFloat) -> CGFloat {
+        min(259, max(196, (availableHeight - 130) / 2))
     }
 }

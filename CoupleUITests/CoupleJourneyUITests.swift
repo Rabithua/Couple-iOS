@@ -16,8 +16,22 @@ final class CoupleJourneyUITests: XCTestCase {
         let choice = app.descendants(matching: .any)["onboardingSpaceChoice"]
         XCTAssertTrue(choice.waitForExistence(timeout: 5))
         app.buttons["onboardingJoinSpaceButton"].tap()
-        XCTAssertTrue(app.textFields["onboardingDisplayNameField"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.descendants(matching: .any)["onboardingBirthdayPicker"].exists)
+        let joinNameField = app.textFields["onboardingDisplayNameField"]
+        XCTAssertTrue(joinNameField.waitForExistence(timeout: 2))
+        let birthdayPicker = app.descendants(matching: .any)["onboardingBirthdayPicker"]
+        XCTAssertTrue(birthdayPicker.exists)
+        let initialBirthdayPickerFrame = birthdayPicker.frame
+        XCTAssertLessThanOrEqual(initialBirthdayPickerFrame.minX, joinNameField.frame.minX)
+
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        XCTAssertTrue(birthdayPicker.waitForExistence(timeout: 2))
+        XCTAssertEqual(birthdayPicker.frame.minX, initialBirthdayPickerFrame.minX, accuracy: 2)
+        birthdayPicker.tap()
+        let birthdayEditor = app.descendants(matching: .any)["onboardingBirthdayEditor"]
+        XCTAssertTrue(birthdayEditor.waitForExistence(timeout: 2))
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.2)).tap()
+        XCTAssertTrue(birthdayEditor.waitForNonExistence(timeout: 2))
         XCTAssertTrue(app.textFields["onboardingInviteCodeField"].exists)
 
         app.buttons["onboardingBackButton"].tap()

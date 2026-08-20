@@ -10,6 +10,9 @@ final class AppHaptics {
     enum Feedback: Equatable {
         case tap
         case selection
+        case press
+        case step
+        case boundary
         case success
         case warning
         case error
@@ -20,6 +23,12 @@ final class AppHaptics {
                 .impact(flexibility: .soft, intensity: 0.4)
             case .selection:
                 .selection
+            case .press:
+                .impact(flexibility: .soft, intensity: 0.75)
+            case .step:
+                .impact(flexibility: .rigid, intensity: 0.9)
+            case .boundary:
+                .impact(weight: .heavy, intensity: 0.8)
             case .success:
                 .success
             case .warning:
