@@ -11,6 +11,7 @@
 		0B0000000000000000000002 /* OnboardingFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B0000000000000000000012 /* OnboardingFlowView.swift */; };
 		0B0000000000000000000003 /* OnboardingSpaceChoiceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B0000000000000000000013 /* OnboardingSpaceChoiceView.swift */; };
 		0B0000000000000000000004 /* OnboardingDetailsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B0000000000000000000014 /* OnboardingDetailsView.swift */; };
+		0B0000000000000000000005 /* OnboardingCardDeck.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B0000000000000000000015 /* OnboardingCardDeck.swift */; };
 		D1A100000000000000000001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A100000000000000000002 /* AppDelegate.swift */; };
 		D1A100000000000000000003 /* NotificationDestination.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A100000000000000000004 /* NotificationDestination.swift */; };
 		D1A100000000000000000005 /* NotificationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A100000000000000000006 /* NotificationCoordinator.swift */; };
@@ -139,6 +140,7 @@
 		0B0000000000000000000012 /* OnboardingFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowView.swift; sourceTree = "<group>"; };
 		0B0000000000000000000013 /* OnboardingSpaceChoiceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingSpaceChoiceView.swift; sourceTree = "<group>"; };
 		0B0000000000000000000014 /* OnboardingDetailsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingDetailsView.swift; sourceTree = "<group>"; };
+		0B0000000000000000000015 /* OnboardingCardDeck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingCardDeck.swift; sourceTree = "<group>"; };
 		D1A100000000000000000002 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		D1A100000000000000000004 /* NotificationDestination.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationDestination.swift; sourceTree = "<group>"; };
 		D1A100000000000000000006 /* NotificationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationCoordinator.swift; sourceTree = "<group>"; };
@@ -492,6 +494,7 @@
 			children = (
 				696F9D1F109987A90B921B2E /* AuthView.swift */,
 				0B0000000000000000000011 /* OnboardingHeroCarousel.swift */,
+				0B0000000000000000000015 /* OnboardingCardDeck.swift */,
 			);
 			path = Auth;
 			sourceTree = "<group>";
@@ -753,6 +756,7 @@
 				0B0000000000000000000002 /* OnboardingFlowView.swift in Sources */,
 				0B0000000000000000000003 /* OnboardingSpaceChoiceView.swift in Sources */,
 				0B0000000000000000000004 /* OnboardingDetailsView.swift in Sources */,
+				0B0000000000000000000005 /* OnboardingCardDeck.swift in Sources */,
 				D1A100000000000000000001 /* AppDelegate.swift in Sources */,
 				ACC4099C181A162958FF5DFA /* APIClient.swift in Sources */,
 				B8F6E5EDFDAAC36669A60F3C /* APIModels.swift in Sources */,

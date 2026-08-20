@@ -31,7 +31,7 @@ struct OnboardingFlowView: View {
     }
 
     private func select(_ action: OnboardingSpaceAction) {
-        haptics.play(.tap)
+        haptics.play(.step)
         if !store.requiresOnboardingProfile, action == .create {
             Task { await createSpaceForExistingAccount() }
         } else {
@@ -40,7 +40,7 @@ struct OnboardingFlowView: View {
     }
 
     private func goBack() {
-        haptics.play(.tap)
+        haptics.play(.press)
         selectedAction = nil
     }
 
@@ -50,7 +50,7 @@ struct OnboardingFlowView: View {
         inviteCode: String?
     ) {
         guard let selectedAction else { return }
-        haptics.play(.tap)
+        haptics.play(.press)
         Task {
             if store.requiresOnboardingProfile {
                 await store.completeOnboarding(

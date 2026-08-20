@@ -3,80 +3,127 @@ import SwiftUI
 
 struct OnboardingHeroCarousel: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(AppHaptics.self) private var haptics
     let isActive: Bool
 
     @State private var automaticAngle = 0.0
+    @State private var automaticDirection = 1.0
     @State private var dragAngle = 0.0
     @State private var isDragging = false
+    @State private var isOverscrolling = false
 
-    private let timer = Timer.publish(every: 0.05, on: .main, in: .common).autoconnect()
+    private let timer = Timer.publish(every: 3, on: .main, in: .common).autoconnect()
 
     var body: some View {
         GeometryReader { proxy in
-            let cardWidth = min(238, proxy.size.width * 0.58)
-            let cardHeight = min(432, proxy.size.height * 0.9)
-            let radius = max(proxy.size.width * 2.35, 760)
+            let angle = automaticAngle + dragAngle
 
-            ZStack {
-                ForEach(-4...4, id: \.self) { index in
-                    let angle = relativeAngle(for: index)
-                    let radians = angle * .pi / 180
-
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(AppTheme.accent)
-                        .frame(width: cardWidth, height: cardHeight)
-                        .rotationEffect(.degrees(angle))
-                        .offset(
-                            x: sin(radians) * radius,
-                            y: (1 - cos(radians)) * radius * 0.58
-                        )
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .contentShape(.rect)
-            .gesture(dragGesture(width: proxy.size.width))
-            .overlay(alignment: .bottom) {
-                LinearGradient(
-                    colors: [.clear, Color(.systemBackground)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: min(150, proxy.size.height * 0.34))
-                .allowsHitTesting(false)
-            }
-            .clipped()
+            OnboardingCardDeck(angle: angle, canvasSize: proxy.size)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(.rect)
+                .simultaneousGesture(dragGesture(width: proxy.size.width))
+                .appHapticFeedback(.step, trigger: stage(for: angle))
+                .clipped()
         }
         .onReceive(timer) { _ in
             guard isActive, !reduceMotion, !isDragging else { return }
-            automaticAngle = normalized(automaticAngle + 0.035)
+            advanceAutomaticRotation()
         }
         .accessibilityHidden(true)
-    }
-
-    private func relativeAngle(for index: Int) -> Double {
-        Double(index) * 15 + (reduceMotion ? 0 : automaticAngle + dragAngle)
     }
 
     private func dragGesture(width: CGFloat) -> some Gesture {
         DragGesture(minimumDistance: 4)
             .onChanged { value in
+                guard abs(value.translation.width) > abs(value.translation.height) else { return }
                 isDragging = true
-                dragAngle = Double(value.translation.width / max(width, 1)) * 24
+                let translation = Double(value.translation.width / max(width, 1)) * 24
+                let proposedAngle = automaticAngle + translation
+                let overscrolling = abs(proposedAngle) > OnboardingCardDeck.maximumRotation
+                if overscrolling, !isOverscrolling {
+                    haptics.play(.boundary)
+                }
+                isOverscrolling = overscrolling
+
+                let visualAngle = rubberBanded(proposedAngle)
+                dragAngle = visualAngle - automaticAngle
             }
             .onEnded { value in
-                let projected = automaticAngle
-                    + Double(value.predictedEndTranslation.width / max(width, 1)) * 24
-                let snapped = (projected / 15).rounded() * 15
-                withAnimation(reduceMotion ? nil : .spring(duration: 0.5, bounce: 0.2)) {
-                    automaticAngle = normalized(snapped)
+                guard isDragging else { return }
+                let width = max(width, 1)
+                let translation = Double(value.translation.width / width) * 24
+                let projectedTranslation = Double(value.predictedEndTranslation.width / width) * 24
+                let inertia = (projectedTranslation - translation) * 0.35
+                let destination = snapped(automaticAngle + translation + inertia)
+
+                updateAutomaticDirection(for: destination)
+                isOverscrolling = false
+
+                guard !reduceMotion else {
+                    automaticAngle = destination
                     dragAngle = 0
+                    isDragging = false
+                    return
                 }
-                isDragging = false
+
+                withAnimation(.spring(duration: 0.45, bounce: 0.25)) {
+                    automaticAngle = destination
+                    dragAngle = 0
+                } completion: {
+                    isDragging = false
+                }
             }
     }
 
-    private func normalized(_ angle: Double) -> Double {
-        let remainder = angle.truncatingRemainder(dividingBy: 15)
-        return remainder > 7.5 ? remainder - 15 : remainder
+    private func advanceAutomaticRotation() {
+        let destination = automaticAngle + automaticDirection * OnboardingCardDeck.angleStep
+        let boundedDestination: Double
+
+        if destination >= OnboardingCardDeck.maximumRotation {
+            boundedDestination = OnboardingCardDeck.maximumRotation
+            automaticDirection = -1
+        } else if destination <= -OnboardingCardDeck.maximumRotation {
+            boundedDestination = -OnboardingCardDeck.maximumRotation
+            automaticDirection = 1
+        } else {
+            boundedDestination = destination
+        }
+
+        withAnimation(.spring(duration: 0.45, bounce: 0.2)) {
+            automaticAngle = boundedDestination
+        }
+    }
+
+    private func clamped(_ angle: Double) -> Double {
+        min(max(angle, -OnboardingCardDeck.maximumRotation), OnboardingCardDeck.maximumRotation)
+    }
+
+    private func rubberBanded(_ angle: Double) -> Double {
+        let limit = OnboardingCardDeck.maximumRotation
+        guard abs(angle) > limit else { return angle }
+
+        let overflow = abs(angle) - limit
+        let maximumOverflow = OnboardingCardDeck.angleStep / 2
+        let resistedOverflow = (1 - 1 / (overflow * 0.55 / maximumOverflow + 1)) * maximumOverflow
+        let direction = angle < 0 ? -1.0 : 1.0
+        return direction * (limit + resistedOverflow)
+    }
+
+    private func snapped(_ angle: Double) -> Double {
+        let boundedAngle = clamped(angle)
+        let stage = (boundedAngle / OnboardingCardDeck.angleStep).rounded()
+        return clamped(stage * OnboardingCardDeck.angleStep)
+    }
+
+    private func stage(for angle: Double) -> Int {
+        Int((clamped(angle) / OnboardingCardDeck.angleStep).rounded())
+    }
+
+    private func updateAutomaticDirection(for angle: Double) {
+        if angle >= OnboardingCardDeck.maximumRotation {
+            automaticDirection = -1
+        } else if angle <= -OnboardingCardDeck.maximumRotation {
+            automaticDirection = 1
+        }
     }
 }

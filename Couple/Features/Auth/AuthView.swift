@@ -15,7 +15,7 @@ struct AuthView: View {
                         .padding(.top, 20)
 
                     OnboardingHeroCarousel(isActive: scenePhase == .active)
-                        .frame(height: min(470, max(320, proxy.size.height * 0.53)))
+                        .frame(height: min(545, max(460, proxy.size.height * 0.63)))
                         .padding(.top, 12)
 
                     Spacer(minLength: 16)
@@ -57,26 +57,30 @@ struct AuthView: View {
     }
 
     private var brand: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 0) {
-                Text("our")
-                    .foregroundStyle(AppTheme.accent)
-                Text("since")
+        VStack(alignment: .leading, spacing: 8) {
+            ZStack {
+                Image("OursinceSince")
+                    .renderingMode(.template)
+                    .resizable()
                     .foregroundStyle(.primary)
+
+                Image("OursinceOur")
+                    .renderingMode(.template)
+                    .resizable()
+                    .foregroundStyle(AppTheme.accent)
             }
-            .font(.system(.largeTitle, design: .rounded, weight: .bold))
-            .fontWidth(.expanded)
+            .frame(width: 240, height: 42.6)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("oursince")
 
             Text("属于我们的共同记录")
-                .font(.system(.title3, design: .rounded, weight: .medium))
+                .font(.system(.title2, design: .rounded, weight: .medium))
                 .foregroundStyle(.tertiary)
         }
     }
 
     private func beginRegistration() {
-        haptics.play(.tap)
+        haptics.play(.press)
         Task {
             await store.register()
             if store.phase == .onboarding { haptics.play(.success) }
@@ -84,7 +88,7 @@ struct AuthView: View {
     }
 
     private func beginSignIn() {
-        haptics.play(.tap)
+        haptics.play(.press)
         Task {
             await store.signIn()
             if store.phase != .signedOut { haptics.play(.success) }

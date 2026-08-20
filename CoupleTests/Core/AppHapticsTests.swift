@@ -24,6 +24,18 @@ final class AppHapticsTests: XCTestCase {
             .impact(flexibility: .soft, intensity: 0.4)
         )
         XCTAssertEqual(AppHaptics.Feedback.selection.sensoryFeedback, .selection)
+        XCTAssertEqual(
+            AppHaptics.Feedback.press.sensoryFeedback,
+            .impact(flexibility: .soft, intensity: 0.75)
+        )
+        XCTAssertEqual(
+            AppHaptics.Feedback.step.sensoryFeedback,
+            .impact(flexibility: .rigid, intensity: 0.9)
+        )
+        XCTAssertEqual(
+            AppHaptics.Feedback.boundary.sensoryFeedback,
+            .impact(weight: .heavy, intensity: 0.8)
+        )
         XCTAssertEqual(AppHaptics.Feedback.success.sensoryFeedback, .success)
         XCTAssertEqual(AppHaptics.Feedback.warning.sensoryFeedback, .warning)
         XCTAssertEqual(AppHaptics.Feedback.error.sensoryFeedback, .error)
