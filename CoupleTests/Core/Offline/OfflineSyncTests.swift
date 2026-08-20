@@ -5,6 +5,151 @@ import XCTest
 
 @MainActor
 final class OfflineSyncTests: XCTestCase {
+    func testMemoryLocationPersistsAndSyncsCreateUpdateAndClear() async throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let original = NoteLocation(
+            latitude: 30.274_084_8,
+            longitude: 120.155_070_7,
+            name: "西湖"
+        )
+        let note = try await store.createMemory(
+            coupleId: "couple",
+            ownerId: "owner",
+            content: "带位置的动态",
+            photos: [],
+            anniversaryId: nil,
+            anniversaryTitle: nil,
+            todoId: nil,
+            todoTitle: nil,
+            location: original,
+            visibility: .shared
+        )
+
+        XCTAssertEqual(note.location, original)
+        let createOperations = try await store.pendingOperations(limit: 10, now: .distantFuture)
+        let create = try XCTUnwrap(createOperations.first)
+        XCTAssertTrue(create.changedFieldGroups.contains("location"))
+        XCTAssertEqual(create.payload.fields["latitude"], .double(original.latitude))
+        XCTAssertEqual(create.payload.fields["longitude"], .double(original.longitude))
+        XCTAssertEqual(create.payload.fields["locationName"], .string("西湖"))
+        try await store.acknowledge(operationIds: [create.operationId], now: .now)
+
+        let updated = NoteLocation(latitude: 31.230_416, longitude: 121.473_701, name: "外滩")
+        try store.editMemory(
+            id: note.id,
+            content: note.content,
+            anniversaryId: nil,
+            anniversaryTitle: nil,
+            todoId: nil,
+            todoTitle: nil,
+            location: updated,
+            visibility: note.visibility
+        )
+        let updatedSnapshot = try await store.loadSnapshot()
+        XCTAssertEqual(updatedSnapshot.notes.first?.location, updated)
+        let updateOperations = try await store.pendingOperations(limit: 10, now: .distantFuture)
+        let update = try XCTUnwrap(updateOperations.first)
+        XCTAssertTrue(update.changedFieldGroups.contains("location"))
+        XCTAssertEqual(update.payload.fields["latitude"], .double(updated.latitude))
+        XCTAssertEqual(update.payload.fields["longitude"], .double(updated.longitude))
+        XCTAssertEqual(update.payload.fields["locationName"], .string("外滩"))
+        try await store.acknowledge(operationIds: [update.operationId], now: .now)
+
+        try store.editMemory(
+            id: note.id,
+            content: note.content,
+            anniversaryId: nil,
+            anniversaryTitle: nil,
+            todoId: nil,
+            todoTitle: nil,
+            location: nil,
+            visibility: note.visibility
+        )
+        let clearedSnapshot = try await store.loadSnapshot()
+        XCTAssertNil(clearedSnapshot.notes.first?.location)
+        let clearOperations = try await store.pendingOperations(limit: 10, now: .distantFuture)
+        let clear = try XCTUnwrap(clearOperations.first)
+        XCTAssertTrue(clear.changedFieldGroups.contains("location"))
+        XCTAssertEqual(clear.payload.fields["latitude"], .null)
+        XCTAssertEqual(clear.payload.fields["longitude"], .null)
+        XCTAssertEqual(clear.payload.fields["locationName"], .null)
+    }
+
+    func testRemoteLocationGroupAppliesAtomicallyAndCanBeCleared() async throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let note = try await store.createMemory(
+            coupleId: "couple",
+            ownerId: "owner",
+            content: "远端位置",
+            photos: [],
+            anniversaryId: nil,
+            anniversaryTitle: nil,
+            todoId: nil,
+            todoTitle: nil,
+            visibility: .shared
+        )
+        let create = try await store.pendingOperations(limit: 10, now: .distantFuture)
+        try await store.acknowledge(operationIds: create.map(\.operationId), now: .now)
+        let firstClock = HybridLogicalTimestamp(
+            wallTimeMilliseconds: Date.now.millisecondsSince1970 + 10_000,
+            counter: 0,
+            deviceId: "server"
+        )
+        let locatedChange = RemoteEntityChange(
+            entityType: .memory,
+            entityId: note.id,
+            ownerId: "owner",
+            visibility: Visibility.shared.rawValue,
+            kind: .upsert,
+            fields: [
+                "latitude": .double(30.274_084_8),
+                "longitude": .double(120.155_070_7),
+                "locationName": .string("西湖"),
+            ],
+            attachments: [],
+            changedFieldGroups: ["location"],
+            fieldClocks: ["location": firstClock],
+            tombstone: nil,
+            updatedAt: firstClock.date
+        )
+        try await store.applyRemotePage(
+            PullPage(changes: [locatedChange], nextCursor: "location-1", hasMore: false, serverTime: .now),
+            now: .now
+        )
+        let locatedSnapshot = try await store.loadSnapshot()
+        XCTAssertEqual(
+            locatedSnapshot.notes.first?.location,
+            NoteLocation(latitude: 30.274_084_8, longitude: 120.155_070_7, name: "西湖")
+        )
+
+        let clearClock = HybridLogicalTimestamp(
+            wallTimeMilliseconds: firstClock.wallTimeMilliseconds + 1,
+            counter: 0,
+            deviceId: "server"
+        )
+        let clearChange = RemoteEntityChange(
+            entityType: .memory,
+            entityId: note.id,
+            ownerId: "owner",
+            visibility: Visibility.shared.rawValue,
+            kind: .upsert,
+            fields: ["latitude": .null, "longitude": .null, "locationName": .null],
+            attachments: [],
+            changedFieldGroups: ["location"],
+            fieldClocks: ["location": clearClock],
+            tombstone: nil,
+            updatedAt: clearClock.date
+        )
+        try await store.applyRemotePage(
+            PullPage(changes: [clearChange], nextCursor: "location-2", hasMore: false, serverTime: .now),
+            now: .now
+        )
+        let clearedSnapshot = try await store.loadSnapshot()
+        XCTAssertNil(clearedSnapshot.notes.first?.location)
+    }
+
     func testSystemBirthdayPersistsKindAndOnlyEnqueuesDateEdit() async throws {
         let (store, root) = try makeStore()
         defer { try? FileManager.default.removeItem(at: root) }

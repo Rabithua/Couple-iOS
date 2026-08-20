@@ -125,6 +125,9 @@ final class OfflineStore: SyncStore {
                     visibility: Visibility(rawValue: local.visibility) ?? .shared,
                     anniversaryId: local.anniversaryId,
                     todoId: local.todoId,
+                    latitude: local.latitude,
+                    longitude: local.longitude,
+                    locationName: local.locationName,
                     createdAt: local.createdAt,
                     updatedAt: local.updatedAt,
                     associations: associations,
@@ -760,6 +763,7 @@ final class OfflineStore: SyncStore {
         anniversaryTitle: String?,
         todoId: String?,
         todoTitle: String?,
+        location: NoteLocation? = nil,
         visibility: Visibility,
         now: Date = .now
     ) async throws -> Note {
@@ -780,10 +784,13 @@ final class OfflineStore: SyncStore {
                 anniversaryTitle: anniversaryTitle,
                 todoId: todoId,
                 todoTitle: todoTitle,
+                latitude: location?.latitude,
+                longitude: location?.longitude,
+                locationName: location?.name,
                 createdAt: now,
                 updatedAt: now,
                 fieldClocksData: try Self.encode(Self.clocks(
-                    groups: ["content", "associations", "visibility", "attachments"],
+                    groups: ["content", "associations", "location", "visibility", "attachments"],
                     hlc: hlc
                 )),
                 isDirty: true
@@ -821,7 +828,7 @@ final class OfflineStore: SyncStore {
                 entityId: memoryId,
                 kind: .create,
                 payload: payload,
-                changedGroups: ["content", "associations", "visibility", "attachments"],
+                changedGroups: ["content", "associations", "location", "visibility", "attachments"],
                 hlc: hlc,
                 now: now
             )
@@ -844,6 +851,7 @@ final class OfflineStore: SyncStore {
         anniversaryTitle: String?,
         todoId: String?,
         todoTitle: String?,
+        location: NoteLocation? = nil,
         visibility: Visibility,
         now: Date = .now
     ) throws {
@@ -852,12 +860,33 @@ final class OfflineStore: SyncStore {
         }
         guard !entity.isTombstoned else { return }
         let hlc = try nextHLC(at: now)
-        let groups: Set<String> = ["content", "associations", "visibility"]
+        var groups: Set<String> = ["content", "associations", "visibility"]
+        var fields: [String: MutationValue] = [
+            "content": .string(content),
+            "anniversaryId": anniversaryId.map(MutationValue.string) ?? .null,
+            "todoId": todoId.map(MutationValue.string) ?? .null,
+            "visibility": .string(visibility.rawValue),
+        ]
+        let latitude = location?.latitude
+        let longitude = location?.longitude
+        let locationName = location?.name
+        let locationChanged = entity.latitude != latitude
+            || entity.longitude != longitude
+            || entity.locationName != locationName
         entity.content = content
         entity.anniversaryId = anniversaryId
         entity.anniversaryTitle = anniversaryTitle
         entity.todoId = todoId
         entity.todoTitle = todoTitle
+        if locationChanged {
+            groups.insert("location")
+            entity.latitude = latitude
+            entity.longitude = longitude
+            entity.locationName = locationName
+            fields["latitude"] = latitude.map(MutationValue.double) ?? .null
+            fields["longitude"] = longitude.map(MutationValue.double) ?? .null
+            fields["locationName"] = locationName.map(MutationValue.string) ?? .null
+        }
         entity.visibility = visibility.rawValue
         entity.updatedAt = now
         entity.isDirty = true
@@ -866,12 +895,7 @@ final class OfflineStore: SyncStore {
             entityType: .memory,
             entityId: id,
             kind: .update,
-            payload: .init(fields: [
-                "content": .string(content),
-                "anniversaryId": anniversaryId.map(MutationValue.string) ?? .null,
-                "todoId": todoId.map(MutationValue.string) ?? .null,
-                "visibility": .string(visibility.rawValue),
-            ]),
+            payload: .init(fields: fields),
             changedGroups: groups,
             hlc: hlc,
             now: now
@@ -1488,6 +1512,9 @@ final class OfflineStore: SyncStore {
             anniversaryTitle: nil,
             todoId: change.fields["todoId"]?.optionalString,
             todoTitle: nil,
+            latitude: change.fields["latitude"]?.optionalDouble,
+            longitude: change.fields["longitude"]?.optionalDouble,
+            locationName: change.fields["locationName"]?.optionalString,
             createdAt: change.maximumClock.date,
             updatedAt: change.updatedAt ?? change.maximumClock.date,
             fieldClocksData: remoteClocksData
@@ -1501,6 +1528,12 @@ final class OfflineStore: SyncStore {
             case "associations":
                 if let value = change.fields["anniversaryId"] { entity.anniversaryId = value.optionalString }
                 if let value = change.fields["todoId"] { entity.todoId = value.optionalString }
+            case "location":
+                if let value = change.fields["latitude"] { entity.latitude = value.optionalDouble }
+                if let value = change.fields["longitude"] { entity.longitude = value.optionalDouble }
+                if let value = change.fields["locationName"] {
+                    entity.locationName = value.optionalString
+                }
             case "visibility": entity.visibility = change.fields["visibility"]?.optionalString ?? change.visibility
             case "attachments": try applyAttachments(change.attachments, memoryId: entity.id, timelineId: nil, clock: change.maximumClock)
             default: break
@@ -1989,9 +2022,12 @@ final class OfflineStore: SyncStore {
                     anniversaryTitle: anniversaryTitle,
                     todoId: remote.todoId,
                     todoTitle: todoTitle,
+                    latitude: remote.latitude,
+                    longitude: remote.longitude,
+                    locationName: remote.locationName,
                     createdAt: remote.createdAt,
                     updatedAt: remote.updatedAt,
-                    fieldClocksData: try Self.encode(Self.clocks(groups: ["content", "associations", "visibility", "attachments"], hlc: remoteClock))
+                    fieldClocksData: try Self.encode(Self.clocks(groups: ["content", "associations", "location", "visibility", "attachments"], hlc: remoteClock))
                 )
             )
         } else if let local = existing {
@@ -2007,6 +2043,12 @@ final class OfflineStore: SyncStore {
                 local.todoId = remote.todoId
                 local.todoTitle = todoTitle
                 clocks["associations"] = remoteClock
+            }
+            if clocks["location"] == nil || clocks["location"]! < remoteClock {
+                local.latitude = remote.latitude
+                local.longitude = remote.longitude
+                local.locationName = remote.locationName
+                clocks["location"] = remoteClock
             }
             if clocks["visibility"] == nil || clocks["visibility"]! < remoteClock {
                 local.visibility = remote.visibility.rawValue
@@ -2650,6 +2692,9 @@ final class OfflineStore: SyncStore {
             "visibility": .string(entity.visibility),
             "anniversaryId": entity.anniversaryId.map(MutationValue.string) ?? .null,
             "todoId": entity.todoId.map(MutationValue.string) ?? .null,
+            "latitude": entity.latitude.map(MutationValue.double) ?? .null,
+            "longitude": entity.longitude.map(MutationValue.double) ?? .null,
+            "locationName": entity.locationName.map(MutationValue.string) ?? .null,
             "attachmentIds": .strings([]),
         ])
     }
@@ -2719,6 +2764,14 @@ private extension MutationValue {
     var optionalInteger: Int? {
         if case .integer(let value) = self { return value }
         return nil
+    }
+
+    var optionalDouble: Double? {
+        switch self {
+        case .double(let value): value
+        case .integer(let value): Double(value)
+        default: nil
+        }
     }
 
     var optionalBoolean: Bool? {

@@ -17,6 +17,8 @@
 		D1A100000000000000000005 /* NotificationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A100000000000000000006 /* NotificationCoordinator.swift */; };
 		D1A100000000000000000007 /* ReminderPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A100000000000000000008 /* ReminderPreset.swift */; };
 		D1A100000000000000000009 /* CalendarAgendaAnniversaryRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A10000000000000000000A /* CalendarAgendaAnniversaryRow.swift */; };
+		941DAE1A1A7F484FBA1A9DB2 /* NoteLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BA240B3650A44B8ABF0DFF0 /* NoteLocation.swift */; };
+		DF9E8AA48C84471E81C76D81 /* MemoryLocationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82F44A4C948042B6B86015DB /* MemoryLocationCoordinator.swift */; };
 		0C0A11A2D5404E17B3170011 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 0C0A11A2D5404E17B3170021 /* Localizable.xcstrings */; };
 		0C0A11A2D5404E17B3170012 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 0C0A11A2D5404E17B3170022 /* InfoPlist.xcstrings */; };
 		0C0A11A2D5404E17B3170111 /* AppLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0A11A2D5404E17B3170101 /* AppLanguage.swift */; };
@@ -146,6 +148,8 @@
 		D1A100000000000000000006 /* NotificationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationCoordinator.swift; sourceTree = "<group>"; };
 		D1A100000000000000000008 /* ReminderPreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderPreset.swift; sourceTree = "<group>"; };
 		D1A10000000000000000000A /* CalendarAgendaAnniversaryRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarAgendaAnniversaryRow.swift; sourceTree = "<group>"; };
+		1BA240B3650A44B8ABF0DFF0 /* NoteLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteLocation.swift; sourceTree = "<group>"; };
+		82F44A4C948042B6B86015DB /* MemoryLocationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryLocationCoordinator.swift; sourceTree = "<group>"; };
 		0C0A11A2D5404E17B3170021 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		0C0A11A2D5404E17B3170022 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		0C0A11A2D5404E17B3170101 /* AppLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLanguage.swift; sourceTree = "<group>"; };
@@ -255,6 +259,7 @@
 			isa = PBXGroup;
 			children = (
 				041507648A3CCDBE8F9EE374 /* AppStore.swift */,
+				1BA240B3650A44B8ABF0DFF0 /* NoteLocation.swift */,
 				D1A100000000000000000008 /* ReminderPreset.swift */,
 				53AF261A9D87E6EEB78399C8 /* SampleData.swift */,
 			);
@@ -505,12 +510,21 @@
 				5ADE25D9BC11DCBA8885A08F /* API */,
 				877B0724597DA6088DB1CF1A /* Auth */,
 				4F3372D05A61CAAF8723DAB2 /* Design */,
+				C4085B3633674FF5BBFF2A5A /* Location */,
 				0C0A11A2D5404E17B3170151 /* Localization */,
 				D1A10000000000000000000B /* Notifications */,
 				AE7EC65B5D9E0E8278CF0794 /* Offline */,
 				A13EE0C3AC228A8445B07DC3 /* Utilities */,
 			);
 			path = Core;
+			sourceTree = "<group>";
+		};
+		C4085B3633674FF5BBFF2A5A /* Location */ = {
+			isa = PBXGroup;
+			children = (
+				82F44A4C948042B6B86015DB /* MemoryLocationCoordinator.swift */,
+			);
+			path = Location;
 			sourceTree = "<group>";
 		};
 		A13EE0C3AC228A8445B07DC3 /* Utilities */ = {
@@ -760,6 +774,7 @@
 				D1A100000000000000000001 /* AppDelegate.swift in Sources */,
 				ACC4099C181A162958FF5DFA /* APIClient.swift in Sources */,
 				B8F6E5EDFDAAC36669A60F3C /* APIModels.swift in Sources */,
+				DF9E8AA48C84471E81C76D81 /* MemoryLocationCoordinator.swift in Sources */,
 				A305144BE24908FBE2BB7292 /* APIService.swift in Sources */,
 				0C0A11A2D5404E17B3170111 /* AppLanguage.swift in Sources */,
 				0C0A11A2D5404E17B3170112 /* AppLanguageStore.swift in Sources */,
@@ -831,6 +846,7 @@
 				17DB60F3CAFAF0A38B435D1B /* PhotoPreviewView.swift in Sources */,
 				18C665F36ACB776EEF49A7C9 /* PhotoPreviewZoomState.swift in Sources */,
 				B9A6450A2D9A3F856CC7CD85 /* SampleData.swift in Sources */,
+				941DAE1A1A7F484FBA1A9DB2 /* NoteLocation.swift in Sources */,
 				D1A100000000000000000007 /* ReminderPreset.swift in Sources */,
 				E4003FD6B3C8C7E22658C499 /* SettingsView.swift in Sources */,
 				C8029A9F3E617AF01677C912 /* SyncCore.swift in Sources */,
@@ -922,6 +938,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = oursince;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "使用面容 ID 安全登录你们的共同空间。";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "在记录动态时获取当前位置，帮助你们记住共同经历的地点。";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "选择照片来记录你们共同的时刻。";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -969,6 +986,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = oursince;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "使用面容 ID 安全登录你们的共同空间。";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "在记录动态时获取当前位置，帮助你们记住共同经历的地点。";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "选择照片来记录你们共同的时刻。";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
