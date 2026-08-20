@@ -88,7 +88,7 @@ struct ComposeMemoryView: View {
                     Picker("纪念日", selection: $anniversaryId) {
                         Text("不关联").tag(String?.none)
                         ForEach(store.anniversaries) { item in
-                            Text(item.title).tag(String?.some(item.id))
+                            Text(item.displayTitle).tag(String?.some(item.id))
                         }
                     }
                     .appHapticFeedback(.selection, trigger: anniversaryId)

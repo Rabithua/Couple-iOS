@@ -32,6 +32,37 @@ struct AppLanguageTests {
     }
 
     @Test
+    func systemBirthdayTitleUsesTheSelectedLanguage() throws {
+        let appBundle = try #require(Bundle(identifier: "com.oursince.couple"))
+        let birthday = Anniversary(
+            id: "birthday",
+            coupleId: "couple",
+            ownerId: "owner",
+            title: "Alice",
+            date: "2000-08-20",
+            annual: true,
+            visibility: .shared,
+            createdAt: .now,
+            updatedAt: .now,
+            nextOccurrence: nil,
+            systemKind: "birthday"
+        )
+
+        #expect(
+            birthday.localizedDisplayTitle(language: .english, bundle: appBundle)
+                == "Alice’s birthday"
+        )
+        #expect(
+            birthday.localizedDisplayTitle(language: .simplifiedChinese, bundle: appBundle)
+                == "Alice的生日"
+        )
+        #expect(
+            birthday.localizedDisplayTitle(language: .traditionalChinese, bundle: appBundle)
+                == "Alice的生日"
+        )
+    }
+
+    @Test
     func datesUseTheSelectedAppLocale() throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = try #require(TimeZone(secondsFromGMT: 0))

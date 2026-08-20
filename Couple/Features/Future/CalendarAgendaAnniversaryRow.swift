@@ -11,13 +11,13 @@ struct CalendarAgendaAnniversaryRow: View {
                 Text(anniversary.annual ? "每年" : "纪念日")
                     .foregroundStyle(.secondary)
             } label: {
-                Label(anniversary.title, systemImage: "birthday.cake.fill")
+                Label(anniversary.displayTitle, systemImage: "birthday.cake.fill")
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             .padding(.horizontal, 6)
             .background(
-                isHighlighted ? Color.accentColor.opacity(0.14) : .clear,
+                isHighlighted ? AppTheme.accentSelectionBackground : .clear,
                 in: .rect(cornerRadius: 10)
             )
             .contentShape(.rect)

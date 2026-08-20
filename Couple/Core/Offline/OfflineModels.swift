@@ -146,6 +146,7 @@ final class LocalAnniversaryEntity {
     var createdAt: Date
     var updatedAt: Date
     var nextOccurrence: String?
+    var systemKind: String?
     var fieldClocksData: Data
     var tombstoneClockData: Data?
     var isTombstoned: Bool
@@ -166,6 +167,7 @@ final class LocalAnniversaryEntity {
         createdAt: Date,
         updatedAt: Date,
         nextOccurrence: String?,
+        systemKind: String? = nil,
         fieldClocksData: Data,
         tombstoneClockData: Data? = nil,
         isTombstoned: Bool = false,
@@ -185,6 +187,7 @@ final class LocalAnniversaryEntity {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.nextOccurrence = nextOccurrence
+        self.systemKind = systemKind
         self.fieldClocksData = fieldClocksData
         self.tombstoneClockData = tombstoneClockData
         self.isTombstoned = isTombstoned

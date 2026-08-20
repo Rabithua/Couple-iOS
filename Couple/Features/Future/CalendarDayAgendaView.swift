@@ -42,11 +42,8 @@ struct CalendarDayAgendaView: View {
                     isHighlighted: anniversary.id == highlightedAnniversaryID,
                     open: { open(anniversary) }
                 )
-                .editableContentActions(
-                    deletionTitle: AppLocalization.string(
-                        "deleteAnniversaryConfirmation",
-                        defaultValue: "删除纪念日“\(anniversary.title)”？"
-                    ),
+                .anniversaryContentActions(
+                    anniversary,
                     editAction: { editAnniversary(anniversary) },
                     deleteAction: { try await deleteAnniversary(anniversary) }
                 )

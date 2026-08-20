@@ -38,33 +38,49 @@ struct NewAnniversaryView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section { TextField("纪念日名称", text: $title) }
-                Section {
-                    DatePicker("日期", selection: $date, displayedComponents: .date)
+                if isEditingSystemBirthday {
+                    Section {
+                        DatePicker(
+                            "生日",
+                            selection: $date,
+                            in: ...Date.now,
+                            displayedComponents: .date
+                        )
                         .appHapticFeedback(.selection, trigger: date)
-                    Toggle("每年纪念", isOn: $annual)
-                        .appHapticFeedback(.selection, trigger: annual)
-                    Picker("提醒", selection: $reminder) {
-                        ForEach(ReminderPreset.allCases) { preset in
-                            Text(preset.title).tag(preset)
+                    } footer: {
+                        Text("系统生日只允许修改日期；标题会跟随你的名字更新。")
+                    }
+                } else {
+                    Section { TextField("纪念日名称", text: $title) }
+                    Section {
+                        DatePicker("日期", selection: $date, displayedComponents: .date)
+                            .appHapticFeedback(.selection, trigger: date)
+                        Toggle("每年纪念", isOn: $annual)
+                            .appHapticFeedback(.selection, trigger: annual)
+                        Picker("提醒", selection: $reminder) {
+                            ForEach(ReminderPreset.allCases) { preset in
+                                Text(preset.title).tag(preset)
+                            }
+                        }
+                        .appHapticFeedback(.selection, trigger: reminder)
+                        if reminder.isEnabled {
+                            LabeledContent("提醒时间", value: "09:00")
                         }
                     }
-                    .appHapticFeedback(.selection, trigger: reminder)
-                    if reminder.isEnabled {
-                        LabeledContent("提醒时间", value: "09:00")
+                    Section {
+                        Picker("谁可以看", selection: $visibility) {
+                            ForEach(Visibility.allCases, id: \.self) { Text($0.title).tag($0) }
+                        }
+                        .appHapticFeedback(.selection, trigger: visibility)
                     }
-                }
-                Section {
-                    Picker("谁可以看", selection: $visibility) {
-                        ForEach(Visibility.allCases, id: \.self) { Text($0.title).tag($0) }
-                    }
-                    .appHapticFeedback(.selection, trigger: visibility)
                 }
             }
             .navigationTitle(
-                editingAnniversary == nil
-                    ? AppLocalization.string("新纪念日")
-                    : AppLocalization.string("编辑纪念日")
+                isEditingSystemBirthday
+                    ? AppLocalization.string("编辑生日")
+                    : editingAnniversary == nil
+                        ? AppLocalization.string("新纪念日")
+                        : AppLocalization.string("编辑纪念日")
             )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -75,7 +91,11 @@ struct NewAnniversaryView: View {
                     Button("保存", systemImage: "checkmark", action: beginSaving)
                         .labelStyle(.iconOnly)
                         .appProminentButtonStyle()
-                        .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving)
+                        .disabled(
+                            (!isEditingSystemBirthday
+                                && title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                                || isSaving
+                        )
                 }
             }
             .appHapticFeedback(
@@ -112,14 +132,18 @@ struct NewAnniversaryView: View {
         do {
             let cleanedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
             if let editingAnniversary {
-                try await store.updateAnniversary(
-                    editingAnniversary,
-                    title: cleanedTitle,
-                    date: date,
-                    annual: annual,
-                    visibility: visibility,
-                    reminder: reminder
-                )
+                if editingAnniversary.isSystemBirthday {
+                    try await store.updateSystemBirthdayDate(editingAnniversary, date: date)
+                } else {
+                    try await store.updateAnniversary(
+                        editingAnniversary,
+                        title: cleanedTitle,
+                        date: date,
+                        annual: annual,
+                        visibility: visibility,
+                        reminder: reminder
+                    )
+                }
             } else {
                 try await store.addAnniversary(
                     title: cleanedTitle,
@@ -134,5 +158,9 @@ struct NewAnniversaryView: View {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    private var isEditingSystemBirthday: Bool {
+        editingAnniversary?.isSystemBirthday == true
     }
 }

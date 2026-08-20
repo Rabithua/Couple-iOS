@@ -81,7 +81,7 @@ struct CalendarDayCell: View {
                             .resizable()
                             .renderingMode(.template)
                             .scaledToFit()
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(AppTheme.accent)
                             .accessibilityHidden(true)
                     }
 
@@ -113,22 +113,24 @@ struct CalendarDayCell: View {
             Button(
                 AppLocalization.string(
                     "editAnniversaryAccessibilityLabel",
-                    defaultValue: "编辑纪念日：\(anniversary.title)"
+                    defaultValue: "编辑纪念日：\(anniversary.displayTitle)"
                 ),
                 systemImage: "pencil"
             ) {
                 beginEditing(anniversary)
             }
-            Button(role: .destructive) {
-                requestDeletion(.anniversary(anniversary))
-            } label: {
-                Label(
-                    AppLocalization.string(
-                        "deleteAnniversaryAccessibilityLabel",
-                        defaultValue: "删除纪念日：\(anniversary.title)"
-                    ),
-                    systemImage: "trash"
-                )
+            if !anniversary.isSystemBirthday {
+                Button(role: .destructive) {
+                    requestDeletion(.anniversary(anniversary))
+                } label: {
+                    Label(
+                        AppLocalization.string(
+                            "deleteAnniversaryAccessibilityLabel",
+                            defaultValue: "删除纪念日：\(anniversary.displayTitle)"
+                        ),
+                        systemImage: "trash"
+                    )
+                }
             }
         }
 
@@ -277,7 +279,7 @@ private enum PendingDeletion {
         switch self {
         case .anniversary(let anniversary): AppLocalization.string(
             "deleteAnniversaryConfirmation",
-            defaultValue: "删除纪念日“\(anniversary.title)”？"
+            defaultValue: "删除纪念日“\(anniversary.displayTitle)”？"
         )
         case .event(let event): AppLocalization.string("deleteEventConfirmation",
             defaultValue: "删除日程“\(event.title)”？"

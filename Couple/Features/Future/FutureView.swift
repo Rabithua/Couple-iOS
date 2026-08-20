@@ -30,8 +30,9 @@ struct FutureView: View {
     @Environment(AppStore.self) private var store
     let mode: FutureMode
     let pageDragOffset: CGFloat
+    let isActive: Bool
     let verticalScrollingDisabled: Bool
-    let calendarSelectionDisabled: Bool
+    let pageInteractionDisabled: Bool
     let notificationDestination: NotificationDestination?
     let selectMode: (FutureMode) -> Void
     @State private var showingNewTodo = false
@@ -79,6 +80,7 @@ struct FutureView: View {
                 .animation(pageAnimation, value: mode)
             }
             .clipped()
+            .disabled(!isActive || pageInteractionDisabled)
         } navigationBar: {
             ZStack(alignment: .trailing) {
                 DesignTabBar(
@@ -98,7 +100,7 @@ struct FutureView: View {
                     )
                     .labelStyle(.iconOnly)
                     .font(.title2.bold())
-                    .foregroundStyle(AppTheme.muted)
+                    .foregroundStyle(AppTheme.accent)
                     .frame(width: 44, height: 44)
                     .accessibilityIdentifier("futureAddButton")
                 }
@@ -159,7 +161,7 @@ struct FutureView: View {
                                 expandedAgendaDate: expandedCalendarDate,
                                 visibleAgendaDate: visibleCalendarAgendaDate,
                                 highlightedAnniversaryID: highlightedAnniversaryID,
-                                selectionDisabled: calendarSelectionDisabled,
+                                selectionDisabled: pageInteractionDisabled,
                                 updateTodayVisibility: updateTodayVisibility
                             )
                             .equatable()
@@ -510,7 +512,7 @@ struct FutureView: View {
     }
 
     private func selectCalendarDate(_ date: Date) {
-        guard !calendarSelectionDisabled else { return }
+        guard !pageInteractionDisabled else { return }
         haptics.play(.selection)
         let transitionID = UUID()
         calendarTransitionID = transitionID

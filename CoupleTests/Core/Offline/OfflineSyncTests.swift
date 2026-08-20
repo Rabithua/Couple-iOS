@@ -5,6 +5,48 @@ import XCTest
 
 @MainActor
 final class OfflineSyncTests: XCTestCase {
+    func testSystemBirthdayPersistsKindAndOnlyEnqueuesDateEdit() async throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let originalDate = Date(timeIntervalSince1970: 965_433_600)
+        let updatedDate = originalDate.addingTimeInterval(86_400)
+        let birthday = Anniversary(
+            id: UUID().uuidString.lowercased(),
+            coupleId: UUID().uuidString.lowercased(),
+            ownerId: UUID().uuidString.lowercased(),
+            title: "程袭",
+            date: originalDate.dateOnlyString,
+            annual: true,
+            visibility: .shared,
+            reminderEnabled: true,
+            reminderOffset: 1_440,
+            reminderLocalTime: "09:00",
+            reminderInstant: nil,
+            createdAt: .now,
+            updatedAt: .now,
+            nextOccurrence: nil,
+            systemKind: "birthday"
+        )
+        try store.bootstrap(
+            notes: [],
+            todos: [],
+            anniversaries: [birthday],
+            calendarEvents: []
+        )
+
+        try store.editSystemBirthdayDate(id: birthday.id, date: updatedDate)
+
+        let snapshot = try await store.loadSnapshot()
+        let saved = try XCTUnwrap(snapshot.anniversaries.first)
+        XCTAssertEqual(saved.systemKind, "birthday")
+        XCTAssertEqual(saved.title, "程袭")
+        XCTAssertEqual(saved.date, updatedDate.dateOnlyString)
+        let operations = try await store.pendingOperations(limit: 10, now: .distantFuture)
+        let operation = try XCTUnwrap(operations.first)
+        XCTAssertEqual(operation.changedFieldGroups, ["schedule"])
+        XCTAssertEqual(operation.payload.fields, ["date": .string(updatedDate.dateOnlyString)])
+    }
+
     func testCreateTodoPersistsDueDateAndIncludesItInSyncPayload() async throws {
         let (store, root) = try makeStore()
         defer { try? FileManager.default.removeItem(at: root) }
