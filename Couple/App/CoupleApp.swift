@@ -8,6 +8,7 @@ struct CoupleApp: App {
     @State private var haptics = AppHaptics()
     @State private var language = AppLanguageStore()
     @State private var notifications = NotificationCoordinator.shared
+    @State private var memoryLocation = MemoryLocationCoordinator()
 
     var body: some Scene {
         WindowGroup {
@@ -15,6 +16,7 @@ struct CoupleApp: App {
                 .environment(store)
                 .environment(language)
                 .environment(notifications)
+                .environment(memoryLocation)
                 .environment(\.locale, language.selection.locale)
                 .task { await startApplication() }
                 .onChange(of: scenePhase) { _, newPhase in

@@ -29,6 +29,7 @@ targets:
         PRODUCT_NAME: Couple
         INFOPLIST_KEY_CFBundleDisplayName: oursince
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.lifestyle
+        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: 在记录动态时获取当前位置，帮助你们记住共同经历的地点。
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: 选择照片来记录你们共同的时刻。
         INFOPLIST_KEY_NSFaceIDUsageDescription: 使用面容 ID 安全登录你们的共同空间。
         INFOPLIST_KEY_UILaunchScreen_Generation: YES

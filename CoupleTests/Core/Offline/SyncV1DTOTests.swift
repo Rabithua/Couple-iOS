@@ -67,6 +67,65 @@ final class SyncV1DTOTests: XCTestCase {
         XCTAssertNil(object["data"])
     }
 
+    func testMemoryLocationMutationPreservesCoordinatePrecision() throws {
+        let deviceId = UUID().uuidString
+        let operation = PendingOperation(
+            operationId: UUID().uuidString,
+            entityType: .memory,
+            entityId: UUID().uuidString,
+            mutationKind: .update,
+            payload: LocalMutationPayload(fields: [
+                "latitude": .double(30.274_084_8),
+                "longitude": .double(120.155_070_7),
+                "locationName": .string("西湖"),
+            ]),
+            changedFieldGroups: ["location"],
+            hlc: HybridLogicalTimestamp(
+                wallTimeMilliseconds: 1_786_435_200_000,
+                counter: 0,
+                deviceId: deviceId
+            ),
+            retryCount: 0,
+            createdAt: .now
+        )
+
+        let mutation = try SyncV1Mutation(operation: operation, deviceId: deviceId)
+        let object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: APIClient.encoder.encode(mutation)) as? [String: Any]
+        )
+        let payload = try XCTUnwrap(object["data"] as? [String: Any])
+
+        XCTAssertEqual(try XCTUnwrap(payload["latitude"] as? Double), 30.274_084_8, accuracy: 0.000_000_1)
+        XCTAssertEqual(try XCTUnwrap(payload["longitude"] as? Double), 120.155_070_7, accuracy: 0.000_000_1)
+        XCTAssertEqual(payload["locationName"] as? String, "西湖")
+        XCTAssertEqual(object["changedGroups"] as? [String], ["location"])
+    }
+
+    func testMemorySnapshotDecodesCoordinatesAsDoubles() throws {
+        let json = #"""
+        {
+          "serverTime":"2026-08-11T08:00:00.000Z",
+          "authoritativeHlc":{"wallTimeMs":"1786435200000","counter":0,"deviceId":"server"},
+          "revision":"1","mode":"snapshot","acks":[],
+          "snapshot":[{
+            "entityType":"note","entityId":"30000000-0000-4000-8000-000000000001",
+            "ownerId":"40000000-0000-4000-8000-000000000001","visibility":"shared",
+            "revision":"1","hlc":{"wallTimeMs":"1786435200000","counter":0,"deviceId":"server"},
+            "fieldVersions":{"location":{"wallTimeMs":"1786435200000","counter":0,"deviceId":"server"}},
+            "deleted":false,
+            "data":{"latitude":30.2740848,"longitude":120.1550707,"locationName":"西湖"}
+          }],
+          "changes":[],"nextCursor":"1","hasMore":false
+        }
+        """#.data(using: .utf8)!
+
+        let exchange = try APIClient.decoder.decode(SyncV1Response.self, from: json).exchange
+        let fields = try XCTUnwrap(exchange.page.changes.first?.fields)
+        XCTAssertEqual(fields["latitude"], .double(30.274_084_8))
+        XCTAssertEqual(fields["longitude"], .double(120.155_070_7))
+        XCTAssertEqual(fields["locationName"], .string("西湖"))
+    }
+
     func testSnapshotFixtureDecodesOpaqueCursorAndCanonicalCalendarEvent() throws {
         let json = #"""
         {
@@ -167,5 +226,28 @@ final class SyncV1DTOTests: XCTestCase {
             createdAt: .now
         )
         XCTAssertThrowsError(try SyncV1Mutation(operation: operation, deviceId: deviceId))
+    }
+
+    func testLegacyPendingMemoryCreateWithoutLocationRemainsSendableAfterUpgrade() throws {
+        let deviceId = UUID().uuidString
+        let operation = PendingOperation(
+            operationId: UUID().uuidString,
+            entityType: .memory,
+            entityId: UUID().uuidString,
+            mutationKind: .create,
+            payload: LocalMutationPayload(fields: [
+                "content": .string("升级前待同步动态"),
+                "anniversaryId": .null,
+                "todoId": .null,
+                "visibility": .string(Visibility.shared.rawValue),
+                "attachmentIds": .strings([]),
+            ]),
+            changedFieldGroups: ["content", "associations", "visibility", "attachments"],
+            hlc: HybridLogicalTimestamp(wallTimeMilliseconds: 1, counter: 0, deviceId: deviceId),
+            retryCount: 0,
+            createdAt: .now
+        )
+
+        XCTAssertNoThrow(try SyncV1Mutation(operation: operation, deviceId: deviceId))
     }
 }

@@ -98,7 +98,7 @@ struct PastPageView: View {
             ForEach(notes) { note in
                 if let association = note.associations.first(where: { $0.type == .todo }) {
                     VStack(alignment: .leading, spacing: 8) {
-                        NoteMetadataRow(date: note.createdAt, trailing: sampleLocation(for: note))
+                        NoteMetadataRow(date: note.createdAt, trailing: note.location?.displayName ?? "")
                         Label(
                             association.title ?? AppLocalization.string("共同完成"),
                             systemImage: "checkmark.square"
@@ -130,7 +130,7 @@ private struct StandardNoteRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            NoteMetadataRow(date: note.createdAt, trailing: sampleLocation(for: note))
+            NoteMetadataRow(date: note.createdAt, trailing: note.location?.displayName ?? "")
             if !note.content.isEmpty {
                 Text(note.content)
                     .font(.title3)
@@ -158,7 +158,7 @@ private struct AssociatedNoteRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            NoteMetadataRow(date: note.createdAt, trailing: sampleLocation(for: note))
+            NoteMetadataRow(date: note.createdAt, trailing: note.location?.displayName ?? "")
             Label(association.title ?? AppLocalization.string("共同记录"), systemImage: symbol)
                 .font(AppTheme.titleFont())
 
@@ -199,22 +199,5 @@ struct NoteMetadataRow: View {
         }
         .font(.caption)
         .foregroundStyle(AppTheme.muted)
-    }
-}
-
-private func sampleLocation(for note: Note) -> String {
-    guard note.demoIndex < 2 else { return "" }
-    return note.demoIndex == 0
-        ? AppLocalization.string("瓶窑镇良渚生长力聚落")
-        : AppLocalization.string("虎山公园&杭钢公园")
-}
-
-private extension Note {
-    var demoIndex: Int {
-        switch id {
-        case "50000000-0000-4000-8000-000000000001": 0
-        case "50000000-0000-4000-8000-000000000002": 1
-        default: 99
-        }
     }
 }

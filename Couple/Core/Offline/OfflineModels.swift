@@ -35,6 +35,7 @@ enum AttachmentSyncState: String, Codable, Sendable {
 enum MutationValue: Codable, Equatable, Sendable {
     case string(String)
     case integer(Int)
+    case double(Double)
     case boolean(Bool)
     case date(Date)
     case strings([String])
@@ -274,6 +275,9 @@ final class LocalMemoryEntity {
     var anniversaryTitle: String?
     var todoId: String?
     var todoTitle: String?
+    var latitude: Double?
+    var longitude: Double?
+    var locationName: String?
     var createdAt: Date
     var updatedAt: Date
     var fieldClocksData: Data
@@ -291,6 +295,9 @@ final class LocalMemoryEntity {
         anniversaryTitle: String?,
         todoId: String?,
         todoTitle: String?,
+        latitude: Double? = nil,
+        longitude: Double? = nil,
+        locationName: String? = nil,
         createdAt: Date,
         updatedAt: Date,
         fieldClocksData: Data,
@@ -307,6 +314,9 @@ final class LocalMemoryEntity {
         self.anniversaryTitle = anniversaryTitle
         self.todoId = todoId
         self.todoTitle = todoTitle
+        self.latitude = latitude
+        self.longitude = longitude
+        self.locationName = locationName
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.fieldClocksData = fieldClocksData

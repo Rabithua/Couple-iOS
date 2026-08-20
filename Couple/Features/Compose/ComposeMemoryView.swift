@@ -5,8 +5,10 @@ import UIKit
 
 struct ComposeMemoryView: View {
     @Environment(AppHaptics.self) private var haptics
+    @Environment(MemoryLocationCoordinator.self) private var memoryLocation
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     private let editingNote: Note?
     @State private var content: String
     @State private var visibility: Visibility
@@ -84,6 +86,10 @@ struct ComposeMemoryView: View {
                     }
                 }
 
+                Section("位置") {
+                    locationSectionContent
+                }
+
                 Section("关联") {
                     Picker("纪念日", selection: $anniversaryId) {
                         Text("不关联").tag(String?.none)
@@ -125,7 +131,7 @@ struct ComposeMemoryView: View {
                     Button("保存", systemImage: "checkmark", action: beginSaving)
                         .labelStyle(.iconOnly)
                         .appProminentButtonStyle()
-                        .disabled(!isValid || isSaving)
+                        .disabled(!isValid || isSaving || memoryLocation.isCapturing)
                         .accessibilityIdentifier("saveMemoryButton")
                 }
             }
@@ -144,6 +150,15 @@ struct ComposeMemoryView: View {
                     localError = error.localizedDescription
                 }
             }
+            .task(id: editingNote?.id) {
+                memoryLocation.prepare(
+                    existingLocation: editingNote?.location,
+                    automaticallyCapture: shouldAutomaticallyCaptureLocation
+                )
+            }
+            .onDisappear {
+                memoryLocation.cancelPendingWork()
+            }
             .alert("保存失败", isPresented: Binding(
                 get: { localError != nil },
                 set: { if !$0 { localError = nil } }
@@ -161,6 +176,119 @@ struct ComposeMemoryView: View {
             text: content,
             attachmentCount: photos.count + (editingNote?.attachments.count ?? 0)
         )
+    }
+
+    private var shouldAutomaticallyCaptureLocation: Bool {
+        guard editingNote == nil else { return false }
+        let arguments = ProcessInfo.processInfo.arguments
+        return !arguments.contains("-ui-testing-demo")
+            || arguments.contains("-ui-testing-location")
+    }
+
+    @ViewBuilder
+    private var locationSectionContent: some View {
+        switch memoryLocation.status {
+        case .idle:
+            locationActionButton(
+                "添加当前位置",
+                systemImage: "location",
+                accessibilityIdentifier: "addMemoryLocationButton",
+                action: requestLocation
+            )
+        case .requestingAuthorization:
+            locationProgressRow("等待定位授权")
+        case .locating:
+            locationProgressRow("正在获取位置")
+        case .located:
+            if let location = memoryLocation.location {
+                Label(location.displayName, systemImage: "mappin.and.ellipse")
+                    .lineLimit(2)
+                    .accessibilityIdentifier("memoryLocationValue")
+                locationActionButton(
+                    "移除位置",
+                    systemImage: "location.slash",
+                    role: .destructive,
+                    accessibilityIdentifier: "removeMemoryLocationButton",
+                    action: removeLocation
+                )
+            } else {
+                refreshLocationButton
+            }
+        case .denied:
+            Label("定位权限未开启", systemImage: "location.slash")
+                .foregroundStyle(.secondary)
+            openLocationSettingsButton
+        case .servicesDisabled:
+            Label("系统定位服务已关闭", systemImage: "location.slash")
+                .foregroundStyle(.secondary)
+            openLocationSettingsButton
+        case .failed:
+            Label(
+                memoryLocation.errorMessage
+                    ?? AppLocalization.string("没有获取到可用的位置，请重试"),
+                systemImage: "exclamationmark.triangle"
+            )
+            .foregroundStyle(.secondary)
+            refreshLocationButton
+        }
+    }
+
+    private var refreshLocationButton: some View {
+        locationActionButton(
+            "重新获取位置",
+            systemImage: "location",
+            accessibilityIdentifier: "refreshMemoryLocationButton",
+            action: requestLocation
+        )
+    }
+
+    private var openLocationSettingsButton: some View {
+        locationActionButton(
+            "打开系统设置",
+            systemImage: "gear",
+            accessibilityIdentifier: "openMemoryLocationSettingsButton",
+            action: openSystemSettings
+        )
+    }
+
+    private func locationActionButton(
+        _ title: LocalizedStringKey,
+        systemImage: String,
+        role: ButtonRole? = nil,
+        accessibilityIdentifier: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(role: role, action: action) {
+            Label(title, systemImage: systemImage)
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                .contentShape(.rect)
+        }
+        .accessibilityIdentifier(accessibilityIdentifier)
+    }
+
+    private func locationProgressRow(_ title: LocalizedStringKey) -> some View {
+        HStack {
+            Label(title, systemImage: "location")
+            Spacer()
+            ProgressView()
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func requestLocation() {
+        haptics.play(.tap)
+        memoryLocation.captureCurrentLocation()
+    }
+
+    private func removeLocation() {
+        haptics.play(.tap)
+        memoryLocation.removeLocation()
+    }
+
+    private func openSystemSettings() {
+        haptics.play(.tap)
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        openURL(url)
     }
 
     private func cancel() {
@@ -210,6 +338,7 @@ struct ComposeMemoryView: View {
                     content: cleanedContent,
                     anniversaryId: anniversaryId,
                     todoId: todoId,
+                    location: memoryLocation.location,
                     visibility: visibility
                 )
             } else {
@@ -218,6 +347,7 @@ struct ComposeMemoryView: View {
                     photos: photos,
                     anniversaryId: anniversaryId,
                     todoId: todoId,
+                    location: memoryLocation.location,
                     visibility: visibility
                 )
             }

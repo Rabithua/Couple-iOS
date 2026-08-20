@@ -317,6 +317,9 @@ struct Note: Codable, Identifiable, Hashable, Sendable {
     var visibility: Visibility
     var anniversaryId: String?
     var todoId: String?
+    var latitude: Double? = nil
+    var longitude: Double? = nil
+    var locationName: String? = nil
     let createdAt: Date
     var updatedAt: Date
     var associations: [NoteAssociation]
@@ -324,6 +327,11 @@ struct Note: Codable, Identifiable, Hashable, Sendable {
 
     var hasRecordContent: Bool {
         Self.hasRecordContent(text: content, attachmentCount: attachments.count)
+    }
+
+    var location: NoteLocation? {
+        guard let latitude, let longitude else { return nil }
+        return NoteLocation(latitude: latitude, longitude: longitude, name: locationName)
     }
 
     static func hasRecordContent(text: String, attachmentCount: Int) -> Bool {
@@ -384,6 +392,9 @@ struct CreateNoteRequest: Encodable, Sendable {
     let visibility: Visibility
     let anniversaryId: String?
     let todoId: String?
+    let latitude: Double?
+    let longitude: Double?
+    let locationName: String?
     let attachmentIds: [String]
 }
 

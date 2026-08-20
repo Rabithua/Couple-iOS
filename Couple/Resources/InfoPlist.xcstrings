@@ -49,6 +49,30 @@
         }
       }
     },
+    "NSLocationWhenInUseUsageDescription": {
+      "comment": "Privacy - Location When In Use Usage Description",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use your current location when creating a memory to help you remember where it happened."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在记录动态时获取当前位置，帮助你们记住共同经历的地点。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在記錄動態時取得目前位置，幫助你們記住共同經歷的地點。"
+          }
+        }
+      }
+    },
     "NSPhotoLibraryUsageDescription": {
       "comment": "Privacy - Photo Library Usage Description",
       "extractionState": "manual",

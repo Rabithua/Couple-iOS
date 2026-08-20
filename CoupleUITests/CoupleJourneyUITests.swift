@@ -890,6 +890,41 @@ final class CoupleJourneyUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["一起去灵隐寺还愿吧"].waitForExistence(timeout: 3))
     }
 
+    func testComposerCapturesLocationAndPersistsIt() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-now", "-ui-testing-location"]
+        app.launchInSimplifiedChinese()
+
+        let composeButton = app.buttons["composeMemoryButton"]
+        XCTAssertTrue(composeButton.waitForExistence(timeout: 5))
+        composeButton.tap()
+        let composerNavigationBar = app.navigationBars["记录此刻"]
+        XCTAssertTrue(composerNavigationBar.waitForExistence(timeout: 3))
+
+        let value = app.staticTexts["memoryLocationValue"]
+        XCTAssertTrue(value.waitForExistence(timeout: 15))
+        let remove = app.buttons["removeMemoryLocationButton"]
+        XCTAssertTrue(remove.exists)
+        for _ in 0..<3 where !remove.isHittable { app.swipeUp() }
+        XCTAssertTrue(remove.isHittable)
+        XCTAssertGreaterThanOrEqual(remove.frame.height, 44)
+        let capturedLocation = value.label
+        XCTAssertFalse(capturedLocation.isEmpty)
+
+        let content = app.textFields["写下此刻……"]
+        XCTAssertTrue(content.exists)
+        content.tap()
+        content.typeText("位置验收动态")
+        let save = app.buttons["saveMemoryButton"]
+        XCTAssertTrue(save.isEnabled)
+        save.tap()
+
+        XCTAssertTrue(app.staticTexts["位置验收动态"].waitForExistence(timeout: 5))
+        app.swipeRight()
+        XCTAssertTrue(app.staticTexts[capturedLocation].waitForExistence(timeout: 5))
+    }
+
     func testNowBottomGestureSeparatesPageSwipeFromComposePull() {
         continueAfterFailure = false
         let app = XCUIApplication()

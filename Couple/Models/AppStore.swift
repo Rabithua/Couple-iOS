@@ -779,6 +779,7 @@ final class AppStore {
         photos: [SelectedPhoto],
         anniversaryId: String?,
         todoId: String?,
+        location: NoteLocation? = nil,
         visibility: Visibility
     ) async throws {
         try Note.validateCreation(text: content, attachmentCount: photos.count)
@@ -792,6 +793,9 @@ final class AppStore {
                 visibility: visibility,
                 anniversaryId: anniversaryId,
                 todoId: todoId,
+                latitude: location?.latitude,
+                longitude: location?.longitude,
+                locationName: location?.name,
                 createdAt: Date(),
                 updatedAt: Date(),
                 associations: [],
@@ -811,6 +815,7 @@ final class AppStore {
             anniversaryTitle: anniversaries.first(where: { $0.id == anniversaryId })?.title,
             todoId: todoId,
             todoTitle: todos.first(where: { $0.id == todoId })?.title,
+            location: location,
             visibility: visibility
         )
         try await loadLocalContent()
@@ -822,6 +827,7 @@ final class AppStore {
         content: String,
         anniversaryId: String?,
         todoId: String?,
+        location: NoteLocation? = nil,
         visibility: Visibility
     ) async throws {
         let associations = [
@@ -842,6 +848,9 @@ final class AppStore {
             notes[index].content = content
             notes[index].anniversaryId = anniversaryId
             notes[index].todoId = todoId
+            notes[index].latitude = location?.latitude
+            notes[index].longitude = location?.longitude
+            notes[index].locationName = location?.name
             notes[index].visibility = visibility
             notes[index].associations = associations
             notes[index].updatedAt = .now
@@ -856,6 +865,7 @@ final class AppStore {
             anniversaryTitle: associations.first(where: { $0.type == .anniversary })?.title,
             todoId: todoId,
             todoTitle: associations.first(where: { $0.type == .todo })?.title,
+            location: location,
             visibility: visibility
         )
         try await loadLocalContent()

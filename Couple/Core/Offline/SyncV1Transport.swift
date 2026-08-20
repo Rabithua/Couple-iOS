@@ -192,10 +192,19 @@ struct SyncV1Mutation: Encodable, Sendable {
         }
         let definitions = mutableFields(for: operation.entityType)
         if operation.mutationKind == .create || operation.mutationKind == .restore {
-            guard groups == Set(definitions.keys) else {
+            let completeGroups = Set(definitions.keys)
+            let legacyMemoryGroups = completeGroups.subtracting(["location"])
+            let isCompatibleLegacyMemory = operation.entityType == .memory
+                && groups == legacyMemoryGroups
+            guard groups == completeGroups || isCompatibleLegacyMemory else {
                 throw SyncTransportError.rejected(AppLocalization.string("create/restore 必须提交实体的全部字段组"))
             }
-            let requiredFields = Set(definitions.values.flatMap { $0 })
+            let requiredFields = Set(
+                definitions
+                    .filter { groups.contains($0.key) }
+                    .values
+                    .flatMap { $0 }
+            )
             guard requiredFields.isSubset(of: Set(operation.payload.fields.keys)) else {
                 throw SyncTransportError.rejected(AppLocalization.string("create/restore 缺少完整 payload"))
             }
@@ -241,6 +250,7 @@ struct SyncV1Mutation: Encodable, Sendable {
         case .memory: [
             "content": ["content"],
             "associations": ["anniversaryId", "todoId"],
+            "location": ["latitude", "longitude", "locationName"],
             "visibility": ["visibility"],
             "attachments": ["attachmentIds"],
         ]
@@ -275,6 +285,7 @@ struct SyncV1MutationData: Encodable, Sendable {
             switch value {
             case .string(let item): try container.encode(item, forKey: key)
             case .integer(let item): try container.encode(item, forKey: key)
+            case .double(let item): try container.encode(item, forKey: key)
             case .boolean(let item): try container.encode(item, forKey: key)
             case .date(let item): try container.encode(item.apiISOString, forKey: key)
             case .strings(let item): try container.encode(item, forKey: key)
@@ -449,7 +460,7 @@ indirect enum JSONValue: Decodable, Sendable {
             if let date = Self.parseDate(value) { return .date(date) }
             return .string(value)
         case .integer(let value): return .integer(value)
-        case .double(let value): return .integer(Int(value))
+        case .double(let value): return .double(value)
         case .boolean(let value): return .boolean(value)
         case .array(let values):
             let strings = values.compactMap { value -> String? in
