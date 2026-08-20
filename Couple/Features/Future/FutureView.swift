@@ -25,17 +25,21 @@ enum FutureMode: String, CaseIterable, Hashable {
 struct FutureView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.locale) private var locale
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(AppHaptics.self) private var haptics
     @Environment(AppStore.self) private var store
     let mode: FutureMode
     let pageDragOffset: CGFloat
     let verticalScrollingDisabled: Bool
     let calendarSelectionDisabled: Bool
+    let notificationDestination: NotificationDestination?
     let selectMode: (FutureMode) -> Void
     @State private var showingNewTodo = false
-    @State private var selectedEventDate: SelectedEventDate?
+    @State private var selectedEventDate: SelectedCreationDate?
+    @State private var selectedAnniversaryDate: SelectedCreationDate?
     @State private var editingTodo: Todo?
     @State private var editingEvent: CalendarEvent?
+    @State private var editingAnniversary: Anniversary?
     @State private var selectedCalendarDate: Date?
     @State private var expandedCalendarDate: Date?
     @State private var visibleCalendarAgendaDate: Date?
@@ -43,6 +47,14 @@ struct FutureView: View {
     @State private var calendarMonthCache = CalendarMonthCache()
     @State private var hasPositionedCalendar = false
     @State private var visibleCalendarMonth: Date?
+    @State private var calendarViewportSize = CGSize.zero
+    @State private var isTodayVisible: Bool?
+    @State private var currentCalendarDayStart = Calendar.autoupdatingCurrent
+        .startOfDay(for: .now)
+    @State private var scrollToTodayRequest = 0
+    @State private var scrollToNotificationRequest = 0
+    @State private var calendarTargetDate: Date?
+    @State private var highlightedAnniversaryID: String?
 
     var body: some View {
         DesignNavigationContainer {
@@ -72,7 +84,8 @@ struct FutureView: View {
                 DesignTabBar(
                     items: FutureMode.allCases.map { ($0, $0.title) },
                     selection: mode,
-                    select: selectMode
+                    select: selectNavigationMode,
+                    reselect: reselectNavigationMode
                 )
 
                 if mode != .settings {
@@ -97,71 +110,143 @@ struct FutureView: View {
         .sheet(item: $selectedEventDate) { selection in
             NewCalendarEventView(initialDate: selection.date)
         }
+        .sheet(item: $selectedAnniversaryDate) { selection in
+            NewAnniversaryView(initialDate: selection.date)
+        }
         .sheet(item: $editingTodo) { todo in
             NewTodoView(editing: todo)
         }
         .sheet(item: $editingEvent) { event in
             NewCalendarEventView(editing: event)
         }
+        .sheet(item: $editingAnniversary) { anniversary in
+            NewAnniversaryView(editing: anniversary)
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active else { return }
+            refreshCurrentCalendarDay()
+        }
+        .task(observeCalendarDayChanges)
+        .task(observeSystemTimeZoneChanges)
     }
 
     private var calendarContent: some View {
-        ScrollView {
-            LazyVStack(
-                alignment: .leading,
-                spacing: 28,
-                pinnedViews: [.sectionHeaders]
-            ) {
-                ForEach(calendarMonths) { month in
-                    Section {
-                        CalendarMonthView(
-                            month: month,
-                            schedule: store.calendarScheduleIndex,
-                            editEvent: editCalendarEvent,
-                            editTodo: editTodo,
-                            setTodoCompletion: setCalendarTodoCompletion,
-                            deleteEvent: deleteCalendarEvent,
-                            deleteTodo: deleteTodo,
-                            selectDate: selectCalendarDate,
-                            createEvent: presentCalendarEvent,
-                            selectedDate: selectedCalendarDate,
-                            expandedAgendaDate: expandedCalendarDate,
-                            visibleAgendaDate: visibleCalendarAgendaDate,
-                            selectionDisabled: calendarSelectionDisabled
-                        )
-                        .equatable()
-                    } header: {
-                        Text(month.title(locale: locale))
-                            .font(AppTheme.titleFont())
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.bottom, 10)
-                            .accessibilityIdentifier(
-                                "calendarMonthTitle-\(month.start.dateOnlyString)"
+        ScrollViewReader { scrollProxy in
+            ScrollView {
+                LazyVStack(
+                    alignment: .leading,
+                    spacing: 28,
+                    pinnedViews: [.sectionHeaders]
+                ) {
+                    ForEach(calendarMonths) { month in
+                        Section {
+                            CalendarMonthView(
+                                month: month,
+                                schedule: store.calendarScheduleIndex,
+                                today: currentCalendarDayStart,
+                                todayVisibleFrame: calendarVisibleFrame,
+                                editEvent: editCalendarEvent,
+                                editTodo: editTodo,
+                                editAnniversary: editAnniversary,
+                                setTodoCompletion: setCalendarTodoCompletion,
+                                deleteEvent: deleteCalendarEvent,
+                                deleteTodo: deleteTodo,
+                                deleteAnniversary: deleteAnniversary,
+                                selectDate: selectCalendarDate,
+                                createEvent: presentCalendarEvent,
+                                createAnniversary: presentAnniversary,
+                                selectedDate: selectedCalendarDate,
+                                expandedAgendaDate: expandedCalendarDate,
+                                visibleAgendaDate: visibleCalendarAgendaDate,
+                                highlightedAnniversaryID: highlightedAnniversaryID,
+                                selectionDisabled: calendarSelectionDisabled,
+                                updateTodayVisibility: updateTodayVisibility
                             )
+                            .equatable()
+                        } header: {
+                            Text(month.title(locale: locale))
+                                .font(AppTheme.titleFont())
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.bottom, 10)
+                                .background {
+                                    GeometryReader { proxy in
+                                        Color.clear.preference(
+                                            key: CalendarMonthHeaderPositionsPreferenceKey.self,
+                                            value: [
+                                                month.id: proxy.frame(
+                                                    in: .named(CalendarMonthView.scrollCoordinateSpace)
+                                                ).minY
+                                            ]
+                                        )
+                                    }
+                                }
+                                .accessibilityIdentifier(
+                                    "calendarMonthTitle-\(month.start.dateOnlyString)"
+                                )
+                        }
+                        .id(CalendarScrollTarget.month(month.id))
                     }
-                    .id(month.id)
+                }
+                .padding(.horizontal, AppTheme.horizontalPadding)
+                .padding(.bottom, AppTheme.futureContentBottomPadding)
+            }
+            .coordinateSpace(name: CalendarMonthView.scrollCoordinateSpace)
+            .scrollIndicators(.hidden)
+            .scrollDisabled(verticalScrollingDisabled)
+            .contentMargins(.top, AppTheme.navigationBarHeight, for: .scrollContent)
+            .refreshable { await store.refreshContent() }
+            .accessibilityIdentifier("futureCalendarScroll")
+            .onGeometryChange(for: CGSize.self) { proxy in
+                proxy.size
+            } action: { size in
+                calendarViewportSize = size
+            }
+            .onPreferenceChange(
+                CalendarMonthHeaderPositionsPreferenceKey.self,
+                perform: updateVisibleCalendarMonth
+            )
+            .task(id: currentCalendarMonthStart) {
+                guard hasPositionedCalendar == false else { return }
+                await Task.yield()
+                scrollProxy.scrollTo(
+                    CalendarScrollTarget.month(currentCalendarMonthStart),
+                    anchor: .top
+                )
+                visibleCalendarMonth = currentCalendarMonthStart
+                hasPositionedCalendar = true
+            }
+            .onChange(of: scrollToTodayRequest) { _, request in
+                scrollToToday(using: scrollProxy, request: request)
+            }
+            .onChange(of: scrollToNotificationRequest) { _, request in
+                scrollToNotification(using: scrollProxy, request: request)
+            }
+            .task(id: notificationDestination?.id) {
+                await Task.yield()
+                handleNotificationDestination()
+            }
+            .appHapticFeedback(
+                .selection,
+                trigger: visibleCalendarMonth,
+                condition: AppHaptics.changedBetweenPresentValues
+            )
+            .overlay(alignment: .bottomTrailing) {
+                if shouldShowTodayButton {
+                    Button(
+                        "今天",
+                        systemImage: "calendar",
+                        action: requestScrollToTodayWithFeedback
+                    )
+                    .font(.headline)
+                    .controlSize(.large)
+                    .appProminentButtonStyle()
+                    .shadow(color: .black.opacity(0.15), radius: 12, y: 4)
+                    .accessibilityIdentifier("calendarTodayButton")
+                    .padding(.trailing, AppTheme.horizontalPadding)
+                    .padding(.bottom, AppTheme.composePromptBottomPadding)
                 }
             }
-            .scrollTargetLayout()
-            .padding(.horizontal, AppTheme.horizontalPadding)
-            .padding(.bottom, AppTheme.futureContentBottomPadding)
         }
-        .scrollIndicators(.hidden)
-        .scrollDisabled(verticalScrollingDisabled)
-        .scrollPosition(id: $visibleCalendarMonth, anchor: .top)
-        .contentMargins(.top, AppTheme.navigationBarHeight, for: .scrollContent)
-        .refreshable { await store.refreshContent() }
-        .accessibilityIdentifier("futureCalendarScroll")
-        .task(id: currentCalendarMonthStart) {
-            guard hasPositionedCalendar == false else { return }
-            visibleCalendarMonth = currentCalendarMonthStart
-            hasPositionedCalendar = true
-        }
-        .appHapticFeedback(
-            .selection,
-            trigger: visibleCalendarMonth,
-            condition: AppHaptics.changedBetweenPresentValues
-        )
     }
 
     private var todoContent: some View {
@@ -218,14 +303,39 @@ struct FutureView: View {
     private var calendarMonths: [CalendarMonth] {
         calendarMonthCache.months(
             locale: locale,
-            historyStart: calendarHistoryStartDate
+            now: currentCalendarDayStart,
+            historyStart: calendarHistoryStartDate,
+            targetDate: calendarTargetDate
         )
     }
 
     private var currentCalendarMonthStart: Date {
         calendar.date(
-            from: calendar.dateComponents([.year, .month], from: .now)
-        ) ?? .now
+            from: calendar.dateComponents(
+                [.year, .month],
+                from: currentCalendarDayStart
+            )
+        ) ?? currentCalendarDayStart
+    }
+
+    private var calendarVisibleFrame: CGRect {
+        CGRect(
+            x: 0,
+            y: AppTheme.navigationBarHeight,
+            width: calendarViewportSize.width,
+            height: max(
+                calendarViewportSize.height - AppTheme.navigationBarHeight,
+                0
+            )
+        )
+    }
+
+    private var shouldShowTodayButton: Bool {
+        guard mode == .calendar,
+              hasPositionedCalendar,
+              let isTodayVisible
+        else { return false }
+        return !isTodayVisible
     }
 
     private var calendarHistoryStartDate: Date? {
@@ -234,6 +344,139 @@ struct FutureView: View {
         return [relationshipStart, store.calendarScheduleIndex.earliestScheduledDate]
             .compactMap { $0 }
             .min()
+    }
+
+    private func updateVisibleCalendarMonth(_ headerPositions: [Date: CGFloat]) {
+        guard mode == .calendar, hasPositionedCalendar else { return }
+        let pinnedHeaderY = AppTheme.navigationBarHeight + 1
+        guard let visibleMonth = headerPositions
+            .filter({ $0.value <= pinnedHeaderY })
+            .max(by: { $0.value < $1.value })?
+            .key,
+              visibleMonth != visibleCalendarMonth
+        else { return }
+        visibleCalendarMonth = visibleMonth
+    }
+
+    private func updateTodayVisibility(_ isVisible: Bool?) {
+        guard isVisible != isTodayVisible else { return }
+        isTodayVisible = isVisible
+    }
+
+    private func selectNavigationMode(_ selectedMode: FutureMode) {
+        selectMode(selectedMode)
+        if selectedMode == .calendar {
+            requestScrollToToday()
+        }
+    }
+
+    private func reselectNavigationMode(_ selectedMode: FutureMode) {
+        guard selectedMode == .calendar else { return }
+        requestScrollToTodayWithFeedback()
+    }
+
+    private func requestScrollToTodayWithFeedback() {
+        haptics.play(.tap)
+        requestScrollToToday()
+    }
+
+    private func requestScrollToToday() {
+        scrollToTodayRequest &+= 1
+    }
+
+    private func scrollToToday(using proxy: ScrollViewProxy, request: Int) {
+        proxy.scrollTo(
+            CalendarScrollTarget.month(currentCalendarMonthStart),
+            anchor: .top
+        )
+
+        Task { @MainActor in
+            await Task.yield()
+            guard scrollToTodayRequest == request else { return }
+            if reduceMotion {
+                proxy.scrollTo(
+                    CalendarScrollTarget.today(currentCalendarDayStart),
+                    anchor: .center
+                )
+            } else {
+                withAnimation(.smooth(duration: 0.32)) {
+                    proxy.scrollTo(
+                        CalendarScrollTarget.today(currentCalendarDayStart),
+                        anchor: .center
+                    )
+                }
+            }
+        }
+    }
+
+    private func handleNotificationDestination() {
+        guard let destination = notificationDestination,
+              destination.route == .futureCalendar,
+              let date = destination.occurrenceDate
+        else { return }
+        store.ensureCalendarEvents(including: date)
+        calendarTargetDate = date
+        selectedCalendarDate = date
+        expandedCalendarDate = date
+        visibleCalendarAgendaDate = date
+        highlightedAnniversaryID = destination.entityType == "anniversary"
+            ? destination.entityId
+            : nil
+        scrollToNotificationRequest &+= 1
+        let destinationID = destination.id
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+            guard notificationDestination?.id == destinationID else { return }
+            highlightedAnniversaryID = nil
+        }
+    }
+
+    private func scrollToNotification(using proxy: ScrollViewProxy, request: Int) {
+        guard let target = calendarTargetDate,
+              let month = calendar.date(
+                  from: calendar.dateComponents([.year, .month], from: target)
+              )
+        else { return }
+        proxy.scrollTo(CalendarScrollTarget.month(month), anchor: .top)
+        Task { @MainActor in
+            await Task.yield()
+            guard scrollToNotificationRequest == request else { return }
+            if reduceMotion {
+                proxy.scrollTo(CalendarScrollTarget.day(target), anchor: .center)
+            } else {
+                withAnimation(.smooth(duration: 0.32)) {
+                    proxy.scrollTo(CalendarScrollTarget.day(target), anchor: .center)
+                }
+            }
+        }
+    }
+
+    private func observeCalendarDayChanges() async {
+        for await _ in NotificationCenter.default.notifications(
+            named: .NSCalendarDayChanged
+        ) {
+            guard !Task.isCancelled else { return }
+            refreshCurrentCalendarDay()
+        }
+    }
+
+    private func observeSystemTimeZoneChanges() async {
+        for await _ in NotificationCenter.default.notifications(
+            named: .NSSystemTimeZoneDidChange
+        ) {
+            guard !Task.isCancelled else { return }
+            store.refreshCalendarScheduleIndexForSystemTimeZoneChange()
+            refreshCurrentCalendarDay()
+        }
+    }
+
+    private func refreshCurrentCalendarDay() {
+        let refreshedDay = calendar.startOfDay(for: .now)
+        guard refreshedDay != currentCalendarDayStart else { return }
+        currentCalendarDayStart = refreshedDay
+        if isTodayVisible == true {
+            isTodayVisible = nil
+        }
     }
 
     private func setCalendarTodoCompletion(_ todo: Todo, completed: Bool) async -> Bool {
@@ -405,7 +648,11 @@ struct FutureView: View {
     }
 
     private func presentCalendarEvent(on date: Date) {
-        selectedEventDate = SelectedEventDate(date: eventStart(on: date))
+        selectedEventDate = SelectedCreationDate(date: eventStart(on: date))
+    }
+
+    private func presentAnniversary(on date: Date) {
+        selectedAnniversaryDate = SelectedCreationDate(date: date)
     }
 
     private func eventStart(on date: Date) -> Date {
@@ -459,12 +706,20 @@ struct FutureView: View {
         editingEvent = event
     }
 
+    private func editAnniversary(_ anniversary: Anniversary) {
+        editingAnniversary = anniversary
+    }
+
     private func deleteTodo(_ todo: Todo) async throws {
         try await store.deleteTodo(todo)
     }
 
     private func deleteCalendarEvent(_ event: CalendarEvent) async throws {
         try await store.deleteCalendarEvent(event)
+    }
+
+    private func deleteAnniversary(_ anniversary: Anniversary) async throws {
+        try await store.deleteAnniversary(anniversary)
     }
 }
 
@@ -476,6 +731,8 @@ private final class CalendarMonthCache {
         let month: Int
         let historyStartYear: Int
         let historyStartMonth: Int
+        let targetYear: Int
+        let targetMonth: Int
     }
 
     private var key: Key?
@@ -484,18 +741,24 @@ private final class CalendarMonthCache {
     func months(
         locale: Locale,
         now: Date = .now,
-        historyStart: Date? = nil
+        historyStart: Date? = nil,
+        targetDate: Date? = nil
     ) -> [CalendarMonth] {
         let calendar = Calendar.localizedGregorian(locale: locale)
         guard let currentMonth = calendar.date(
             from: calendar.dateComponents([.year, .month], from: now)
         ), let oneYearAgo = calendar.date(byAdding: .year, value: -1, to: currentMonth),
-           let lastMonth = calendar.date(byAdding: .month, value: 11, to: currentMonth)
+           let defaultLastMonth = calendar.date(byAdding: .month, value: 11, to: currentMonth)
         else { return [] }
 
-        let requestedHistoryStart = historyStart.map { min($0, oneYearAgo) } ?? oneYearAgo
+        let requestedHistoryStart = [historyStart, targetDate, oneYearAgo]
+            .compactMap { $0 }
+            .min() ?? oneYearAgo
+        let requestedLastMonth = max(defaultLastMonth, targetDate ?? defaultLastMonth)
         guard let firstMonth = calendar.date(
             from: calendar.dateComponents([.year, .month], from: requestedHistoryStart)
+        ), let lastMonth = calendar.date(
+            from: calendar.dateComponents([.year, .month], from: requestedLastMonth)
         ) else { return [] }
 
         let nextKey = Key(
@@ -504,7 +767,9 @@ private final class CalendarMonthCache {
             year: calendar.component(.year, from: now),
             month: calendar.component(.month, from: now),
             historyStartYear: calendar.component(.year, from: firstMonth),
-            historyStartMonth: calendar.component(.month, from: firstMonth)
+            historyStartMonth: calendar.component(.month, from: firstMonth),
+            targetYear: calendar.component(.year, from: lastMonth),
+            targetMonth: calendar.component(.month, from: lastMonth)
         )
         if key != nextKey {
             key = nextKey
@@ -523,7 +788,7 @@ private final class CalendarMonthCache {
     }
 }
 
-private struct SelectedEventDate: Identifiable {
+private struct SelectedCreationDate: Identifiable {
     let id = UUID()
     let date: Date
 }

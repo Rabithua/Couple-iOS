@@ -218,18 +218,18 @@ struct SyncV1Mutation: Encodable, Sendable {
         switch type {
         case .todo: [
             "content": ["title", "note"],
-            "schedule": ["dueTime", "reminderOffset"],
+            "schedule": ["dueTime", "reminderEnabled", "reminderOffset", "reminderLocalTime"],
             "visibility": ["visibility"],
             "completion": ["completed"],
         ]
         case .anniversary: [
             "content": ["title"],
-            "schedule": ["date", "annual", "reminderOffset", "reminderInstant"],
+            "schedule": ["date", "annual", "reminderEnabled", "reminderOffset", "reminderLocalTime", "reminderInstant"],
             "visibility": ["visibility"],
         ]
         case .calendarEvent: [
             "content": ["title", "description"],
-            "schedule": ["allDay", "startTime", "endTime", "timezone", "yearly", "reminderOffset"],
+            "schedule": ["allDay", "startTime", "endTime", "timezone", "yearly", "reminderEnabled", "reminderOffset", "reminderLocalTime"],
             "visibility": ["visibility"],
         ]
         case .timeline: [

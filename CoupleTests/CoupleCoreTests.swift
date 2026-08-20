@@ -151,6 +151,136 @@ final class CoupleCoreTests: XCTestCase {
         XCTAssertEqual(schedule.earliestScheduledDate, calendar.startOfDay(for: todoDate))
     }
 
+    func testCalendarScheduleIndexChangesWhenSystemTimeZoneChanges() throws {
+        var utcCalendar = Calendar(identifier: .gregorian)
+        utcCalendar.timeZone = try XCTUnwrap(TimeZone(secondsFromGMT: 0))
+        var shanghaiCalendar = Calendar(identifier: .gregorian)
+        shanghaiCalendar.timeZone = try XCTUnwrap(TimeZone(secondsFromGMT: 8 * 60 * 60))
+        let eventTime = try XCTUnwrap(utcCalendar.date(from: DateComponents(
+            year: 2026,
+            month: 8,
+            day: 19,
+            hour: 16,
+            minute: 30
+        )))
+        let event = CalendarEvent(
+            id: "timezone-event",
+            coupleId: "couple",
+            ownerId: "owner",
+            title: "Timezone boundary",
+            description: nil,
+            allDay: false,
+            startTime: eventTime,
+            endTime: nil,
+            timezone: "UTC",
+            yearly: false,
+            visibility: .shared,
+            reminderOffset: nil,
+            createdAt: eventTime,
+            updatedAt: eventTime,
+            occurrenceId: nil,
+            recurrenceSourceId: nil
+        )
+
+        let utcIndex = CalendarScheduleIndex(events: [event], calendar: utcCalendar)
+        let shanghaiIndex = CalendarScheduleIndex(events: [event], calendar: shanghaiCalendar)
+        let utcDay = try XCTUnwrap(utcCalendar.date(
+            from: DateComponents(year: 2026, month: 8, day: 19, hour: 12)
+        ))
+        let shanghaiDay = try XCTUnwrap(shanghaiCalendar.date(
+            from: DateComponents(year: 2026, month: 8, day: 20, hour: 12)
+        ))
+
+        XCTAssertNotEqual(utcIndex, shanghaiIndex)
+        XCTAssertEqual(utcIndex.events(on: utcDay, calendar: utcCalendar).map(\.id), [event.id])
+        XCTAssertTrue(utcIndex.events(on: shanghaiDay, calendar: utcCalendar).isEmpty)
+        XCTAssertEqual(
+            shanghaiIndex.events(on: shanghaiDay, calendar: shanghaiCalendar).map(\.id),
+            [event.id]
+        )
+        XCTAssertTrue(shanghaiIndex.events(on: utcDay, calendar: shanghaiCalendar).isEmpty)
+    }
+
+    func testCalendarScheduleIndexIncludesAnnualLeapDayAnniversaryOnFebruary28() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let anniversary = Anniversary(
+            id: "leap-anniversary",
+            coupleId: "couple",
+            ownerId: "owner",
+            title: "闰日纪念日",
+            date: "2024-02-29",
+            annual: true,
+            visibility: .shared,
+            reminderOffset: 1_440,
+            reminderInstant: nil,
+            createdAt: .now,
+            updatedAt: .now,
+            nextOccurrence: nil
+        )
+        let nonLeapOccurrence = try XCTUnwrap(calendar.date(
+            from: DateComponents(year: 2027, month: 2, day: 28)
+        ))
+        let wrongDay = try XCTUnwrap(calendar.date(
+            from: DateComponents(year: 2027, month: 3, day: 1)
+        ))
+        let schedule = CalendarScheduleIndex(
+            anniversaries: [anniversary],
+            calendar: calendar
+        )
+
+        XCTAssertEqual(schedule.anniversaries(on: nonLeapOccurrence, calendar: calendar), [anniversary])
+        XCTAssertTrue(schedule.hasScheduledItem(on: nonLeapOccurrence, calendar: calendar))
+        XCTAssertTrue(schedule.anniversaries(on: wrongDay, calendar: calendar).isEmpty)
+    }
+
+    func testCalendarScheduleIndexKeepsOneTimeAnniversaryOnSavedDateOnly() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let anniversary = Anniversary(
+            id: "one-time-anniversary",
+            coupleId: "couple",
+            ownerId: "owner",
+            title: "一次纪念日",
+            date: "2026-08-20",
+            annual: false,
+            visibility: .shared,
+            reminderOffset: nil,
+            reminderInstant: nil,
+            createdAt: .now,
+            updatedAt: .now,
+            nextOccurrence: nil
+        )
+        let savedDate = try XCTUnwrap(calendar.date(
+            from: DateComponents(year: 2026, month: 8, day: 20)
+        ))
+        let nextYear = try XCTUnwrap(calendar.date(
+            from: DateComponents(year: 2027, month: 8, day: 20)
+        ))
+        let schedule = CalendarScheduleIndex(
+            anniversaries: [anniversary],
+            calendar: calendar
+        )
+
+        XCTAssertEqual(schedule.anniversaries(on: savedDate, calendar: calendar), [anniversary])
+        XCTAssertTrue(schedule.anniversaries(on: nextYear, calendar: calendar).isEmpty)
+    }
+
+    func testNotificationDestinationParsesCalendarOccurrence() throws {
+        let destination = try XCTUnwrap(NotificationDestination(userInfo: [
+            "eventType": "anniversary_reminder",
+            "route": "futureCalendar",
+            "entityType": "anniversary",
+            "entityId": "anniversary-id",
+            "occurrenceDate": "2027-02-28",
+        ]))
+
+        XCTAssertEqual(destination.route, .futureCalendar)
+        XCTAssertEqual(destination.entityType, "anniversary")
+        XCTAssertEqual(destination.entityId, "anniversary-id")
+        XCTAssertEqual(destination.occurrenceDate?.dateOnlyString, "2027-02-28")
+    }
+
     @MainActor
     func testDemoStoreLoadsCompleteHomeData() async {
         let store = AppStore(

@@ -77,7 +77,9 @@ final class LocalTodoEntity {
     var completed: Bool
     var completedAt: Date?
     var completedBy: String?
+    var reminderEnabled: Bool = false
     var reminderOffset: Int?
+    var reminderLocalTime: String?
     var createdAt: Date
     var updatedAt: Date
     var fieldClocksData: Data
@@ -96,7 +98,9 @@ final class LocalTodoEntity {
         completed: Bool,
         completedAt: Date?,
         completedBy: String?,
+        reminderEnabled: Bool = false,
         reminderOffset: Int?,
+        reminderLocalTime: String? = nil,
         createdAt: Date,
         updatedAt: Date,
         fieldClocksData: Data,
@@ -114,7 +118,9 @@ final class LocalTodoEntity {
         self.completed = completed
         self.completedAt = completedAt
         self.completedBy = completedBy
+        self.reminderEnabled = reminderEnabled
         self.reminderOffset = reminderOffset
+        self.reminderLocalTime = reminderLocalTime
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.fieldClocksData = fieldClocksData
@@ -133,7 +139,9 @@ final class LocalAnniversaryEntity {
     var date: String
     var annual: Bool
     var visibility: String
+    var reminderEnabled: Bool = false
     var reminderOffset: Int?
+    var reminderLocalTime: String?
     var reminderInstant: Date?
     var createdAt: Date
     var updatedAt: Date
@@ -151,7 +159,9 @@ final class LocalAnniversaryEntity {
         date: String,
         annual: Bool,
         visibility: String,
+        reminderEnabled: Bool = false,
         reminderOffset: Int?,
+        reminderLocalTime: String? = nil,
         reminderInstant: Date?,
         createdAt: Date,
         updatedAt: Date,
@@ -168,7 +178,9 @@ final class LocalAnniversaryEntity {
         self.date = date
         self.annual = annual
         self.visibility = visibility
+        self.reminderEnabled = reminderEnabled
         self.reminderOffset = reminderOffset
+        self.reminderLocalTime = reminderLocalTime
         self.reminderInstant = reminderInstant
         self.createdAt = createdAt
         self.updatedAt = updatedAt
@@ -193,7 +205,9 @@ final class LocalCalendarEventEntity {
     var timezone: String
     var yearly: Bool
     var visibility: String
+    var reminderEnabled: Bool = false
     var reminderOffset: Int?
+    var reminderLocalTime: String?
     var createdAt: Date
     var updatedAt: Date
     var fieldClocksData: Data
@@ -213,7 +227,9 @@ final class LocalCalendarEventEntity {
         timezone: String,
         yearly: Bool,
         visibility: String,
+        reminderEnabled: Bool = false,
         reminderOffset: Int?,
+        reminderLocalTime: String? = nil,
         createdAt: Date,
         updatedAt: Date,
         fieldClocksData: Data,
@@ -232,7 +248,9 @@ final class LocalCalendarEventEntity {
         self.timezone = timezone
         self.yearly = yearly
         self.visibility = visibility
+        self.reminderEnabled = reminderEnabled
         self.reminderOffset = reminderOffset
+        self.reminderLocalTime = reminderLocalTime
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.fieldClocksData = fieldClocksData

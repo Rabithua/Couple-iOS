@@ -169,6 +169,51 @@ struct APIClientTests {
         await client.clearSession()
     }
 
+    @Test("Push device lifecycle uses PUT, PATCH, and DELETE", .tags(.networking))
+    func pushDeviceLifecycleRequests() async throws {
+        let baseURL = try #require(URL(string: "https://example.com/v1/api"))
+        let keychain = KeychainStore(
+            service: "couple-tests-\(UUID().uuidString)",
+            persistenceEnabled: false
+        )
+        let session = MockHTTPSession(stubs: [
+            .init(pathSuffix: "/push/devices/device-1", statusCode: 200, data: Self.pushDeviceData),
+            .init(pathSuffix: "/push/devices/device-1", statusCode: 200, data: Self.pushDeviceData),
+            .init(pathSuffix: "/push/devices/device-1", statusCode: 200, data: Self.emptySuccessData),
+        ])
+        let client = APIClient(baseURL: baseURL, session: session, keychain: keychain)
+        try await client.install(tokens: Self.initialTokens)
+
+        let registered = try await client.registerPushDevice(
+            deviceId: "device-1",
+            request: PushDeviceRegistrationRequest(
+                token: "abcdef",
+                environment: "sandbox",
+                locale: "zh-Hans",
+                appVersion: "1.0",
+                appBuild: "1"
+            )
+        )
+        #expect(registered.deviceId == "device-1")
+        #expect(await session.lastHTTPMethod() == "PUT")
+
+        _ = try await client.updatePushPreferences(
+            deviceId: "device-1",
+            request: PushPreferenceRequest(
+                collaborationEnabled: false,
+                remindersEnabled: true
+            )
+        )
+        #expect(await session.lastHTTPMethod() == "PATCH")
+        let body = try #require(await session.lastRequestBody())
+        let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: Bool])
+        #expect(json == ["collaborationEnabled": false, "remindersEnabled": true])
+
+        try await client.deletePushDevice(deviceId: "device-1")
+        #expect(await session.lastHTTPMethod() == "DELETE")
+        await client.clearSession()
+    }
+
     private static let initialTokens = TokenPair(
         accessToken: "old-access",
         refreshToken: "old-refresh"
@@ -216,6 +261,20 @@ struct APIClientTests {
       "code": 0,
       "message": "success",
       "data": null
+    }
+    """#.utf8)
+
+    private static let pushDeviceData = Data(#"""
+    {
+      "code": 0,
+      "message": "success",
+      "data": {
+        "deviceId": "device-1",
+        "environment": "sandbox",
+        "collaborationEnabled": true,
+        "remindersEnabled": true,
+        "active": true
+      }
     }
     """#.utf8)
 }

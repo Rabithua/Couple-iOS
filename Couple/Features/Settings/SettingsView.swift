@@ -5,6 +5,8 @@ struct SettingsView: View {
     @Environment(AppHaptics.self) private var haptics
     @Environment(AppLanguageStore.self) private var language
     @Environment(AppStore.self) private var store
+    @Environment(NotificationCoordinator.self) private var notifications
+    @Environment(\.openURL) private var openURL
     let scrollingDisabled: Bool
     @State private var startedOn = Date.now
     @State private var persistedStartedOn: Date?
@@ -25,6 +27,7 @@ struct SettingsView: View {
     var body: some View {
         @Bindable var haptics = haptics
         @Bindable var language = language
+        @Bindable var notifications = notifications
 
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 32) {
@@ -146,6 +149,45 @@ struct SettingsView: View {
                     .settingsRow()
                     .accessibilityHint("控制应用内按钮、选择和操作结果的震动反馈")
                     .accessibilityIdentifier("hapticsToggle")
+                }
+
+                settingsSection("通知") {
+                    LabeledContent {
+                        Text(notifications.authorizationStatus.title)
+                            .foregroundStyle(.secondary)
+                    } label: {
+                        Label("系统通知", systemImage: "bell")
+                    }
+                    .settingsRow()
+
+                    Toggle(isOn: $notifications.collaborationEnabled) {
+                        Label("协作通知", systemImage: "person.2.badge.plus")
+                    }
+                    .settingsRow()
+                    .accessibilityHint("接收配对、共同回忆、清单、日程和纪念日动态")
+
+                    Toggle(isOn: $notifications.remindersEnabled) {
+                        Label("提醒通知", systemImage: "calendar.badge.clock")
+                    }
+                    .settingsRow()
+                    .accessibilityHint("接收清单、日程和纪念日的时间提醒")
+
+                    if notifications.authorizationStatus == .notDetermined {
+                        Button("允许系统通知", systemImage: "bell.badge", action: requestNotifications)
+                            .settingsRow()
+                            .buttonStyle(.plain)
+                    } else if notifications.authorizationStatus == .denied {
+                        Button("前往系统设置", systemImage: "gear", action: openNotificationSettings)
+                            .settingsRow()
+                            .buttonStyle(.plain)
+                    }
+
+                    if let registrationError = notifications.registrationError {
+                        Text(registrationError)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .settingsRow()
+                    }
                 }
 
                 settingsSection("连接") {
@@ -307,6 +349,17 @@ struct SettingsView: View {
     private func presentNewAnniversary() {
         haptics.play(.tap)
         showingNewAnniversary = true
+    }
+
+    private func requestNotifications() {
+        haptics.play(.tap)
+        Task { _ = await notifications.requestAuthorizationIfNeeded() }
+    }
+
+    private func openNotificationSettings() {
+        haptics.play(.tap)
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        openURL(url)
     }
 
     private func beginLeavingSpace() {

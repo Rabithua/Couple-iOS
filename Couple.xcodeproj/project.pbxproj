@@ -7,6 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D1A100000000000000000001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A100000000000000000002 /* AppDelegate.swift */; };
+		D1A100000000000000000003 /* NotificationDestination.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A100000000000000000004 /* NotificationDestination.swift */; };
+		D1A100000000000000000005 /* NotificationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A100000000000000000006 /* NotificationCoordinator.swift */; };
+		D1A100000000000000000007 /* ReminderPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A100000000000000000008 /* ReminderPreset.swift */; };
+		D1A100000000000000000009 /* CalendarAgendaAnniversaryRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A10000000000000000000A /* CalendarAgendaAnniversaryRow.swift */; };
 		0C0A11A2D5404E17B3170011 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 0C0A11A2D5404E17B3170021 /* Localizable.xcstrings */; };
 		0C0A11A2D5404E17B3170012 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 0C0A11A2D5404E17B3170022 /* InfoPlist.xcstrings */; };
 		0C0A11A2D5404E17B3170111 /* AppLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0A11A2D5404E17B3170101 /* AppLanguage.swift */; };
@@ -25,6 +30,9 @@
 		17DB60F3CAFAF0A38B435D1B /* PhotoPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E91DCB8536246EB9009DE781 /* PhotoPreviewView.swift */; };
 		18C665F36ACB776EEF49A7C9 /* PhotoPreviewZoomState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AEB29ED930F34D3894CA2FD /* PhotoPreviewZoomState.swift */; };
 		1B173057AC6DE16C0FB72E4A /* CalendarMonthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60734C7C5F8A39BEA866997C /* CalendarMonthView.swift */; };
+		C4A110000000000000000001 /* CalendarMonthHeaderPositionsPreferenceKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4A110000000000000000002 /* CalendarMonthHeaderPositionsPreferenceKey.swift */; };
+		C4A120000000000000000001 /* CalendarScrollTarget.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4A120000000000000000002 /* CalendarScrollTarget.swift */; };
+		C4A120000000000000000003 /* CalendarScrollTargetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4A120000000000000000004 /* CalendarScrollTargetTests.swift */; };
 		F19E57B4A7D24C839A106E51 /* CalendarDayAgendaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D7B4CB9E2F7481AA30C6D95 /* CalendarDayAgendaView.swift */; };
 		8C4F1A9B6D2E47C18A3F905B /* CalendarAgendaBackgroundShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E7A91C5B4D24F6081A9E2C7 /* CalendarAgendaBackgroundShape.swift */; };
 		25119C67BAF53B4C2724A216 /* CoupleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E89BC2C907FBC6DEB7C2D2A1 /* CoupleApp.swift */; };
@@ -122,6 +130,11 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		D1A100000000000000000002 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		D1A100000000000000000004 /* NotificationDestination.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationDestination.swift; sourceTree = "<group>"; };
+		D1A100000000000000000006 /* NotificationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationCoordinator.swift; sourceTree = "<group>"; };
+		D1A100000000000000000008 /* ReminderPreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderPreset.swift; sourceTree = "<group>"; };
+		D1A10000000000000000000A /* CalendarAgendaAnniversaryRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarAgendaAnniversaryRow.swift; sourceTree = "<group>"; };
 		0C0A11A2D5404E17B3170021 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		0C0A11A2D5404E17B3170022 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		0C0A11A2D5404E17B3170101 /* AppLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLanguage.swift; sourceTree = "<group>"; };
@@ -159,6 +172,9 @@
 		5BC4E79300346F7DDF02DFCF /* AttachmentFileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentFileStore.swift; sourceTree = "<group>"; };
 		5D2778920BD88CC2CF7161A1 /* AppRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRootView.swift; sourceTree = "<group>"; };
 		60734C7C5F8A39BEA866997C /* CalendarMonthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarMonthView.swift; sourceTree = "<group>"; };
+		C4A110000000000000000002 /* CalendarMonthHeaderPositionsPreferenceKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarMonthHeaderPositionsPreferenceKey.swift; sourceTree = "<group>"; };
+		C4A120000000000000000002 /* CalendarScrollTarget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarScrollTarget.swift; sourceTree = "<group>"; };
+		C4A120000000000000000004 /* CalendarScrollTargetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarScrollTargetTests.swift; sourceTree = "<group>"; };
 		6300E503D7463C62D9897D82 /* AppHaptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHaptics.swift; sourceTree = "<group>"; };
 		64E10CA2778DA878C57C90C5 /* ReviewFeedbackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewFeedbackTests.swift; sourceTree = "<group>"; };
 		68F57A3CA83DDC65731106BA /* DeferredTodoCompletionRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeferredTodoCompletionRow.swift; sourceTree = "<group>"; };
@@ -227,6 +243,7 @@
 			isa = PBXGroup;
 			children = (
 				041507648A3CCDBE8F9EE374 /* AppStore.swift */,
+				D1A100000000000000000008 /* ReminderPreset.swift */,
 				53AF261A9D87E6EEB78399C8 /* SampleData.swift */,
 			);
 			path = Models;
@@ -253,6 +270,7 @@
 		210D2E1117AB036EFD1214D1 /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				C4A120000000000000000005 /* Future */,
 				D4A5D7FF1CDF059D2B13CE6F /* Home */,
 			);
 			path = Features;
@@ -269,10 +287,13 @@
 		4892706C6BF759FB8212F8C0 /* Future */ = {
 			isa = PBXGroup;
 			children = (
+				D1A10000000000000000000A /* CalendarAgendaAnniversaryRow.swift */,
 				3E7A91C5B4D24F6081A9E2C7 /* CalendarAgendaBackgroundShape.swift */,
 				0D7B4CB9E2F7481AA30C6D95 /* CalendarDayAgendaView.swift */,
 				B4C88F117877FCBFCB92C847 /* CalendarDayCell.swift */,
+				C4A110000000000000000002 /* CalendarMonthHeaderPositionsPreferenceKey.swift */,
 				60734C7C5F8A39BEA866997C /* CalendarMonthView.swift */,
+				C4A120000000000000000002 /* CalendarScrollTarget.swift */,
 				6E15C236C8EDF6B1B9903587 /* FutureView.swift */,
 			);
 			path = Future;
@@ -413,6 +434,14 @@
 			path = Home;
 			sourceTree = "<group>";
 		};
+		C4A120000000000000000005 /* Future */ = {
+			isa = PBXGroup;
+			children = (
+				C4A120000000000000000004 /* CalendarScrollTargetTests.swift */,
+			);
+			path = Future;
+			sourceTree = "<group>";
+		};
 		877B0724597DA6088DB1CF1A /* Auth */ = {
 			isa = PBXGroup;
 			children = (
@@ -459,6 +488,7 @@
 				877B0724597DA6088DB1CF1A /* Auth */,
 				4F3372D05A61CAAF8723DAB2 /* Design */,
 				0C0A11A2D5404E17B3170151 /* Localization */,
+				D1A10000000000000000000B /* Notifications */,
 				AE7EC65B5D9E0E8278CF0794 /* Offline */,
 				A13EE0C3AC228A8445B07DC3 /* Utilities */,
 			);
@@ -496,10 +526,20 @@
 		A3870AE8460D949563064634 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				D1A100000000000000000002 /* AppDelegate.swift */,
 				5D2778920BD88CC2CF7161A1 /* AppRootView.swift */,
 				E89BC2C907FBC6DEB7C2D2A1 /* CoupleApp.swift */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		D1A10000000000000000000B /* Notifications */ = {
+			isa = PBXGroup;
+			children = (
+				D1A100000000000000000006 /* NotificationCoordinator.swift */,
+				D1A100000000000000000004 /* NotificationDestination.swift */,
+			);
+			path = Notifications;
 			sourceTree = "<group>";
 		};
 		AE7EC65B5D9E0E8278CF0794 /* Offline */ = {
@@ -694,6 +734,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D1A100000000000000000001 /* AppDelegate.swift in Sources */,
 				ACC4099C181A162958FF5DFA /* APIClient.swift in Sources */,
 				B8F6E5EDFDAAC36669A60F3C /* APIModels.swift in Sources */,
 				A305144BE24908FBE2BB7292 /* APIService.swift in Sources */,
@@ -710,9 +751,12 @@
 				D0AA00000000000000000001 /* AttachmentImageDecoder.swift in Sources */,
 				28BC3DEAE4A2D58F49AB860A /* AuthView.swift in Sources */,
 				F19E57B4A7D24C839A106E51 /* CalendarDayAgendaView.swift in Sources */,
+				D1A100000000000000000009 /* CalendarAgendaAnniversaryRow.swift in Sources */,
 				8C4F1A9B6D2E47C18A3F905B /* CalendarAgendaBackgroundShape.swift in Sources */,
 				A0B6F8756DE99A9546949193 /* CalendarDayCell.swift in Sources */,
 				1B173057AC6DE16C0FB72E4A /* CalendarMonthView.swift in Sources */,
+				C4A110000000000000000001 /* CalendarMonthHeaderPositionsPreferenceKey.swift in Sources */,
+				C4A120000000000000000001 /* CalendarScrollTarget.swift in Sources */,
 				C416256EE5D45FA4A4C68AA6 /* CalendarOccurrenceExpander.swift in Sources */,
 				C5F839E21A6D4B12A17F75D1 /* CalendarScheduleIndex.swift in Sources */,
 				D865FF482FD917A721B71F46 /* ComposeMemoryView.swift in Sources */,
@@ -741,6 +785,8 @@
 				55BF5D05D162644DB032EB6E /* OfflineModels.swift in Sources */,
 				3B39692EB3FF3E55873ABADD /* OfflineStore.swift in Sources */,
 				71563E98015D90C644CF9E7E /* PairingView.swift in Sources */,
+				D1A100000000000000000005 /* NotificationCoordinator.swift in Sources */,
+				D1A100000000000000000003 /* NotificationDestination.swift in Sources */,
 				8254270C07806F1CDEF8856E /* PasskeyService.swift in Sources */,
 				998B471ADAA4E5155F2EA1BD /* PastPageView.swift in Sources */,
 				3CADA5F144CA5455F43B02E4 /* PastView.swift in Sources */,
@@ -761,6 +807,7 @@
 				17DB60F3CAFAF0A38B435D1B /* PhotoPreviewView.swift in Sources */,
 				18C665F36ACB776EEF49A7C9 /* PhotoPreviewZoomState.swift in Sources */,
 				B9A6450A2D9A3F856CC7CD85 /* SampleData.swift in Sources */,
+				D1A100000000000000000007 /* ReminderPreset.swift in Sources */,
 				E4003FD6B3C8C7E22658C499 /* SettingsView.swift in Sources */,
 				C8029A9F3E617AF01677C912 /* SyncCore.swift in Sources */,
 				B9B0F1229A94B3B8237AB9F4 /* SyncV1Transport.swift in Sources */,
@@ -795,6 +842,7 @@
 				58326B25C993CD986092B2AA /* OfflineSyncTests.swift in Sources */,
 				C3C0C8F6C7E999223CAA4EE4 /* PhotoPreviewPresentationTests.swift in Sources */,
 				5A1E09BD2AFC0ECDDFF4B775 /* PhotoPreviewZoomStateTests.swift in Sources */,
+				C4A120000000000000000003 /* CalendarScrollTargetTests.swift in Sources */,
 				8AC6AF88130095C101AF1471 /* ReviewFeedbackTests.swift in Sources */,
 				E38BB36A3D77587B744FEE90 /* SyncV1DTOTests.swift in Sources */,
 				C1536A7567795BE922FD71C4 /* TodoCompletionTests.swift in Sources */,
@@ -839,11 +887,14 @@
 		2CE871A8A843FDEEB0EBEDF1 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APS_ENVIRONMENT = production;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Config/Couple.entitlements;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Config/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = oursince;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "使用面容 ID 安全登录你们的共同空间。";
@@ -855,6 +906,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.oursince.couple;
 				PRODUCT_NAME = Couple;
+				PROVISIONING_PROFILE_SPECIFIER = "OurSince App Store Push 20260820";
 				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_STRICT_CONCURRENCY = complete;
@@ -882,12 +934,14 @@
 		74DF344CDE2B51A3B237A866 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APS_ENVIRONMENT = development;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Config/Couple.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Manual;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Config/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = oursince;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "使用面容 ID 安全登录你们的共同空间。";
@@ -899,7 +953,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.oursince.couple;
 				PRODUCT_NAME = Couple;
-				PROVISIONING_PROFILE_SPECIFIER = "Oursince Couple Development Huawei Devices";
+				PROVISIONING_PROFILE_SPECIFIER = "Oursince Couple Development Huawei Air Push 20260820";
 				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_STRICT_CONCURRENCY = complete;

@@ -4,7 +4,9 @@ struct PairingView: View {
     @Environment(\.locale) private var locale
     @Environment(AppHaptics.self) private var haptics
     @Environment(AppStore.self) private var store
+    @Environment(NotificationCoordinator.self) private var notifications
     @State private var inviteCode = ""
+    @State private var showingNotificationExplanation = false
 
     var body: some View {
         NavigationStack {
@@ -60,6 +62,12 @@ struct PairingView: View {
             .overlay { if store.isBusy { ProgressView().controlSize(.large) } }
         }
         .screenBackground()
+        .alert("及时知道配对结果", isPresented: $showingNotificationExplanation) {
+            Button("开启通知", action: requestNotificationPermission)
+            Button("以后再说", role: .cancel) {}
+        } message: {
+            Text("允许通知后，对方加入共同空间时会立即告诉你。")
+        }
     }
 
     private func beginCreatingInvite() {
@@ -68,6 +76,11 @@ struct PairingView: View {
             await store.createInvite()
             if store.relationship?.pendingInvite != nil {
                 haptics.play(.success)
+                if notifications.authorizationStatus == .notDetermined {
+                    showingNotificationExplanation = true
+                } else {
+                    await notifications.refreshRegistration()
+                }
             }
         }
     }
@@ -78,6 +91,7 @@ struct PairingView: View {
             await store.acceptInvite(inviteCode)
             if store.phase == .main {
                 haptics.play(.success)
+                _ = await notifications.requestAuthorizationIfNeeded()
             }
         }
     }
@@ -111,9 +125,24 @@ struct PairingView: View {
                 Label("分享邀请码", systemImage: "square.and.arrow.up")
             }
             .buttonStyle(.bordered)
+
+            if notifications.authorizationStatus == .notDetermined {
+                Button("开启配对通知", systemImage: "bell.badge", action: explainNotifications)
+                    .buttonStyle(.bordered)
+            }
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.secondarySystemBackground), in: .rect(cornerRadius: 20))
+    }
+
+    private func explainNotifications() {
+        haptics.play(.tap)
+        showingNotificationExplanation = true
+    }
+
+    private func requestNotificationPermission() {
+        haptics.play(.tap)
+        Task { _ = await notifications.requestAuthorizationIfNeeded() }
     }
 }

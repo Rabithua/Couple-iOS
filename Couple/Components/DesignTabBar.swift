@@ -7,6 +7,19 @@ struct DesignTabBar<Selection: Hashable>: View {
     let items: [(Selection, String)]
     let selection: Selection
     let select: (Selection) -> Void
+    let reselect: ((Selection) -> Void)?
+
+    init(
+        items: [(Selection, String)],
+        selection: Selection,
+        select: @escaping (Selection) -> Void,
+        reselect: ((Selection) -> Void)? = nil
+    ) {
+        self.items = items
+        self.selection = selection
+        self.select = select
+        self.reselect = reselect
+    }
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -16,8 +29,7 @@ struct DesignTabBar<Selection: Hashable>: View {
                         let isSelected = selection == item.0
 
                         Button {
-                            guard !isSelected else { return }
-                            select(item.0)
+                            activate(item.0, isSelected: isSelected)
                         } label: {
                             Text(item.1)
                                 .font(.title.bold())
@@ -49,5 +61,13 @@ struct DesignTabBar<Selection: Hashable>: View {
             }
         }
         .frame(minHeight: 44)
+    }
+
+    private func activate(_ item: Selection, isSelected: Bool) {
+        if isSelected {
+            reselect?(item)
+        } else {
+            select(item)
+        }
     }
 }

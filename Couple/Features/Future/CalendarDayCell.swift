@@ -6,10 +6,13 @@ struct CalendarDayCell: View {
     let date: Date
     let events: [CalendarEvent]
     let todos: [Todo]
+    let anniversaries: [Anniversary]
     let editEvent: @MainActor (CalendarEvent) -> Void
     let editTodo: @MainActor (Todo) -> Void
+    let editAnniversary: @MainActor (Anniversary) -> Void
     let deleteEvent: @MainActor (CalendarEvent) async throws -> Void
     let deleteTodo: @MainActor (Todo) async throws -> Void
+    let deleteAnniversary: @MainActor (Anniversary) async throws -> Void
     let selectDate: @MainActor (Date) -> Void
     let isSelected: Bool
     let isSelectionDisabled: Bool
@@ -22,7 +25,7 @@ struct CalendarDayCell: View {
 
     var body: some View {
         let calendar = Calendar.localizedGregorian(locale: locale)
-        let hasScheduledItem = !events.isEmpty || !todos.isEmpty
+        let hasScheduledItem = !events.isEmpty || !todos.isEmpty || !anniversaries.isEmpty
         let isToday = calendar.isDateInToday(date)
         let isPast = date < calendar.startOfDay(for: .now)
 
@@ -72,18 +75,25 @@ struct CalendarDayCell: View {
     ) -> some View {
         Button(action: selectDay) {
             VStack(spacing: 2) {
-                Text(calendar.component(.day, from: date), format: .number)
-                    .font(.body.bold())
-                    .foregroundStyle(
-                        isToday
-                            ? Color(.systemBackground)
-                            : AppTheme.muted.opacity(isPast ? 0.55 : 1)
-                    )
-                    .frame(width: 32, height: 32)
-                    .background(
-                        isToday ? Color.primary : .clear,
-                        in: .rect(cornerRadius: AppTheme.calendarTodayCornerRadius)
-                    )
+                ZStack {
+                    if isToday {
+                        Image("CurrentDay")
+                            .resizable()
+                            .renderingMode(.template)
+                            .scaledToFit()
+                            .foregroundStyle(.primary)
+                            .accessibilityHidden(true)
+                    }
+
+                    Text(calendar.component(.day, from: date), format: .number)
+                        .font(.body.bold())
+                        .foregroundStyle(
+                            isToday
+                                ? Color.primary
+                                : AppTheme.muted.opacity(isPast ? 0.55 : 1)
+                        )
+                }
+                .frame(width: 32, height: 32)
 
                 Circle()
                     .fill(hasScheduledItem ? Color.primary.opacity(0.45) : .clear)
@@ -99,6 +109,31 @@ struct CalendarDayCell: View {
 
     @ViewBuilder
     private var scheduledItemMenu: some View {
+        ForEach(anniversaries) { anniversary in
+            Button(
+                AppLocalization.string(
+                    "editAnniversaryAccessibilityLabel",
+                    defaultValue: "编辑纪念日：\(anniversary.title)"
+                ),
+                systemImage: "pencil"
+            ) {
+                beginEditing(anniversary)
+            }
+            Button(role: .destructive) {
+                requestDeletion(.anniversary(anniversary))
+            } label: {
+                Label(
+                    AppLocalization.string(
+                        "deleteAnniversaryAccessibilityLabel",
+                        defaultValue: "删除纪念日：\(anniversary.title)"
+                    ),
+                    systemImage: "trash"
+                )
+            }
+        }
+
+        if !anniversaries.isEmpty, !events.isEmpty || !todos.isEmpty { Divider() }
+
         ForEach(events) { event in
             Button(
                 AppLocalization.string("editEventAccessibilityLabel",
@@ -163,6 +198,12 @@ struct CalendarDayCell: View {
                 defaultValue: "\(todos.count) 个清单"
             ))
         }
+        if !anniversaries.isEmpty {
+            values.append(AppLocalization.string(
+                "anniversaryCount",
+                defaultValue: "\(anniversaries.count) 个纪念日"
+            ))
+        }
         return values.isEmpty
             ? AppLocalization.string("无安排")
             : values.formatted(.list(type: .and, width: .short).locale(locale))
@@ -185,6 +226,11 @@ struct CalendarDayCell: View {
         editTodo(todo)
     }
 
+    private func beginEditing(_ anniversary: Anniversary) {
+        haptics.play(.tap)
+        editAnniversary(anniversary)
+    }
+
     private func requestDeletion(_ target: PendingDeletion) {
         guard !isDeleting else { return }
         haptics.play(.warning)
@@ -205,6 +251,7 @@ struct CalendarDayCell: View {
         }
         do {
             switch pendingDeletion {
+            case .anniversary(let anniversary): try await deleteAnniversary(anniversary)
             case .event(let event): try await deleteEvent(event)
             case .todo(let todo): try await deleteTodo(todo)
             case nil: return
@@ -222,11 +269,16 @@ struct CalendarDayCell: View {
 }
 
 private enum PendingDeletion {
+    case anniversary(Anniversary)
     case event(CalendarEvent)
     case todo(Todo)
 
     var confirmationTitle: String {
         switch self {
+        case .anniversary(let anniversary): AppLocalization.string(
+            "deleteAnniversaryConfirmation",
+            defaultValue: "删除纪念日“\(anniversary.title)”？"
+        )
         case .event(let event): AppLocalization.string("deleteEventConfirmation",
             defaultValue: "删除日程“\(event.title)”？"
         )

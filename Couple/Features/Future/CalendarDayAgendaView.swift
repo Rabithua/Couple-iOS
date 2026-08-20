@@ -9,12 +9,17 @@ struct CalendarDayAgendaView: View {
     let isInteractionDisabled: Bool
     let events: [CalendarEvent]
     let todos: [Todo]
+    let anniversaries: [Anniversary]
+    let highlightedAnniversaryID: String?
     let createEvent: @MainActor (Date) -> Void
+    let createAnniversary: @MainActor (Date) -> Void
     let editEvent: @MainActor (CalendarEvent) -> Void
     let editTodo: @MainActor (Todo) -> Void
+    let editAnniversary: @MainActor (Anniversary) -> Void
     let setTodoCompletion: @MainActor (Todo, Bool) async -> Bool
     let deleteEvent: @MainActor (CalendarEvent) async throws -> Void
     let deleteTodo: @MainActor (Todo) async throws -> Void
+    let deleteAnniversary: @MainActor (Anniversary) async throws -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -23,12 +28,28 @@ struct CalendarDayAgendaView: View {
                 .padding(.horizontal, 4)
                 .padding(.bottom, 4)
 
-            if events.isEmpty, todos.isEmpty {
-                Label("这天还没有安排", systemImage: "calendar.badge.plus")
+            if events.isEmpty, todos.isEmpty, anniversaries.isEmpty {
+                Text("这天还没有安排")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 10)
                     .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            }
+
+            ForEach(anniversaries) { anniversary in
+                CalendarAgendaAnniversaryRow(
+                    anniversary: anniversary,
+                    isHighlighted: anniversary.id == highlightedAnniversaryID,
+                    open: { open(anniversary) }
+                )
+                .editableContentActions(
+                    deletionTitle: AppLocalization.string(
+                        "deleteAnniversaryConfirmation",
+                        defaultValue: "删除纪念日“\(anniversary.title)”？"
+                    ),
+                    editAction: { editAnniversary(anniversary) },
+                    deleteAction: { try await deleteAnniversary(anniversary) }
+                )
             }
 
             ForEach(events) { event in
@@ -71,16 +92,31 @@ struct CalendarDayAgendaView: View {
                 )
             }
 
-            Button(action: beginCreatingEvent) {
-                Label("新建日程", systemImage: "plus")
-                    .font(.subheadline.bold())
-                    .foregroundStyle(AppTheme.muted)
-                    .padding(.horizontal, 10)
-                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                    .background(Color.primary.opacity(0.05), in: .rect(cornerRadius: 12))
+            HStack(spacing: 8) {
+                Button(action: beginCreatingEvent) {
+                    Label("新建日程", systemImage: "calendar.badge.plus")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(AppTheme.muted)
+                        .padding(.horizontal, 10)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .background(Color.primary.opacity(0.05), in: .rect(cornerRadius: 12))
+                        .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("calendarAgendaNewEventButton")
+
+                Button(action: beginCreatingAnniversary) {
+                    Label("新建纪念日", systemImage: "birthday.cake")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(AppTheme.muted)
+                        .padding(.horizontal, 10)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .background(Color.primary.opacity(0.05), in: .rect(cornerRadius: 12))
+                        .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("calendarAgendaNewAnniversaryButton")
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("calendarAgendaNewEventButton")
         }
         .padding(10)
         .opacity(isContentVisible ? 1 : 0)
@@ -107,9 +143,19 @@ struct CalendarDayAgendaView: View {
         createEvent(date)
     }
 
+    private func beginCreatingAnniversary() {
+        haptics.play(.tap)
+        createAnniversary(date)
+    }
+
     private func open(_ event: CalendarEvent) {
         haptics.play(.tap)
         editEvent(event)
+    }
+
+    private func open(_ anniversary: Anniversary) {
+        haptics.play(.tap)
+        editAnniversary(anniversary)
     }
 }
 

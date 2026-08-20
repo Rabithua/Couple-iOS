@@ -110,6 +110,24 @@ extension APIClient {
 
     func home() async throws -> HomeData { try await request("/home") }
 
+    func registerPushDevice(
+        deviceId: String,
+        request: PushDeviceRegistrationRequest
+    ) async throws -> PushDeviceStatus {
+        try await self.request("/push/devices/\(deviceId)", method: .put, body: request)
+    }
+
+    func updatePushPreferences(
+        deviceId: String,
+        request: PushPreferenceRequest
+    ) async throws -> PushDeviceStatus {
+        try await self.request("/push/devices/\(deviceId)", method: .patch, body: request)
+    }
+
+    func deletePushDevice(deviceId: String) async throws {
+        try await requestEmpty("/push/devices/\(deviceId)", method: .delete)
+    }
+
     func notes(query: NoteQuery, cursor: String? = nil) async throws -> NotesPage {
         var items = query.items
         if let cursor { items.append(URLQueryItem(name: "cursor", value: cursor)) }

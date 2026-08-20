@@ -11,6 +11,7 @@ struct NewCalendarEventView: View {
     @State private var end: Date
     @State private var hasEndTime: Bool
     @State private var allDay: Bool
+    @State private var reminder: ReminderPreset
     @State private var isSaving = false
     @State private var errorMessage: String?
 
@@ -22,6 +23,7 @@ struct NewCalendarEventView: View {
         _end = State(initialValue: Self.defaultEnd(after: initialDate))
         _hasEndTime = State(initialValue: Self.initiallyHasEndTime(editing: nil))
         _allDay = State(initialValue: false)
+        _reminder = State(initialValue: .oneHour)
     }
 
     init(editing event: CalendarEvent) {
@@ -32,6 +34,11 @@ struct NewCalendarEventView: View {
         _end = State(initialValue: event.endTime ?? Self.defaultEnd(after: event.startTime))
         _hasEndTime = State(initialValue: Self.initiallyHasEndTime(editing: event))
         _allDay = State(initialValue: event.allDay)
+        _reminder = State(initialValue: ReminderPreset.selected(
+            enabled: event.reminderEnabled,
+            offset: event.reminderOffset,
+            default: event.allDay ? .oneDay : .oneHour
+        ))
     }
 
     var body: some View {
@@ -48,6 +55,15 @@ struct NewCalendarEventView: View {
                     if hasEndTime {
                         DatePicker("结束", selection: $end, in: start..., displayedComponents: allDay ? .date : [.date, .hourAndMinute])
                             .appHapticFeedback(.selection, trigger: end)
+                    }
+                    Picker("提醒", selection: $reminder) {
+                        ForEach(ReminderPreset.allCases) { preset in
+                            Text(preset.title).tag(preset)
+                        }
+                    }
+                    .appHapticFeedback(.selection, trigger: reminder)
+                    if allDay, reminder.isEnabled {
+                        LabeledContent("提醒时间", value: "09:00")
                     }
                 }
             }
@@ -83,6 +99,14 @@ struct NewCalendarEventView: View {
             .onChange(of: hasEndTime) { oldValue, newValue in
                 initializeEndIfNeeded(oldValue: oldValue, newValue: newValue)
             }
+            .onChange(of: allDay) { oldValue, newValue in
+                guard oldValue != newValue else { return }
+                if newValue, reminder == .oneHour {
+                    reminder = .oneDay
+                } else if !newValue, reminder == .oneDay {
+                    reminder = .oneHour
+                }
+            }
         }
         .contentEditorSheetPresentation()
     }
@@ -113,14 +137,16 @@ struct NewCalendarEventView: View {
                     title: cleanedTitle,
                     start: start,
                     end: hasEndTime ? end : nil,
-                    allDay: allDay
+                    allDay: allDay,
+                    reminder: reminder
                 )
             } else {
                 try await store.addCalendarEvent(
                     title: cleanedTitle,
                     start: start,
                     end: hasEndTime ? end : nil,
-                    allDay: allDay
+                    allDay: allDay,
+                    reminder: reminder
                 )
             }
             haptics.play(.success)

@@ -175,6 +175,7 @@ enum SyncTrigger: String, Sendable {
     case launch
     case login
     case foreground
+    case push
     case networkRestored
     case manual
     case retry
