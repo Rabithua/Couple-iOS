@@ -54,7 +54,7 @@ struct OnboardingSpaceChoiceView: View {
             }
             .foregroundStyle(.white)
             .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
+            .frame(maxWidth: .infinity, minHeight: height)
             .background(AppTheme.accent, in: .rect(cornerRadius: 12))
             .contentShape(.rect)
         }

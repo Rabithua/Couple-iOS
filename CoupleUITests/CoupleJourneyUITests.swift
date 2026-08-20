@@ -30,7 +30,7 @@ final class CoupleJourneyUITests: XCTestCase {
         birthdayPicker.tap()
         let birthdayEditor = app.descendants(matching: .any)["onboardingBirthdayEditor"]
         XCTAssertTrue(birthdayEditor.waitForExistence(timeout: 2))
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.2)).tap()
+        app.swipeDown(velocity: .fast)
         XCTAssertTrue(birthdayEditor.waitForNonExistence(timeout: 2))
         XCTAssertTrue(app.textFields["onboardingInviteCodeField"].exists)
 
