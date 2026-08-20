@@ -46,9 +46,15 @@ final class CoupleJourneyUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Settings"].exists)
 
         app.buttons["Calendar"].tap()
-        let englishMonthTitle = app.staticTexts.matching(
-            NSPredicate(format: "identifier BEGINSWITH 'calendarMonthTitle-'")
-        ).firstMatch
+        let calendar = Calendar.current
+        guard let currentMonthStart = calendar.date(
+            from: calendar.dateComponents([.year, .month], from: .now)
+        ) else {
+            return XCTFail("Unable to make the current month date")
+        }
+        let englishMonthTitle = app.staticTexts[
+            "calendarMonthTitle-\(currentMonthStart.dateOnlyTestIdentifier)"
+        ]
         XCTAssertTrue(englishMonthTitle.waitForExistence(timeout: 5))
         XCTAssertEqual(englishMonthTitle.label, localizedMonthTitle(locale: "en_US"))
 
@@ -159,6 +165,42 @@ final class CoupleJourneyUITests: XCTestCase {
         XCTAssertTrue(nowScroll.buttons["完成\(title)"].waitForExistence(timeout: 3))
     }
 
+    func testHomeTodoTitlePageSwipeDoesNotOpenEditor() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-now"]
+        app.launchInSimplifiedChinese()
+
+        let todoID = "40000000-0000-4000-8000-000000000001"
+        let nowScroll = app.scrollViews["nowScroll"]
+        XCTAssertTrue(nowScroll.waitForExistence(timeout: 5))
+        let titleButton = nowScroll.buttons["todoTitleButton-\(todoID)"]
+        XCTAssertTrue(titleButton.waitForExistence(timeout: 5))
+        for _ in 0..<3 where titleButton.isHittable == false {
+            nowScroll.swipeUp()
+        }
+        XCTAssertTrue(titleButton.isHittable)
+
+        let start = titleButton.coordinate(
+            withNormalizedOffset: CGVector(dx: 0.75, dy: 0.5)
+        )
+        let destination = app.coordinate(
+            withNormalizedOffset: CGVector(
+                dx: 0.12,
+                dy: titleButton.frame.midY / app.frame.height
+            )
+        )
+        start.press(
+            forDuration: 0.1,
+            thenDragTo: destination,
+            withVelocity: .slow,
+            thenHoldForDuration: 0
+        )
+
+        XCTAssertTrue(app.buttons["日历"].isSelected)
+        XCTAssertFalse(app.navigationBars["编辑清单"].waitForExistence(timeout: 1))
+    }
+
     func testCalendarAgendaTodoSeparatesTitleAndCheckbox() {
         continueAfterFailure = false
         let app = XCUIApplication()
@@ -248,9 +290,23 @@ final class CoupleJourneyUITests: XCTestCase {
             app.buttons["calendarAgendaEvent-60000000-0000-4000-8000-000000000001"]
                 .waitForExistence(timeout: 2)
         )
+        XCTAssertFalse(app.staticTexts["这天还没有安排"].exists)
         XCTAssertFalse(app.navigationBars["新日程"].exists)
 
-        app.buttons["calendarAgendaNewEventButton"].tap()
+        let anniversaryButton = app.buttons["calendarAgendaNewAnniversaryButton"]
+        XCTAssertTrue(anniversaryButton.exists)
+        XCTAssertGreaterThanOrEqual(anniversaryButton.frame.height, 43.5)
+        anniversaryButton.coordinate(
+            withNormalizedOffset: CGVector(dx: 0.08, dy: 0.5)
+        ).tap()
+        XCTAssertTrue(app.navigationBars["新纪念日"].waitForExistence(timeout: 2))
+        app.buttons["取消"].tap()
+
+        let eventButton = app.buttons["calendarAgendaNewEventButton"]
+        XCTAssertGreaterThanOrEqual(eventButton.frame.height, 43.5)
+        eventButton.coordinate(
+            withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)
+        ).tap()
         XCTAssertTrue(app.navigationBars["新日程"].waitForExistence(timeout: 2))
     }
 
@@ -295,6 +351,103 @@ final class CoupleJourneyUITests: XCTestCase {
             ].waitForExistence(timeout: 3)
         )
         XCTAssertTrue(app.buttons["calendarAgendaNewEventButton"].exists)
+        XCTAssertTrue(app.buttons["calendarAgendaNewAnniversaryButton"].exists)
+    }
+
+    func testCalendarDayExpansionPreservesScrollPosition() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-future"]
+        app.launchInSimplifiedChinese()
+
+        let today = app.buttons["calendarDay-\(Date.now.dateOnlyTestIdentifier)"]
+        XCTAssertTrue(today.waitForExistence(timeout: 5))
+        XCTAssertTrue(today.isHittable)
+        let todayY = today.frame.minY
+
+        today.tap()
+
+        XCTAssertTrue(
+            app.descendants(matching: .any)[
+                "calendarAgenda-\(Date.now.dateOnlyTestIdentifier)"
+            ].waitForExistence(timeout: 3)
+        )
+        XCTAssertTrue(app.staticTexts["这天还没有安排"].exists)
+        XCTAssertEqual(today.frame.minY, todayY, accuracy: 4)
+    }
+
+    func testCalendarHorizontalRoundTripsPreserveScrollPosition() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-future"]
+        app.launchInSimplifiedChinese()
+
+        let today = app.buttons["calendarDay-\(Date.now.dateOnlyTestIdentifier)"]
+        XCTAssertTrue(today.waitForExistence(timeout: 5))
+        XCTAssertTrue(today.isHittable)
+        let todayY = today.frame.minY
+
+        for _ in 0..<3 {
+            app.swipeLeft()
+            XCTAssertTrue(app.buttons["清单"].isSelected)
+            app.swipeRight()
+            XCTAssertTrue(app.buttons["日历"].isSelected)
+            XCTAssertTrue(today.isHittable)
+            XCTAssertEqual(today.frame.minY, todayY, accuracy: 4)
+        }
+    }
+
+    func testCalendarTodayButtonAndNavigationReturnToToday() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-future"]
+        app.launchInSimplifiedChinese()
+
+        let calendarScroll = app.scrollViews["futureCalendarScroll"]
+        XCTAssertTrue(calendarScroll.waitForExistence(timeout: 5))
+        let today = app.buttons["calendarDay-\(Date.now.dateOnlyTestIdentifier)"]
+        XCTAssertTrue(today.waitForExistence(timeout: 5))
+        XCTAssertTrue(today.isHittable)
+        today.tap()
+        XCTAssertTrue(
+            app.descendants(matching: .any)[
+                "calendarAgenda-\(Date.now.dateOnlyTestIdentifier)"
+            ].waitForExistence(timeout: 3)
+        )
+
+        for _ in 0..<4 where today.isHittable {
+            calendarScroll.swipeUp()
+        }
+        XCTAssertFalse(today.isHittable)
+
+        let todayButton = app.buttons["calendarTodayButton"]
+        XCTAssertTrue(todayButton.waitForExistence(timeout: 3))
+        todayButton.tap()
+        XCTAssertTrue(waitForHittable(today, timeout: 3))
+        XCTAssertTrue(todayButton.waitForNonExistence(timeout: 2))
+
+        for _ in 0..<4 where today.isHittable {
+            calendarScroll.swipeDown()
+        }
+        XCTAssertFalse(today.isHittable)
+        XCTAssertTrue(todayButton.waitForExistence(timeout: 3))
+
+        app.buttons["日历"].tap()
+
+        XCTAssertTrue(waitForHittable(today, timeout: 3))
+        XCTAssertTrue(todayButton.waitForNonExistence(timeout: 2))
+
+        for _ in 0..<4 where today.isHittable {
+            calendarScroll.swipeUp()
+        }
+        XCTAssertFalse(today.isHittable)
+        app.buttons["清单"].tap()
+        XCTAssertTrue(app.buttons["清单"].isSelected)
+
+        app.buttons["日历"].tap()
+
+        XCTAssertTrue(waitForHittable(today, timeout: 3))
+        XCTAssertTrue(todayButton.waitForNonExistence(timeout: 2))
     }
 
     func testCalendarMonthTitleStaysPinnedAsMonthChanges() {
@@ -770,6 +923,14 @@ final class CoupleJourneyUITests: XCTestCase {
         formatter.timeZone = .current
         formatter.setLocalizedDateFormatFromTemplate("yMMMM")
         return formatter.string(from: .now)
+    }
+
+    private func waitForHittable(_ element: XCUIElement, timeout: TimeInterval) -> Bool {
+        let expectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "hittable == true"),
+            object: element
+        )
+        return XCTWaiter.wait(for: [expectation], timeout: timeout) == .completed
     }
 
     private func assertUsesMediumContentSheet(

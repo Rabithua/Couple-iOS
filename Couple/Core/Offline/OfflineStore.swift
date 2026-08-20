@@ -235,6 +235,9 @@ final class OfflineStore: SyncStore {
         title: String,
         dueDate: Date?,
         visibility: Visibility,
+        reminderEnabled: Bool = true,
+        reminderOffset: Int? = 60,
+        reminderLocalTime: String? = nil,
         now: Date = .now
     ) throws -> Todo {
         let id = UUID().uuidString.lowercased()
@@ -251,7 +254,9 @@ final class OfflineStore: SyncStore {
             completed: false,
             completedAt: nil,
             completedBy: nil,
-            reminderOffset: dueDate == nil ? nil : 60,
+            reminderEnabled: dueDate != nil && reminderEnabled,
+            reminderOffset: dueDate == nil ? nil : reminderOffset,
+            reminderLocalTime: dueDate == nil ? nil : reminderLocalTime,
             createdAt: now,
             updatedAt: now,
             fieldClocksData: clocks,
@@ -296,6 +301,9 @@ final class OfflineStore: SyncStore {
         title: String,
         dueDate: Date?,
         visibility: Visibility,
+        reminderEnabled: Bool,
+        reminderOffset: Int?,
+        reminderLocalTime: String?,
         now: Date = .now
     ) throws {
         guard let entity = try todoEntity(id: id) else {
@@ -306,7 +314,9 @@ final class OfflineStore: SyncStore {
         let groups: Set<String> = ["content", "schedule", "visibility"]
         entity.title = title
         entity.dueTime = dueDate
-        entity.reminderOffset = dueDate == nil ? nil : (entity.reminderOffset ?? 60)
+        entity.reminderEnabled = dueDate != nil && reminderEnabled
+        entity.reminderOffset = dueDate == nil ? nil : reminderOffset
+        entity.reminderLocalTime = dueDate == nil ? nil : reminderLocalTime
         entity.visibility = visibility.rawValue
         entity.updatedAt = now
         entity.isDirty = true
@@ -318,7 +328,9 @@ final class OfflineStore: SyncStore {
             payload: .init(fields: [
                 "title": .string(title),
                 "dueTime": dueDate.map(MutationValue.date) ?? .null,
+                "reminderEnabled": .boolean(entity.reminderEnabled),
                 "reminderOffset": entity.reminderOffset.map(MutationValue.integer) ?? .null,
+                "reminderLocalTime": entity.reminderLocalTime.map(MutationValue.string) ?? .null,
                 "visibility": .string(visibility.rawValue),
             ]),
             changedGroups: groups,
@@ -326,6 +338,28 @@ final class OfflineStore: SyncStore {
             now: now
         )
         try context.save()
+    }
+
+    func editTodo(
+        id: String,
+        title: String,
+        dueDate: Date?,
+        visibility: Visibility,
+        now: Date = .now
+    ) throws {
+        guard let entity = try todoEntity(id: id) else {
+            throw OfflineStoreError.missingEntity(.todo, id)
+        }
+        try editTodo(
+            id: id,
+            title: title,
+            dueDate: dueDate,
+            visibility: visibility,
+            reminderEnabled: entity.reminderEnabled,
+            reminderOffset: entity.reminderOffset,
+            reminderLocalTime: entity.reminderLocalTime,
+            now: now
+        )
     }
 
     func toggleTodo(id: String, completedBy: String?, now: Date = .now) throws -> Todo {
@@ -414,6 +448,9 @@ final class OfflineStore: SyncStore {
         date: Date,
         annual: Bool,
         visibility: Visibility,
+        reminderEnabled: Bool = true,
+        reminderOffset: Int? = 1_440,
+        reminderLocalTime: String? = "09:00",
         now: Date = .now
     ) throws -> Anniversary {
         let id = UUID().uuidString.lowercased()
@@ -426,7 +463,9 @@ final class OfflineStore: SyncStore {
             date: date.dateOnlyString,
             annual: annual,
             visibility: visibility.rawValue,
-            reminderOffset: 1_440,
+            reminderEnabled: reminderEnabled,
+            reminderOffset: reminderOffset,
+            reminderLocalTime: reminderLocalTime,
             reminderInstant: nil,
             createdAt: now,
             updatedAt: now,
@@ -454,6 +493,9 @@ final class OfflineStore: SyncStore {
         date: Date,
         annual: Bool,
         visibility: Visibility,
+        reminderEnabled: Bool,
+        reminderOffset: Int?,
+        reminderLocalTime: String?,
         now: Date = .now
     ) throws {
         guard let entity = try anniversaryEntity(id: id) else {
@@ -467,6 +509,9 @@ final class OfflineStore: SyncStore {
         entity.annual = annual
         entity.nextOccurrence = nil
         entity.visibility = visibility.rawValue
+        entity.reminderEnabled = reminderEnabled
+        entity.reminderOffset = reminderOffset
+        entity.reminderLocalTime = reminderLocalTime
         entity.updatedAt = now
         entity.isDirty = true
         try setClock(hlc, groups: groups, on: entity)
@@ -478,6 +523,9 @@ final class OfflineStore: SyncStore {
                 "title": .string(title),
                 "date": .string(entity.date),
                 "annual": .boolean(annual),
+                "reminderEnabled": .boolean(reminderEnabled),
+                "reminderOffset": reminderOffset.map(MutationValue.integer) ?? .null,
+                "reminderLocalTime": reminderLocalTime.map(MutationValue.string) ?? .null,
                 "visibility": .string(visibility.rawValue),
             ]),
             changedGroups: groups,
@@ -485,6 +533,30 @@ final class OfflineStore: SyncStore {
             now: now
         )
         try context.save()
+    }
+
+    func editAnniversary(
+        id: String,
+        title: String,
+        date: Date,
+        annual: Bool,
+        visibility: Visibility,
+        now: Date = .now
+    ) throws {
+        guard let entity = try anniversaryEntity(id: id) else {
+            throw OfflineStoreError.missingEntity(.anniversary, id)
+        }
+        try editAnniversary(
+            id: id,
+            title: title,
+            date: date,
+            annual: annual,
+            visibility: visibility,
+            reminderEnabled: entity.reminderEnabled,
+            reminderOffset: entity.reminderOffset,
+            reminderLocalTime: entity.reminderLocalTime,
+            now: now
+        )
     }
 
     func deleteAnniversary(id: String, now: Date = .now) throws {
@@ -503,6 +575,9 @@ final class OfflineStore: SyncStore {
         allDay: Bool,
         yearly: Bool = false,
         visibility: Visibility = .shared,
+        reminderEnabled: Bool = true,
+        reminderOffset: Int? = nil,
+        reminderLocalTime: String? = nil,
         now: Date = .now
     ) throws -> CalendarEvent {
         let id = UUID().uuidString.lowercased()
@@ -519,7 +594,9 @@ final class OfflineStore: SyncStore {
             timezone: TimeZone.current.identifier,
             yearly: yearly,
             visibility: visibility.rawValue,
-            reminderOffset: 60,
+            reminderEnabled: reminderEnabled,
+            reminderOffset: reminderOffset ?? (allDay ? 1_440 : 60),
+            reminderLocalTime: allDay ? (reminderLocalTime ?? "09:00") : nil,
             createdAt: now,
             updatedAt: now,
             fieldClocksData: try Self.encode(Self.clocks(groups: ["content", "schedule", "visibility"], hlc: hlc)),
@@ -545,6 +622,9 @@ final class OfflineStore: SyncStore {
         start: Date,
         end: Date?,
         allDay: Bool,
+        reminderEnabled: Bool,
+        reminderOffset: Int?,
+        reminderLocalTime: String?,
         occurrenceStart: Date? = nil,
         occurrenceEnd: Date? = nil,
         now: Date = .now
@@ -582,6 +662,9 @@ final class OfflineStore: SyncStore {
         entity.startTime = anchoredStart
         entity.endTime = anchoredEnd
         entity.allDay = allDay
+        entity.reminderEnabled = reminderEnabled
+        entity.reminderOffset = reminderOffset
+        entity.reminderLocalTime = allDay ? reminderLocalTime : nil
         entity.updatedAt = now
         entity.isDirty = true
         try setClock(hlc, groups: groups, on: entity)
@@ -594,12 +677,44 @@ final class OfflineStore: SyncStore {
                 "allDay": .boolean(allDay),
                 "startTime": .date(anchoredStart),
                 "endTime": anchoredEnd.map(MutationValue.date) ?? .null,
+                "reminderEnabled": .boolean(reminderEnabled),
+                "reminderOffset": reminderOffset.map(MutationValue.integer) ?? .null,
+                "reminderLocalTime": (allDay ? reminderLocalTime : nil)
+                    .map(MutationValue.string) ?? .null,
             ]),
             changedGroups: groups,
             hlc: hlc,
             now: now
         )
         try context.save()
+    }
+
+    func editCalendarEvent(
+        id: String,
+        title: String,
+        start: Date,
+        end: Date?,
+        allDay: Bool,
+        occurrenceStart: Date? = nil,
+        occurrenceEnd: Date? = nil,
+        now: Date = .now
+    ) throws {
+        guard let entity = try calendarEventEntity(id: id) else {
+            throw OfflineStoreError.missingEntity(.calendarEvent, id)
+        }
+        try editCalendarEvent(
+            id: id,
+            title: title,
+            start: start,
+            end: end,
+            allDay: allDay,
+            reminderEnabled: entity.reminderEnabled,
+            reminderOffset: entity.reminderOffset,
+            reminderLocalTime: entity.reminderLocalTime,
+            occurrenceStart: occurrenceStart,
+            occurrenceEnd: occurrenceEnd,
+            now: now
+        )
     }
 
     func deleteCalendarEvent(id: String, now: Date = .now) throws {
@@ -1174,7 +1289,9 @@ final class OfflineStore: SyncStore {
                 completed: change.fields["completed"]?.optionalBoolean ?? false,
                 completedAt: change.fields["completedAt"]?.optionalDate,
                 completedBy: change.fields["completedBy"]?.optionalString,
+                reminderEnabled: change.fields["reminderEnabled"]?.optionalBoolean ?? false,
                 reminderOffset: change.fields["reminderOffset"]?.optionalInteger,
+                reminderLocalTime: change.fields["reminderLocalTime"]?.optionalString,
                 createdAt: change.updatedAt ?? change.maximumClock.date,
                 updatedAt: change.updatedAt ?? change.maximumClock.date,
                 fieldClocksData: try Self.encode(change.fieldClocks)
@@ -1202,7 +1319,13 @@ final class OfflineStore: SyncStore {
                 if let note = change.fields["note"] { entity.note = note.optionalString }
             case "schedule":
                 if let due = change.fields["dueTime"] { entity.dueTime = due.optionalDate }
+                if let enabled = change.fields["reminderEnabled"]?.optionalBoolean {
+                    entity.reminderEnabled = enabled
+                }
                 if let reminder = change.fields["reminderOffset"] { entity.reminderOffset = reminder.optionalInteger }
+                if let localTime = change.fields["reminderLocalTime"] {
+                    entity.reminderLocalTime = localTime.optionalString
+                }
             case "visibility":
                 entity.visibility = change.fields["visibility"]?.optionalString ?? change.visibility
             case "completion":
@@ -1230,7 +1353,9 @@ final class OfflineStore: SyncStore {
             date: change.fields["date"]?.optionalString ?? change.maximumClock.date.dateOnlyString,
             annual: change.fields["annual"]?.optionalBoolean ?? false,
             visibility: change.visibility,
+            reminderEnabled: change.fields["reminderEnabled"]?.optionalBoolean ?? false,
             reminderOffset: change.fields["reminderOffset"]?.optionalInteger,
+            reminderLocalTime: change.fields["reminderLocalTime"]?.optionalString,
             reminderInstant: change.fields["reminderInstant"]?.optionalDate,
             createdAt: change.maximumClock.date,
             updatedAt: change.updatedAt ?? change.maximumClock.date,
@@ -1246,7 +1371,13 @@ final class OfflineStore: SyncStore {
             case "schedule":
                 if let value = change.fields["date"]?.optionalString { entity.date = value }
                 if let value = change.fields["annual"]?.optionalBoolean { entity.annual = value }
+                if let value = change.fields["reminderEnabled"]?.optionalBoolean {
+                    entity.reminderEnabled = value
+                }
                 if let value = change.fields["reminderOffset"] { entity.reminderOffset = value.optionalInteger }
+                if let value = change.fields["reminderLocalTime"] {
+                    entity.reminderLocalTime = value.optionalString
+                }
                 if let value = change.fields["reminderInstant"] { entity.reminderInstant = value.optionalDate }
             case "visibility": entity.visibility = change.fields["visibility"]?.optionalString ?? change.visibility
             default: break
@@ -1274,7 +1405,9 @@ final class OfflineStore: SyncStore {
             timezone: change.fields["timezone"]?.optionalString ?? TimeZone.current.identifier,
             yearly: change.fields["yearly"]?.optionalBoolean ?? false,
             visibility: change.visibility,
+            reminderEnabled: change.fields["reminderEnabled"]?.optionalBoolean ?? false,
             reminderOffset: change.fields["reminderOffset"]?.optionalInteger,
+            reminderLocalTime: change.fields["reminderLocalTime"]?.optionalString,
             createdAt: change.maximumClock.date,
             updatedAt: change.updatedAt ?? change.maximumClock.date,
             fieldClocksData: remoteClocksData
@@ -1293,7 +1426,13 @@ final class OfflineStore: SyncStore {
                 if let value = change.fields["endTime"] { entity.endTime = value.optionalDate }
                 if let value = change.fields["timezone"]?.optionalString { entity.timezone = value }
                 if let value = change.fields["yearly"]?.optionalBoolean { entity.yearly = value }
+                if let value = change.fields["reminderEnabled"]?.optionalBoolean {
+                    entity.reminderEnabled = value
+                }
                 if let value = change.fields["reminderOffset"] { entity.reminderOffset = value.optionalInteger }
+                if let value = change.fields["reminderLocalTime"] {
+                    entity.reminderLocalTime = value.optionalString
+                }
             case "visibility": entity.visibility = change.fields["visibility"]?.optionalString ?? change.visibility
             default: break
             }
@@ -1660,7 +1799,9 @@ final class OfflineStore: SyncStore {
                     completed: remote.completed,
                     completedAt: remote.completedAt,
                     completedBy: remote.completedBy,
+                    reminderEnabled: remote.reminderEnabled ?? false,
                     reminderOffset: remote.reminderOffset,
+                    reminderLocalTime: remote.reminderLocalTime,
                     createdAt: remote.createdAt,
                     updatedAt: remote.updatedAt,
                     fieldClocksData: try Self.encode(Self.clocks(groups: ["content", "schedule", "visibility", "completion"], hlc: remoteClock))
@@ -1677,7 +1818,9 @@ final class OfflineStore: SyncStore {
         }
         if clocks["schedule"] == nil || clocks["schedule"]! < remoteClock {
             local.dueTime = remote.dueTime
+            local.reminderEnabled = remote.reminderEnabled ?? false
             local.reminderOffset = remote.reminderOffset
+            local.reminderLocalTime = remote.reminderLocalTime
             clocks["schedule"] = remoteClock
         }
         if clocks["completion"] == nil || clocks["completion"]! < remoteClock {
@@ -1707,7 +1850,9 @@ final class OfflineStore: SyncStore {
                     date: remote.date,
                     annual: remote.annual,
                     visibility: remote.visibility.rawValue,
+                    reminderEnabled: remote.reminderEnabled ?? false,
                     reminderOffset: remote.reminderOffset,
+                    reminderLocalTime: remote.reminderLocalTime,
                     reminderInstant: remote.reminderInstant,
                     createdAt: remote.createdAt,
                     updatedAt: remote.updatedAt,
@@ -1726,7 +1871,9 @@ final class OfflineStore: SyncStore {
         if clocks["schedule"] == nil || clocks["schedule"]! < remoteClock {
             local.date = remote.date
             local.annual = remote.annual
+            local.reminderEnabled = remote.reminderEnabled ?? false
             local.reminderOffset = remote.reminderOffset
+            local.reminderLocalTime = remote.reminderLocalTime
             local.reminderInstant = remote.reminderInstant
             local.nextOccurrence = remote.nextOccurrence
             clocks["schedule"] = remoteClock
@@ -1756,7 +1903,9 @@ final class OfflineStore: SyncStore {
                     timezone: remote.timezone,
                     yearly: remote.yearly,
                     visibility: remote.visibility.rawValue,
+                    reminderEnabled: remote.reminderEnabled ?? false,
                     reminderOffset: remote.reminderOffset,
+                    reminderLocalTime: remote.reminderLocalTime,
                     createdAt: remote.createdAt,
                     updatedAt: remote.updatedAt,
                     fieldClocksData: try Self.encode(Self.clocks(groups: ["content", "schedule", "visibility"], hlc: remoteClock))
@@ -1777,7 +1926,9 @@ final class OfflineStore: SyncStore {
             local.endTime = remote.endTime
             local.timezone = remote.timezone
             local.yearly = remote.yearly
+            local.reminderEnabled = remote.reminderEnabled ?? false
             local.reminderOffset = remote.reminderOffset
+            local.reminderLocalTime = remote.reminderLocalTime
             clocks["schedule"] = remoteClock
         }
         if clocks["visibility"] == nil || clocks["visibility"]! < remoteClock {
@@ -1950,7 +2101,9 @@ final class OfflineStore: SyncStore {
             completed: local.completed,
             completedAt: local.completedAt,
             completedBy: local.completedBy,
+            reminderEnabled: local.reminderEnabled,
             reminderOffset: local.reminderOffset,
+            reminderLocalTime: local.reminderLocalTime,
             createdAt: local.createdAt,
             updatedAt: local.updatedAt
         )
@@ -1965,7 +2118,9 @@ final class OfflineStore: SyncStore {
             date: local.date,
             annual: local.annual,
             visibility: Visibility(rawValue: local.visibility) ?? .shared,
+            reminderEnabled: local.reminderEnabled,
             reminderOffset: local.reminderOffset,
+            reminderLocalTime: local.reminderLocalTime,
             reminderInstant: local.reminderInstant,
             createdAt: local.createdAt,
             updatedAt: local.updatedAt,
@@ -1986,7 +2141,9 @@ final class OfflineStore: SyncStore {
             timezone: local.timezone,
             yearly: local.yearly,
             visibility: Visibility(rawValue: local.visibility) ?? .shared,
+            reminderEnabled: local.reminderEnabled,
             reminderOffset: local.reminderOffset,
+            reminderLocalTime: local.reminderLocalTime,
             createdAt: local.createdAt,
             updatedAt: local.updatedAt,
             occurrenceId: nil,
@@ -2418,7 +2575,9 @@ final class OfflineStore: SyncStore {
             "dueTime": entity.dueTime.map(MutationValue.date) ?? .null,
             "visibility": .string(entity.visibility),
             "completed": .boolean(entity.completed),
+            "reminderEnabled": .boolean(entity.reminderEnabled),
             "reminderOffset": entity.reminderOffset.map(MutationValue.integer) ?? .null,
+            "reminderLocalTime": entity.reminderLocalTime.map(MutationValue.string) ?? .null,
         ])
     }
 
@@ -2428,7 +2587,9 @@ final class OfflineStore: SyncStore {
             "date": .string(entity.date),
             "annual": .boolean(entity.annual),
             "visibility": .string(entity.visibility),
+            "reminderEnabled": .boolean(entity.reminderEnabled),
             "reminderOffset": entity.reminderOffset.map(MutationValue.integer) ?? .null,
+            "reminderLocalTime": entity.reminderLocalTime.map(MutationValue.string) ?? .null,
             "reminderInstant": entity.reminderInstant.map(MutationValue.date) ?? .null,
         ])
     }
@@ -2443,7 +2604,9 @@ final class OfflineStore: SyncStore {
             "timezone": .string(entity.timezone),
             "yearly": .boolean(entity.yearly),
             "visibility": .string(entity.visibility),
+            "reminderEnabled": .boolean(entity.reminderEnabled),
             "reminderOffset": entity.reminderOffset.map(MutationValue.integer) ?? .null,
+            "reminderLocalTime": entity.reminderLocalTime.map(MutationValue.string) ?? .null,
         ])
     }
 

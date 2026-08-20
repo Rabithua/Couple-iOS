@@ -5,14 +5,16 @@ struct MainPagerView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(AppHaptics.self) private var haptics
     @Environment(AppStore.self) private var store
+    @Environment(NotificationCoordinator.self) private var notifications
     @State private var route: MainPagerRoute
     @State private var showingComposer = false
     @State private var photoCarouselFrame = ViewFrameStore()
     @State private var gestureSession = MainPagerGestureSession()
     @State private var mainGestureState = MainPagerGestureState()
-    @State private var suppressFutureCalendarSelection = false
-    @State private var calendarSelectionSuppressionID = UUID()
+    @State private var suppressPageContentInteractions = false
+    @State private var pageContentSuppressionID = UUID()
     @State private var isPhotoPreviewPresented = false
+    @State private var calendarNotificationDestination: NotificationDestination?
     @GestureState private var isMainGestureActive = false
 
     init(arguments: [String] = ProcessInfo.processInfo.arguments) {
@@ -36,7 +38,11 @@ struct MainPagerView: View {
         ) {
             GeometryReader { proxy in
                 HStack(spacing: 0) {
-                    MainPagerPage(isActive: route.isPast, size: proxy.size) {
+                    MainPagerPage(
+                        isActive: route.isPast,
+                        isInteractionEnabled: pageContentInteractionEnabled,
+                        size: proxy.size
+                    ) {
                         PastView(
                             filter: route.pastFilter ?? .all,
                             pageDragOffset: route.isPast ? innerPageDragOffset : 0,
@@ -45,7 +51,11 @@ struct MainPagerView: View {
                         )
                     }
 
-                    MainPagerPage(isActive: route == .now, size: proxy.size) {
+                    MainPagerPage(
+                        isActive: route == .now,
+                        isInteractionEnabled: pageContentInteractionEnabled,
+                        size: proxy.size
+                    ) {
                         NowView(
                             composePullProgress: route == .now
                                 ? mainGestureState.composeProgress
@@ -59,13 +69,18 @@ struct MainPagerView: View {
                         )
                     }
 
-                    MainPagerPage(isActive: route.isFuture, size: proxy.size) {
+                    MainPagerPage(
+                        isActive: route.isFuture,
+                        isInteractionEnabled: pageContentInteractionEnabled,
+                        size: proxy.size
+                    ) {
                         FutureView(
                             mode: route.futureMode ?? .calendar,
                             pageDragOffset: route.isFuture ? innerPageDragOffset : 0,
                             verticalScrollingDisabled: route.isFuture
                                 && verticalScrollingDisabled,
-                            calendarSelectionDisabled: suppressFutureCalendarSelection,
+                            calendarSelectionDisabled: suppressPageContentInteractions,
+                            notificationDestination: calendarNotificationDestination,
                             selectMode: selectFutureMode
                         )
                     }
@@ -98,6 +113,9 @@ struct MainPagerView: View {
         .task(id: route) {
             await loadActivePastNotes()
         }
+        .task(id: notifications.pendingDestination?.id) {
+            handleNotificationDestination()
+        }
         .appHapticFeedback(.selection, trigger: route)
         .sheet(isPresented: $showingComposer, onDismiss: resetMainGestureTracking) {
             ComposeMemoryView()
@@ -119,6 +137,10 @@ struct MainPagerView: View {
     private var verticalScrollingDisabled: Bool {
         mainGestureState.blocksVerticalScrolling
             && !gestureSession.pageSwipeStartedInPhotoCarousel
+    }
+
+    private var pageContentInteractionEnabled: Bool {
+        !suppressPageContentInteractions
     }
 
     private func pageDragOffset(forSameSection sameSection: Bool) -> CGFloat {
@@ -248,7 +270,7 @@ struct MainPagerView: View {
             mainGestureState = updatedState
         }
         if previousIntent != .page, updatedState.intent == .page {
-            beginSuppressingFutureCalendarSelection()
+            beginSuppressingPageContentInteractions()
         }
     }
 
@@ -329,21 +351,21 @@ struct MainPagerView: View {
         if mainGestureState != resetState {
             mainGestureState = resetState
         }
-        releaseFutureCalendarSelectionAfterCurrentEvent()
+        releasePageContentInteractionsAfterCurrentEvent()
     }
 
-    private func beginSuppressingFutureCalendarSelection() {
-        calendarSelectionSuppressionID = UUID()
-        suppressFutureCalendarSelection = true
+    private func beginSuppressingPageContentInteractions() {
+        pageContentSuppressionID = UUID()
+        suppressPageContentInteractions = true
     }
 
-    private func releaseFutureCalendarSelectionAfterCurrentEvent() {
-        guard suppressFutureCalendarSelection else { return }
-        let suppressionID = calendarSelectionSuppressionID
+    private func releasePageContentInteractionsAfterCurrentEvent() {
+        guard suppressPageContentInteractions else { return }
+        let suppressionID = pageContentSuppressionID
         Task { @MainActor in
             await Task.yield()
-            guard calendarSelectionSuppressionID == suppressionID else { return }
-            suppressFutureCalendarSelection = false
+            guard pageContentSuppressionID == suppressionID else { return }
+            suppressPageContentInteractions = false
         }
     }
 
@@ -355,6 +377,22 @@ struct MainPagerView: View {
     private func loadActivePastNotes() async {
         guard let filter = route.pastFilter else { return }
         await store.selectNotes(filter.query)
+    }
+
+    private func handleNotificationDestination() {
+        guard let destination = notifications.pendingDestination else { return }
+        switch destination.route {
+        case .main:
+            route = .now
+        case .past:
+            route = .pastAll
+        case .futureList:
+            route = .futureList
+        case .futureCalendar:
+            route = .futureCalendar
+            calendarNotificationDestination = destination
+        }
+        notifications.consumeDestination()
     }
 }
 

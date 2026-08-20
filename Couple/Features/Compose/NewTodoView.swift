@@ -9,6 +9,7 @@ struct NewTodoView: View {
     @State private var hasDueDate: Bool
     @State private var dueDate: Date
     @State private var visibility: Visibility
+    @State private var reminder: ReminderPreset
     @State private var isSaving = false
     @State private var errorMessage: String?
 
@@ -18,6 +19,13 @@ struct NewTodoView: View {
         _hasDueDate = State(initialValue: todo?.dueTime != nil)
         _dueDate = State(initialValue: todo?.dueTime ?? Date.now.addingTimeInterval(86_400))
         _visibility = State(initialValue: todo?.visibility ?? .shared)
+        _reminder = State(initialValue: todo.map {
+            ReminderPreset.selected(
+                enabled: $0.reminderEnabled,
+                offset: $0.reminderOffset,
+                default: .oneHour
+            )
+        } ?? .oneHour)
     }
 
     var body: some View {
@@ -32,6 +40,12 @@ struct NewTodoView: View {
                     if hasDueDate {
                         DatePicker("时间", selection: $dueDate)
                             .appHapticFeedback(.selection, trigger: dueDate)
+                        Picker("提醒", selection: $reminder) {
+                            ForEach(ReminderPreset.allCases) { preset in
+                                Text(preset.title).tag(preset)
+                            }
+                        }
+                        .appHapticFeedback(.selection, trigger: reminder)
                     }
                 }
                 Section {
@@ -96,13 +110,15 @@ struct NewTodoView: View {
                     editingTodo,
                     title: cleanedTitle,
                     dueDate: hasDueDate ? dueDate : nil,
-                    visibility: visibility
+                    visibility: visibility,
+                    reminder: hasDueDate ? reminder : .off
                 )
             } else {
                 try await store.addTodo(
                     title: cleanedTitle,
                     dueDate: hasDueDate ? dueDate : nil,
-                    visibility: visibility
+                    visibility: visibility,
+                    reminder: hasDueDate ? reminder : .off
                 )
             }
             haptics.play(.success)

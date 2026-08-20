@@ -31,6 +31,7 @@ enum SampleData {
         date: Calendar.current.date(byAdding: .day, value: 8, to: now)!.dateOnlyString,
         annual: true,
         visibility: .shared,
+        reminderEnabled: false,
         reminderOffset: 1_440,
         reminderInstant: nil,
         createdAt: now,
@@ -55,6 +56,7 @@ enum SampleData {
             completed: false,
             completedAt: nil,
             completedBy: nil,
+            reminderEnabled: false,
             reminderOffset: nil,
             createdAt: now.addingTimeInterval(Double(-index * 3_600)),
             updatedAt: now
@@ -140,6 +142,7 @@ enum SampleData {
             timezone: "Asia/Shanghai",
             yearly: false,
             visibility: .shared,
+            reminderEnabled: false,
             reminderOffset: 60,
             createdAt: now,
             updatedAt: now,

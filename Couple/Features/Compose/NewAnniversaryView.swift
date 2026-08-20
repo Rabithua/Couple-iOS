@@ -9,15 +9,30 @@ struct NewAnniversaryView: View {
     @State private var date: Date
     @State private var annual: Bool
     @State private var visibility: Visibility
+    @State private var reminder: ReminderPreset
     @State private var isSaving = false
     @State private var errorMessage: String?
 
-    init(editing anniversary: Anniversary? = nil) {
+    init(initialDate: Date = .now) {
+        editingAnniversary = nil
+        _title = State(initialValue: "")
+        _date = State(initialValue: initialDate)
+        _annual = State(initialValue: true)
+        _visibility = State(initialValue: .shared)
+        _reminder = State(initialValue: .oneDay)
+    }
+
+    init(editing anniversary: Anniversary) {
         editingAnniversary = anniversary
-        _title = State(initialValue: anniversary?.title ?? "")
-        _date = State(initialValue: anniversary.flatMap { Date.fromDateOnly($0.date) } ?? .now)
-        _annual = State(initialValue: anniversary?.annual ?? true)
-        _visibility = State(initialValue: anniversary?.visibility ?? .shared)
+        _title = State(initialValue: anniversary.title)
+        _date = State(initialValue: Date.fromDateOnly(anniversary.date) ?? .now)
+        _annual = State(initialValue: anniversary.annual)
+        _visibility = State(initialValue: anniversary.visibility)
+        _reminder = State(initialValue: ReminderPreset.selected(
+            enabled: anniversary.reminderEnabled,
+            offset: anniversary.reminderOffset,
+            default: .oneDay
+        ))
     }
 
     var body: some View {
@@ -29,6 +44,15 @@ struct NewAnniversaryView: View {
                         .appHapticFeedback(.selection, trigger: date)
                     Toggle("每年纪念", isOn: $annual)
                         .appHapticFeedback(.selection, trigger: annual)
+                    Picker("提醒", selection: $reminder) {
+                        ForEach(ReminderPreset.allCases) { preset in
+                            Text(preset.title).tag(preset)
+                        }
+                    }
+                    .appHapticFeedback(.selection, trigger: reminder)
+                    if reminder.isEnabled {
+                        LabeledContent("提醒时间", value: "09:00")
+                    }
                 }
                 Section {
                     Picker("谁可以看", selection: $visibility) {
@@ -93,14 +117,16 @@ struct NewAnniversaryView: View {
                     title: cleanedTitle,
                     date: date,
                     annual: annual,
-                    visibility: visibility
+                    visibility: visibility,
+                    reminder: reminder
                 )
             } else {
                 try await store.addAnniversary(
                     title: cleanedTitle,
                     date: date,
                     annual: annual,
-                    visibility: visibility
+                    visibility: visibility,
+                    reminder: reminder
                 )
             }
             haptics.play(.success)

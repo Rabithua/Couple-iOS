@@ -1,6 +1,110 @@
 {
   "sourceLanguage": "zh-Hans",
   "strings": {
+    "允许系统通知": {
+      "extractionState": "manual",
+      "localizations": {"en": {"stringUnit": {"state": "translated", "value": "Allow System Notifications"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "允许系统通知"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "允許系統通知"}}}
+    },
+    "允许通知后，对方加入共同空间时会立即告诉你。": {
+      "extractionState": "manual",
+      "localizations": {"en": {"stringUnit": {"state": "translated", "value": "Allow notifications to know as soon as your partner joins your shared space."}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "允许通知后，对方加入共同空间时会立即告诉你。"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "允許通知後，對方加入共同空間時會立即告訴你。"}}}
+    },
+    "临时允许": {
+      "extractionState": "manual",
+      "localizations": {"en": {"stringUnit": {"state": "translated", "value": "Provisional"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "临时允许"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "暫時允許"}}}
+    },
+    "关闭": {
+      "extractionState": "manual",
+      "localizations": {"en": {"stringUnit": {"state": "translated", "value": "Off"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "关闭"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "關閉"}}}
+    },
+    "前往系统设置": {
+      "extractionState": "manual",
+      "localizations": {"en": {"stringUnit": {"state": "translated", "value": "Open System Settings"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "前往系统设置"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "前往系統設定"}}}
+    },
+    "协作通知": {
+      "extractionState": "manual",
+      "localizations": {"en": {"stringUnit": {"state": "translated", "value": "Collaboration Notifications"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "协作通知"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "協作通知"}}}
+    },
+    "及时知道配对结果": {
+      "extractionState": "manual",
+      "localizations": {"en": {"stringUnit": {"state": "translated", "value": "Know When You're Paired"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "及时知道配对结果"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "即時知道配對結果"}}}
+    },
+    "已允许": {
+      "extractionState": "manual",
+      "localizations": {"en": {"stringUnit": {"state": "translated", "value": "Allowed"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "已允许"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "已允許"}}}
+    },
+    "已关闭": {
+      "extractionState": "manual",
+      "localizations": {"en": {"stringUnit": {"state": "translated", "value": "Disabled"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "已关闭"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "已關閉"}}}
+    },
+    "开启通知": {
+      "extractionState": "manual",
+      "localizations": {"en": {"stringUnit": {"state": "translated", "value": "Turn On Notifications"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "开启通知"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "開啟通知"}}}
+    },
+    "开启配对通知": {
+      "extractionState": "manual",
+      "localizations": {"en": {"stringUnit": {"state": "translated", "value": "Enable Pairing Notifications"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "开启配对通知"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "開啟配對通知"}}}
+    },
+    "提醒": {
+      "extractionState": "manual",
+      "localizations": {"en": {"stringUnit": {"state": "translated", "value": "Reminder"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "提醒"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "提醒"}}}
+    },
+    "提醒时间": {
+      "extractionState": "manual",
+      "localizations": {"en": {"stringUnit": {"state": "translated", "value": "Reminder Time"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "提醒时间"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "提醒時間"}}}
+    },
+    "提醒通知": {
+      "extractionState": "manual",
+      "localizations": {"en": {"stringUnit": {"state": "translated", "value": "Reminder Notifications"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "提醒通知"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "提醒通知"}}}
+    },
+    "接收清单、日程和纪念日的时间提醒": {
+      "extractionState": "manual",
+      "localizations": {"en": {"stringUnit": {"state": "translated", "value": "Receive time reminders for lists, events, and anniversaries"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "接收清单、日程和纪念日的时间提醒"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "接收清單、日程和紀念日的時間提醒"}}}
+    },
+    "接收配对、共同回忆、清单、日程和纪念日动态": {
+      "extractionState": "manual",
+      "localizations": {"en": {"stringUnit": {"state": "translated", "value": "Receive pairing, shared memory, list, event, and anniversary updates"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "接收配对、共同回忆、清单、日程和纪念日动态"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "接收配對、共同回憶、清單、日程和紀念日動態"}}}
+    },
+    "提前 1 周": {
+      "extractionState": "manual",
+      "localizations": {"en": {"stringUnit": {"state": "translated", "value": "1 Week Before"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "提前 1 周"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "提前 1 週"}}}
+    },
+    "提前 1 天": {
+      "extractionState": "manual",
+      "localizations": {"en": {"stringUnit": {"state": "translated", "value": "1 Day Before"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "提前 1 天"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "提前 1 天"}}}
+    },
+    "提前 1 小时": {
+      "extractionState": "manual",
+      "localizations": {"en": {"stringUnit": {"state": "translated", "value": "1 Hour Before"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "提前 1 小时"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "提前 1 小時"}}}
+    },
+    "以后再说": {
+      "extractionState": "manual",
+      "localizations": {"en": {"stringUnit": {"state": "translated", "value": "Not Now"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "以后再说"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "稍後再說"}}}
+    },
+    "准时": {
+      "extractionState": "manual",
+      "localizations": {"en": {"stringUnit": {"state": "translated", "value": "At Time"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "准时"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "準時"}}}
+    },
+    "暂时允许": {
+      "extractionState": "manual",
+      "localizations": {"en": {"stringUnit": {"state": "translated", "value": "Temporarily Allowed"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "暂时允许"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "暫時允許"}}}
+    },
+    "每年": {
+      "extractionState": "manual",
+      "localizations": {"en": {"stringUnit": {"state": "translated", "value": "Yearly"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "每年"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "每年"}}}
+    },
+    "系统通知": {
+      "extractionState": "manual",
+      "localizations": {"en": {"stringUnit": {"state": "translated", "value": "System Notifications"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "系统通知"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "系統通知"}}}
+    },
+    "未请求": {
+      "extractionState": "manual",
+      "localizations": {"en": {"stringUnit": {"state": "translated", "value": "Not Requested"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "未请求"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "未請求"}}}
+    },
+    "通知": {
+      "extractionState": "manual",
+      "localizations": {"en": {"stringUnit": {"state": "translated", "value": "Notifications"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "通知"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "通知"}}}
+    },
     "8 位邀请码": {
       "extractionState": "manual",
       "localizations": {
@@ -3119,6 +3223,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "新纪念日"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新增紀念日"
+          }
+        }
+      }
+    },
+    "新建纪念日": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Anniversary"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新建纪念日"
           }
         },
         "zh-Hant": {

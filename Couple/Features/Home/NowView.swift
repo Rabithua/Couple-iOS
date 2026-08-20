@@ -91,70 +91,65 @@ struct NowView: View {
                     .font(AppTheme.titleFont())
             }
 
-            ScrollView(.horizontal) {
-                HStack(alignment: .bottom, spacing: AppTheme.heroPhotoSpacing) {
-                    ForEach(Array(featuredAttachments.enumerated()), id: \.element.id) { index, attachment in
-                        let photoWidth = AttachmentFlow.itemWidth(
-                            height: 120,
-                            aspectRatio: attachment.aspectRatio
-                        )
-                        let note = store.notes.first { candidate in
-                            candidate.attachments.contains { $0.id == attachment.id }
-                        }
+            if !featuredAttachments.isEmpty {
+                ScrollView(.horizontal) {
+                    HStack(alignment: .bottom, spacing: AppTheme.heroPhotoSpacing) {
+                        ForEach(Array(featuredAttachments.enumerated()), id: \.element.id) { index, attachment in
+                            let photoWidth = AttachmentFlow.itemWidth(
+                                height: 120,
+                                aspectRatio: attachment.aspectRatio
+                            )
+                            let note = store.notes.first { candidate in
+                                candidate.attachments.contains { $0.id == attachment.id }
+                            }
 
-                        PhotoPreviewSource(
-                            groupID: "home.featured",
-                            attachments: featuredAttachments,
-                            attachment: attachment,
-                            transitionStyle: .featuredPhoto
-                        ) {
-                            AttachmentImage(
+                            PhotoPreviewSource(
+                                groupID: "home.featured",
+                                attachments: featuredAttachments,
                                 attachment: attachment,
-                                contentMode: .fit,
-                                maximumDisplayDimension: max(photoWidth, 120)
-                            )
-                                .frame(
-                                    width: photoWidth,
-                                    height: 120
+                                transitionStyle: .featuredPhoto
+                            ) {
+                                AttachmentImage(
+                                    attachment: attachment,
+                                    contentMode: .fit,
+                                    maximumDisplayDimension: max(photoWidth, 120)
                                 )
-                                .clipped()
-                                .overlay { Rectangle().stroke(Color.white, lineWidth: 3) }
-                                .shadow(color: .black.opacity(0.2), radius: 14, y: 4)
-                                .rotationEffect(.degrees(-1))
-                        }
-                            .accessibilityIdentifier("featuredPhoto-\(index)")
-                            .editableContentActions(
-                                deletionTitle: AppLocalization.string("删除这条动态及其中照片？"),
-                                editAction: {
-                                    if let note { editingNote = note }
-                                },
-                                deleteAction: {
-                                    if let note { try await store.deleteMemory(note) }
-                                }
-                            )
-                    }
-                    if featuredAttachments.isEmpty {
-                        ForEach(0..<4, id: \.self) { index in
-                            Rectangle()
-                                .fill(Color(.systemGray5))
-                                .frame(width: heroWidth(for: index), height: 120)
-                                .overlay { Rectangle().stroke(Color.white, lineWidth: 3) }
-                                .shadow(color: .black.opacity(0.16), radius: 12, y: 4)
-                                .rotationEffect(.degrees(-1))
+                                    .frame(
+                                        width: photoWidth,
+                                        height: 120
+                                    )
+                                    .clipped()
+                                    .overlay { Rectangle().stroke(Color.white, lineWidth: 3) }
+                                    .shadow(color: .black.opacity(0.2), radius: 14, y: 4)
+                                    .rotationEffect(.degrees(-1))
+                            }
+                                .accessibilityIdentifier("featuredPhoto-\(index)")
+                                .editableContentActions(
+                                    deletionTitle: AppLocalization.string("删除这条动态及其中照片？"),
+                                    editAction: {
+                                        if let note { editingNote = note }
+                                    },
+                                    deleteAction: {
+                                        if let note { try await store.deleteMemory(note) }
+                                    }
+                                )
                         }
                     }
+                    .padding(.vertical, 10)
                 }
-                .padding(.vertical, 10)
+                .scrollIndicators(.hidden)
+                .scrollClipDisabled()
+                .contentMargins(.horizontal, AppTheme.heroPhotoScrollMargin, for: .scrollContent)
+                .onGeometryChange(for: CGRect.self) { proxy in
+                    proxy.frame(in: .named("mainPager"))
+                } action: { frame in
+                    setPhotoCarouselFrame(frame)
+                }
+                .onDisappear {
+                    setPhotoCarouselFrame(.zero)
+                }
+                .accessibilityIdentifier("featuredPhotoCarousel")
             }
-            .scrollIndicators(.hidden)
-            .scrollClipDisabled()
-            .contentMargins(.horizontal, AppTheme.heroPhotoScrollMargin, for: .scrollContent)
-            .onGeometryChange(for: CGRect.self) { proxy in
-                proxy.frame(in: .named("mainPager"))
-            } action: { frame in
-                setPhotoCarouselFrame(frame)
-            }
-            .accessibilityIdentifier("featuredPhotoCarousel")
 
             Text("每天都是独一无二纪念日，庆祝一下吧 🎉")
                 .font(.caption)
@@ -245,10 +240,6 @@ struct NowView: View {
             isActive: isActive,
             action: showComposer
         )
-    }
-
-    private func heroWidth(for index: Int) -> CGFloat {
-        [80, 180, 90, 80][index % 4]
     }
 
     private func daysUntil(_ anniversary: Anniversary) -> Int {

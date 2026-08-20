@@ -79,6 +79,32 @@ extension Calendar {
 }
 
 extension Anniversary {
+    func occurrence(
+        on date: Date,
+        calendar: Calendar = .current
+    ) -> Date? {
+        guard let sourceDate = Self.dateOnly(self.date, calendar: calendar) else { return nil }
+        let targetDay = calendar.startOfDay(for: date)
+        guard annual else {
+            return calendar.isDate(sourceDate, inSameDayAs: targetDay) ? targetDay : nil
+        }
+        let sourceComponents = calendar.dateComponents([.year, .month, .day], from: sourceDate)
+        let targetYear = calendar.component(.year, from: targetDay)
+        guard let sourceYear = sourceComponents.year,
+              let month = sourceComponents.month,
+              let day = sourceComponents.day,
+              targetYear >= sourceYear,
+              let occurrence = Self.annualOccurrence(
+                  year: targetYear,
+                  month: month,
+                  day: day,
+                  calendar: calendar
+              ),
+              calendar.isDate(occurrence, inSameDayAs: targetDay)
+        else { return nil }
+        return occurrence
+    }
+
     func upcomingOccurrence(
         onOrAfter reference: Date = .now,
         calendar: Calendar = .current
@@ -111,7 +137,7 @@ extension Anniversary {
         )
     }
 
-    private static func annualOccurrence(
+    static func annualOccurrence(
         year: Int,
         month: Int,
         day: Int,
@@ -125,7 +151,7 @@ extension Anniversary {
         return calendar.date(from: components).map { calendar.startOfDay(for: $0) }
     }
 
-    private static func dateOnly(_ value: String, calendar: Calendar) -> Date? {
+    static func dateOnly(_ value: String, calendar: Calendar) -> Date? {
         let parts = value.split(separator: "-").compactMap { Int($0) }
         guard parts.count == 3 else { return nil }
         return calendar.date(from: DateComponents(

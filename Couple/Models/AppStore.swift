@@ -50,10 +50,13 @@ final class AppStore {
     var todos: [Todo] = [] {
         didSet { rebuildCalendarScheduleIndex() }
     }
-    var anniversaries: [Anniversary] = []
+    var anniversaries: [Anniversary] = [] {
+        didSet { rebuildCalendarScheduleIndex() }
+    }
     var calendarEvents: [CalendarEvent] = [] {
         didSet { rebuildCalendarScheduleIndex() }
     }
+    private var canonicalCalendarEvents: [CalendarEvent] = []
     private(set) var calendarScheduleIndex = CalendarScheduleIndex()
     var selectedNoteQuery: NoteQuery = .all
     var isBusy = false
@@ -73,9 +76,17 @@ final class AppStore {
     }
 
     private func rebuildCalendarScheduleIndex() {
-        let nextIndex = CalendarScheduleIndex(events: calendarEvents, todos: todos)
+        let nextIndex = CalendarScheduleIndex(
+            events: calendarEvents,
+            todos: todos,
+            anniversaries: anniversaries
+        )
         guard nextIndex != calendarScheduleIndex else { return }
         calendarScheduleIndex = nextIndex
+    }
+
+    func refreshCalendarScheduleIndexForSystemTimeZoneChange() {
+        rebuildCalendarScheduleIndex()
     }
 
     init(
@@ -259,6 +270,57 @@ final class AppStore {
         Task { _ = await synchronize(trigger: .foreground, surfaceError: false) }
     }
 
+    func notificationDeviceIdentifier() -> String? {
+        try? offlineStore?.deviceIdentifier()
+    }
+
+    var shouldRegisterPushDevice: Bool {
+        guard !isDemo, currentUser != nil else { return false }
+        return relationship?.members.count == 2
+            || relationship?.pendingInvite != nil
+    }
+
+    func synchronizeFromPush() async -> SyncRunResult {
+        guard phase == .main || phase == .pairing else { return .cancelled }
+        return await synchronize(trigger: .push, surfaceError: false)
+    }
+
+    func ensureCalendarEvents(including date: Date) {
+        guard !canonicalCalendarEvents.isEmpty else { return }
+        let calendar = Calendar.current
+        let startOfMonth = calendar.date(
+            from: calendar.dateComponents([.year, .month], from: date)
+        ) ?? date
+        let endOfMonth = calendar.date(
+            byAdding: DateComponents(month: 1, second: -1),
+            to: startOfMonth
+        ) ?? date
+        let targetEvents = CalendarOccurrenceExpander.expand(
+            canonicalEvents: canonicalCalendarEvents,
+            from: startOfMonth,
+            to: endOfMonth,
+            calendar: calendar
+        )
+        var unique = Dictionary(
+            uniqueKeysWithValues: calendarEvents.map { (($0.occurrenceId ?? $0.id), $0) }
+        )
+        for event in targetEvents {
+            unique[event.occurrenceId ?? event.id] = event
+        }
+        calendarEvents = unique.values.sorted { $0.startTime < $1.startTime }
+    }
+
+    func refreshRelationshipFromPush() async {
+        guard !isDemo, await api.hasStoredSession else { return }
+        do {
+            let user = try await api.me()
+            let status = try await api.relationshipStatus()
+            try await finishAuthentication(user: user, relationship: status, trigger: .push)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     func pastNotes(for query: NoteQuery) -> [Note] {
         cachedPastNotes[query] ?? notes.filter { matches($0, query: query) }
     }
@@ -302,7 +364,12 @@ final class AppStore {
         }
     }
 
-    func addTodo(title: String, dueDate: Date?, visibility: Visibility) async throws {
+    func addTodo(
+        title: String,
+        dueDate: Date?,
+        visibility: Visibility,
+        reminder: ReminderPreset
+    ) async throws {
         if isDemo {
             let todo = Todo(
                 id: UUID().uuidString,
@@ -315,7 +382,9 @@ final class AppStore {
                 completed: false,
                 completedAt: nil,
                 completedBy: nil,
+                reminderEnabled: dueDate != nil && reminder.isEnabled,
                 reminderOffset: nil,
+                reminderLocalTime: nil,
                 createdAt: Date(),
                 updatedAt: Date()
             )
@@ -328,7 +397,10 @@ final class AppStore {
             ownerId: identity.userId,
             title: title,
             dueDate: dueDate,
-            visibility: visibility
+            visibility: visibility,
+            reminderEnabled: dueDate != nil && reminder.isEnabled,
+            reminderOffset: dueDate == nil ? nil : reminder.offsetMinutes,
+            reminderLocalTime: nil
         )
         try await loadLocalContent()
         triggerSyncAfterWrite()
@@ -338,13 +410,17 @@ final class AppStore {
         _ todo: Todo,
         title: String,
         dueDate: Date?,
-        visibility: Visibility
+        visibility: Visibility,
+        reminder: ReminderPreset
     ) async throws {
         if isDemo {
             guard let index = todos.firstIndex(where: { $0.id == todo.id }) else { return }
             todos[index].title = title
             todos[index].dueTime = dueDate
             todos[index].visibility = visibility
+            todos[index].reminderEnabled = dueDate != nil && reminder.isEnabled
+            todos[index].reminderOffset = dueDate == nil ? nil : reminder.offsetMinutes
+            todos[index].reminderLocalTime = nil
             todos[index].updatedAt = .now
             return
         }
@@ -353,7 +429,10 @@ final class AppStore {
             id: todo.id,
             title: title,
             dueDate: dueDate,
-            visibility: visibility
+            visibility: visibility,
+            reminderEnabled: dueDate != nil && reminder.isEnabled,
+            reminderOffset: dueDate == nil ? nil : reminder.offsetMinutes,
+            reminderLocalTime: nil
         )
         try await loadLocalContent()
         triggerSyncAfterWrite()
@@ -370,13 +449,22 @@ final class AppStore {
         triggerSyncAfterWrite()
     }
 
-    func addAnniversary(title: String, date: Date, annual: Bool, visibility: Visibility) async throws {
+    func addAnniversary(
+        title: String,
+        date: Date,
+        annual: Bool,
+        visibility: Visibility,
+        reminder: ReminderPreset
+    ) async throws {
         if isDemo {
             var item = SampleData.anniversary
             item.title = title
             item.date = date.dateOnlyString
             item.annual = annual
             item.visibility = visibility
+            item.reminderEnabled = reminder.isEnabled
+            item.reminderOffset = reminder.offsetMinutes
+            item.reminderLocalTime = "09:00"
             anniversaries.append(item)
             return
         }
@@ -387,7 +475,10 @@ final class AppStore {
             title: title,
             date: date,
             annual: annual,
-            visibility: visibility
+            visibility: visibility,
+            reminderEnabled: reminder.isEnabled,
+            reminderOffset: reminder.offsetMinutes,
+            reminderLocalTime: "09:00"
         )
         try await loadLocalContent()
         triggerSyncAfterWrite()
@@ -398,7 +489,8 @@ final class AppStore {
         title: String,
         date: Date,
         annual: Bool,
-        visibility: Visibility
+        visibility: Visibility,
+        reminder: ReminderPreset
     ) async throws {
         if isDemo {
             guard let index = anniversaries.firstIndex(where: {
@@ -409,6 +501,9 @@ final class AppStore {
             anniversaries[index].annual = annual
             anniversaries[index].nextOccurrence = nil
             anniversaries[index].visibility = visibility
+            anniversaries[index].reminderEnabled = reminder.isEnabled
+            anniversaries[index].reminderOffset = reminder.offsetMinutes
+            anniversaries[index].reminderLocalTime = "09:00"
             anniversaries[index].updatedAt = .now
             return
         }
@@ -418,7 +513,10 @@ final class AppStore {
             title: title,
             date: date,
             annual: annual,
-            visibility: visibility
+            visibility: visibility,
+            reminderEnabled: reminder.isEnabled,
+            reminderOffset: reminder.offsetMinutes,
+            reminderLocalTime: "09:00"
         )
         try await loadLocalContent()
         triggerSyncAfterWrite()
@@ -439,7 +537,13 @@ final class AppStore {
         triggerSyncAfterWrite()
     }
 
-    func addCalendarEvent(title: String, start: Date, end: Date?, allDay: Bool) async throws {
+    func addCalendarEvent(
+        title: String,
+        start: Date,
+        end: Date?,
+        allDay: Bool,
+        reminder: ReminderPreset
+    ) async throws {
         if isDemo { return }
         let identity = try localIdentity()
         _ = try offlineStore?.createCalendarEvent(
@@ -448,7 +552,10 @@ final class AppStore {
             title: title,
             start: start,
             end: end,
-            allDay: allDay
+            allDay: allDay,
+            reminderEnabled: reminder.isEnabled,
+            reminderOffset: reminder.offsetMinutes,
+            reminderLocalTime: allDay ? "09:00" : nil
         )
         try await loadLocalContent()
         triggerSyncAfterWrite()
@@ -459,7 +566,8 @@ final class AppStore {
         title: String,
         start: Date,
         end: Date?,
-        allDay: Bool
+        allDay: Bool,
+        reminder: ReminderPreset
     ) async throws {
         let sourceID = event.recurrenceSourceId ?? event.id
         if isDemo {
@@ -483,6 +591,9 @@ final class AppStore {
                         .addingTimeInterval(editedDuration)
                 }
                 calendarEvents[index].allDay = allDay
+                calendarEvents[index].reminderEnabled = reminder.isEnabled
+                calendarEvents[index].reminderOffset = reminder.offsetMinutes
+                calendarEvents[index].reminderLocalTime = allDay ? "09:00" : nil
                 calendarEvents[index].updatedAt = .now
             }
             return
@@ -494,6 +605,9 @@ final class AppStore {
             start: start,
             end: end,
             allDay: allDay,
+            reminderEnabled: reminder.isEnabled,
+            reminderOffset: reminder.offsetMinutes,
+            reminderLocalTime: allDay ? "09:00" : nil,
             occurrenceStart: event.recurrenceSourceId == nil ? nil : event.startTime,
             occurrenceEnd: event.recurrenceSourceId == nil ? nil : event.endTime
         )
@@ -807,8 +921,9 @@ final class AppStore {
         let calendar = Calendar.current
         let start = calendar.date(byAdding: .month, value: -1, to: .now) ?? .now
         let end = calendar.date(byAdding: .month, value: 13, to: .now) ?? .now
+        canonicalCalendarEvents = snapshot.canonicalCalendarEvents
         calendarEvents = CalendarOccurrenceExpander.expand(
-            canonicalEvents: snapshot.canonicalCalendarEvents,
+            canonicalEvents: canonicalCalendarEvents,
             from: start,
             to: end
         )
@@ -913,6 +1028,8 @@ final class AppStore {
             beginConnectivityObservation()
             return false
         }
+        // The leave transaction removes this user's push devices on the server.
+        NotificationCoordinator.shared.unregisterLocalDevice()
 
         userDefaults.set(true, forKey: Self.pendingSpaceCleanupDefaultsKey)
         do {
@@ -979,6 +1096,13 @@ final class AppStore {
             beginConnectivityObservation()
             return false
         }
+        do {
+            try await NotificationCoordinator.shared.unregisterCurrentDevice()
+        } catch {
+            errorMessage = error.localizedDescription
+            beginConnectivityObservation()
+            return false
+        }
         await api.logOut()
         currentUser = nil
         relationship = nil
@@ -1005,6 +1129,7 @@ final class AppStore {
         todos = []
         anniversaries = []
         calendarEvents = []
+        canonicalCalendarEvents = []
         pendingTodoIDs = []
         selectedNoteQuery = .all
     }

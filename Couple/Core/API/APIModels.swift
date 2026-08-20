@@ -30,6 +30,27 @@ struct NullableAPIEnvelope<Value: Decodable & Sendable>: Decodable, Sendable {
 
 struct EmptyPayload: Codable, Sendable {}
 
+struct PushDeviceRegistrationRequest: Encodable, Sendable {
+    let token: String
+    let environment: String
+    let locale: String
+    let appVersion: String
+    let appBuild: String
+}
+
+struct PushPreferenceRequest: Encodable, Sendable {
+    let collaborationEnabled: Bool
+    let remindersEnabled: Bool
+}
+
+struct PushDeviceStatus: Decodable, Sendable {
+    let deviceId: String
+    let environment: String
+    let collaborationEnabled: Bool
+    let remindersEnabled: Bool
+    let active: Bool
+}
+
 enum Visibility: String, Codable, CaseIterable, Sendable {
     case shared
     case `private`
@@ -150,7 +171,9 @@ struct Anniversary: Codable, Identifiable, Hashable, Sendable {
     var date: String
     var annual: Bool
     var visibility: Visibility
+    var reminderEnabled: Bool? = nil
     var reminderOffset: Int?
+    var reminderLocalTime: String? = nil
     var reminderInstant: Date?
     let createdAt: Date
     var updatedAt: Date
@@ -168,7 +191,9 @@ struct Todo: Codable, Identifiable, Hashable, Sendable {
     var completed: Bool
     var completedAt: Date?
     var completedBy: String?
+    var reminderEnabled: Bool? = nil
     var reminderOffset: Int?
+    var reminderLocalTime: String? = nil
     let createdAt: Date
     var updatedAt: Date
 }
@@ -185,7 +210,9 @@ struct CalendarEvent: Codable, Identifiable, Hashable, Sendable {
     var timezone: String
     var yearly: Bool
     var visibility: Visibility
+    var reminderEnabled: Bool? = nil
     var reminderOffset: Int?
+    var reminderLocalTime: String? = nil
     let createdAt: Date
     var updatedAt: Date
     var occurrenceId: String?
@@ -324,7 +351,9 @@ struct CreateTodoRequest: Encodable, Sendable {
     let note: String?
     let dueTime: String?
     let visibility: Visibility
+    let reminderEnabled: Bool
     let reminderOffset: Int?
+    let reminderLocalTime: String?
 }
 
 struct CreateAnniversaryRequest: Encodable, Sendable {
@@ -332,7 +361,9 @@ struct CreateAnniversaryRequest: Encodable, Sendable {
     let date: String
     let annual: Bool
     let visibility: Visibility
+    let reminderEnabled: Bool
     let reminderOffset: Int?
+    let reminderLocalTime: String?
 }
 
 struct CreateCalendarEventRequest: Encodable, Sendable {
@@ -344,7 +375,9 @@ struct CreateCalendarEventRequest: Encodable, Sendable {
     let timezone: String
     let yearly: Bool
     let visibility: Visibility
+    let reminderEnabled: Bool
     let reminderOffset: Int?
+    let reminderLocalTime: String?
 }
 
 struct PresignedUploadRequest: Encodable, Sendable {
