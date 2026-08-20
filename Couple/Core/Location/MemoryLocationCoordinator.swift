@@ -98,6 +98,26 @@ final class MemoryLocationCoordinator: NSObject, @preconcurrency CLLocationManag
         errorMessage = nil
     }
 
+    func usePhotoLocation(_ photoLocation: NoteLocation) {
+        cancelPendingWork()
+        location = photoLocation
+        errorMessage = nil
+
+        guard photoLocation.name == nil else {
+            status = .located
+            return
+        }
+
+        status = .locating
+        resolveName(
+            for: CLLocation(
+                latitude: photoLocation.latitude,
+                longitude: photoLocation.longitude
+            ),
+            pendingLocation: photoLocation
+        )
+    }
+
     func cancelPendingWork() {
         captureRequested = false
         servicesChecked = false
@@ -145,6 +165,10 @@ final class MemoryLocationCoordinator: NSObject, @preconcurrency CLLocationManag
             longitude: coordinate.longitude,
             name: nil
         )
+        resolveName(for: current, pendingLocation: pendingLocation)
+    }
+
+    private func resolveName(for sourceLocation: CLLocation, pendingLocation: NoteLocation) {
         location = pendingLocation
         geocodingTask?.cancel()
         geocodingTimeoutTask?.cancel()
@@ -155,7 +179,7 @@ final class MemoryLocationCoordinator: NSObject, @preconcurrency CLLocationManag
         }
         geocodingTask = Task { [weak self] in
             guard let self else { return }
-            let name = await reverseGeocodedName(for: current)
+            let name = await reverseGeocodedName(for: sourceLocation)
             guard !Task.isCancelled else { return }
             geocodingTimeoutTask?.cancel()
             geocodingTimeoutTask = nil

@@ -19,6 +19,7 @@
 		D1A100000000000000000009 /* CalendarAgendaAnniversaryRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A10000000000000000000A /* CalendarAgendaAnniversaryRow.swift */; };
 		941DAE1A1A7F484FBA1A9DB2 /* NoteLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BA240B3650A44B8ABF0DFF0 /* NoteLocation.swift */; };
 		DF9E8AA48C84471E81C76D81 /* MemoryLocationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82F44A4C948042B6B86015DB /* MemoryLocationCoordinator.swift */; };
+		F07010CA7100000000000002 /* PhotoLocationExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F07010CA7100000000000001 /* PhotoLocationExtractor.swift */; };
 		0C0A11A2D5404E17B3170011 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 0C0A11A2D5404E17B3170021 /* Localizable.xcstrings */; };
 		0C0A11A2D5404E17B3170012 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 0C0A11A2D5404E17B3170022 /* InfoPlist.xcstrings */; };
 		0C0A11A2D5404E17B3170111 /* AppLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0A11A2D5404E17B3170101 /* AppLanguage.swift */; };
@@ -92,6 +93,7 @@
 		D0AA00000000000000000004 /* AttachmentImageDecoderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0AB00000000000000000004 /* AttachmentImageDecoderTests.swift */; };
 		A0B6F8756DE99A9546949193 /* CalendarDayCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4C88F117877FCBFCB92C847 /* CalendarDayCell.swift */; };
 		A1956724BAA6C906CF61D659 /* CoupleCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2E621C211BFD180A01C07A6 /* CoupleCoreTests.swift */; };
+		F07010CA7100000000000004 /* PhotoLocationExtractorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F07010CA7100000000000003 /* PhotoLocationExtractorTests.swift */; };
 		A305144BE24908FBE2BB7292 /* APIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E89908416DD57B054D3992A8 /* APIService.swift */; };
 		ACC4099C181A162958FF5DFA /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBAEBE3F1822BF9165EEB90F /* APIClient.swift */; };
 		ADCA2CDFC6A2BC7E3F6C5AC0 /* PhotoPreviewContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB5003AD509D2DDB821C0CCD /* PhotoPreviewContext.swift */; };
@@ -150,6 +152,7 @@
 		D1A10000000000000000000A /* CalendarAgendaAnniversaryRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarAgendaAnniversaryRow.swift; sourceTree = "<group>"; };
 		1BA240B3650A44B8ABF0DFF0 /* NoteLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteLocation.swift; sourceTree = "<group>"; };
 		82F44A4C948042B6B86015DB /* MemoryLocationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryLocationCoordinator.swift; sourceTree = "<group>"; };
+		F07010CA7100000000000001 /* PhotoLocationExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoLocationExtractor.swift; sourceTree = "<group>"; };
 		0C0A11A2D5404E17B3170021 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		0C0A11A2D5404E17B3170022 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		0C0A11A2D5404E17B3170101 /* AppLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLanguage.swift; sourceTree = "<group>"; };
@@ -230,6 +233,7 @@
 		BD580E3BE2F80742851E4C6E /* PhotoPreviewPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewPresentationTests.swift; sourceTree = "<group>"; };
 		C01E5C1B960A82340825CA2B /* CalendarOccurrenceExpander.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarOccurrenceExpander.swift; sourceTree = "<group>"; };
 		C2E621C211BFD180A01C07A6 /* CoupleCoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoupleCoreTests.swift; sourceTree = "<group>"; };
+		F07010CA7100000000000003 /* PhotoLocationExtractorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoLocationExtractorTests.swift; sourceTree = "<group>"; };
 		C97B0B1BE123B2CDABD8416F /* HybridLogicalClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HybridLogicalClock.swift; sourceTree = "<group>"; };
 		CB5003AD509D2DDB821C0CCD /* PhotoPreviewContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewContext.swift; sourceTree = "<group>"; };
 		CBA1470A8FC37173BB13D2F0 /* ConnectivityMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectivityMonitor.swift; sourceTree = "<group>"; };
@@ -479,6 +483,7 @@
 				0C0A11A2D5404E17B3170152 /* Localization */,
 				20CB92BAC9B7C102AB588BF2 /* Offline */,
 				D1371DF5827C01B18C3292ED /* AppHapticsTests.swift */,
+				F07010CA7100000000000003 /* PhotoLocationExtractorTests.swift */,
 				0CF5521BB5120D926EB3D944 /* TodoDisplayOrderTests.swift */,
 				A499C009D370664DF245EB08 /* TodoListDisplayOrderTests.swift */,
 			);
@@ -523,6 +528,7 @@
 			isa = PBXGroup;
 			children = (
 				82F44A4C948042B6B86015DB /* MemoryLocationCoordinator.swift */,
+				F07010CA7100000000000001 /* PhotoLocationExtractor.swift */,
 			);
 			path = Location;
 			sourceTree = "<group>";
@@ -775,6 +781,7 @@
 				ACC4099C181A162958FF5DFA /* APIClient.swift in Sources */,
 				B8F6E5EDFDAAC36669A60F3C /* APIModels.swift in Sources */,
 				DF9E8AA48C84471E81C76D81 /* MemoryLocationCoordinator.swift in Sources */,
+				F07010CA7100000000000002 /* PhotoLocationExtractor.swift in Sources */,
 				A305144BE24908FBE2BB7292 /* APIService.swift in Sources */,
 				0C0A11A2D5404E17B3170111 /* AppLanguage.swift in Sources */,
 				0C0A11A2D5404E17B3170112 /* AppLanguageStore.swift in Sources */,
@@ -876,6 +883,7 @@
 				8386EF3028DBBAC3D7E56EC5 /* AppHapticsTests.swift in Sources */,
 				B4AADBB2B8E4899F389FCB00 /* AppStoreTests.swift in Sources */,
 				A1956724BAA6C906CF61D659 /* CoupleCoreTests.swift in Sources */,
+				F07010CA7100000000000004 /* PhotoLocationExtractorTests.swift in Sources */,
 				C0D3F0010000000000000005 /* JustifiedPhotoLayoutTests.swift in Sources */,
 				D0AA00000000000000000004 /* AttachmentImageDecoderTests.swift in Sources */,
 				062FE797585C2017DF312C5D /* MainPagerGestureStateTests.swift in Sources */,

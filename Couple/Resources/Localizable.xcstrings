@@ -2,6 +2,9 @@
   "sourceLanguage": "zh-Hans",
   "strings": {
     "位置": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Location"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"位置"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"位置"}}}},
+    "使用照片位置": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Use Photo Location"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"使用照片位置"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"使用照片位置"}}}},
+    "选择照片位置": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Choose Photo Location"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"选择照片位置"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"選擇照片位置"}}}},
+    "使用当前位置": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Use Current Location"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"使用当前位置"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"使用目前位置"}}}},
     "添加当前位置": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Add Current Location"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"添加当前位置"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"加入目前位置"}}}},
     "等待定位授权": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Waiting for Location Access"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"等待定位授权"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"等待定位授權"}}}},
     "正在获取位置": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Getting Location"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"正在获取位置"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"正在取得位置"}}}},

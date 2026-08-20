@@ -956,6 +956,71 @@ final class CoupleJourneyUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts[capturedLocation].waitForExistence(timeout: 5))
     }
 
+    func testComposerCanUseSelectedPhotoLocationFromButtonEdge() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-ui-testing-demo",
+            "-ui-testing-now",
+            "-ui-testing-photo-location"
+        ]
+        app.launchInSimplifiedChinese()
+
+        let composeButton = app.buttons["composeMemoryButton"]
+        XCTAssertTrue(composeButton.waitForExistence(timeout: 5))
+        composeButton.tap()
+        XCTAssertTrue(app.navigationBars["记录此刻"].waitForExistence(timeout: 3))
+
+        let photoLocationButton = app.buttons["usePhotoLocationButton"]
+        XCTAssertTrue(photoLocationButton.waitForExistence(timeout: 3))
+        XCTAssertGreaterThanOrEqual(photoLocationButton.frame.height, 44)
+        photoLocationButton.coordinate(
+            withNormalizedOffset: CGVector(dx: 0.98, dy: 0.5)
+        ).tap()
+
+        XCTAssertTrue(app.staticTexts["灵隐寺"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["useCurrentMemoryLocationButton"].exists)
+
+        let content = app.textFields["memoryContentField"]
+        content.tap()
+        content.typeText("照片位置验收动态")
+        app.buttons["saveMemoryButton"].tap()
+
+        XCTAssertTrue(app.staticTexts["照片位置验收动态"].waitForExistence(timeout: 5))
+        app.swipeRight()
+        XCTAssertTrue(app.staticTexts["灵隐寺"].waitForExistence(timeout: 5))
+    }
+
+    func testComposerCanChooseBetweenPhotoLocationsFromPickerButtonEdge() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-ui-testing-demo",
+            "-ui-testing-now",
+            "-ui-testing-photo-locations"
+        ]
+        app.launchInSimplifiedChinese()
+
+        let composeButton = app.buttons["composeMemoryButton"]
+        XCTAssertTrue(composeButton.waitForExistence(timeout: 5))
+        composeButton.tap()
+        XCTAssertTrue(app.navigationBars["记录此刻"].waitForExistence(timeout: 3))
+
+        let locationPicker = app.buttons["choosePhotoLocationButton"]
+        XCTAssertTrue(locationPicker.waitForExistence(timeout: 3))
+        XCTAssertGreaterThanOrEqual(locationPicker.frame.height, 44)
+        locationPicker.coordinate(
+            withNormalizedOffset: CGVector(dx: 0.98, dy: 0.5)
+        ).tap()
+
+        let westLake = app.buttons["西湖"]
+        XCTAssertTrue(westLake.waitForExistence(timeout: 3))
+        westLake.tap()
+        XCTAssertTrue(app.staticTexts["西湖"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["useCurrentMemoryLocationButton"].exists)
+        XCTAssertTrue(app.buttons["usePhotoLocationButton"].exists)
+    }
+
     func testNowBottomGestureSeparatesPageSwipeFromComposePull() {
         continueAfterFailure = false
         let app = XCUIApplication()

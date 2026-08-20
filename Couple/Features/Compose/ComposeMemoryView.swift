@@ -16,6 +16,7 @@ struct ComposeMemoryView: View {
     @State private var todoId: String?
     @State private var selectedItems: [PhotosPickerItem] = []
     @State private var photos: [SelectedPhoto] = []
+    @State private var isChoosingPhotoLocation = false
     @State private var isSaving = false
     @State private var localError: String?
 
@@ -168,6 +169,18 @@ struct ComposeMemoryView: View {
             } message: {
                 Text(localError ?? "")
             }
+            .confirmationDialog(
+                "选择照片位置",
+                isPresented: $isChoosingPhotoLocation,
+                titleVisibility: .visible
+            ) {
+                ForEach(selectablePhotoLocations, id: \.self) { location in
+                    Button(location.displayName) {
+                        usePhotoLocation(location)
+                    }
+                }
+                Button("取消", role: .cancel) {}
+            }
         }
         .contentEditorSheetPresentation(detent: .large)
     }
@@ -196,15 +209,19 @@ struct ComposeMemoryView: View {
                 accessibilityIdentifier: "addMemoryLocationButton",
                 action: requestLocation
             )
+            photoLocationActions
         case .requestingAuthorization:
             locationProgressRow("等待定位授权")
+            photoLocationActions
         case .locating:
             locationProgressRow("正在获取位置")
+            photoLocationActions
         case .located:
             if let location = memoryLocation.location {
                 Label(location.displayName, systemImage: "mappin.and.ellipse")
                     .lineLimit(2)
                     .accessibilityIdentifier("memoryLocationValue")
+                photoLocationActions
                 locationActionButton(
                     "移除位置",
                     systemImage: "location.slash",
@@ -218,10 +235,12 @@ struct ComposeMemoryView: View {
         case .denied:
             Label("定位权限未开启", systemImage: "location.slash")
                 .foregroundStyle(.secondary)
+            photoLocationActions
             openLocationSettingsButton
         case .servicesDisabled:
             Label("系统定位服务已关闭", systemImage: "location.slash")
                 .foregroundStyle(.secondary)
+            photoLocationActions
             openLocationSettingsButton
         case .failed:
             Label(
@@ -230,8 +249,91 @@ struct ComposeMemoryView: View {
                 systemImage: "exclamationmark.triangle"
             )
             .foregroundStyle(.secondary)
+            photoLocationActions
             refreshLocationButton
         }
+    }
+
+    @ViewBuilder
+    private var photoLocationActions: some View {
+        let options = selectablePhotoLocations
+        if options.count == 1, let location = options.first {
+            locationActionButton(
+                "使用照片位置",
+                systemImage: "photo.on.rectangle.angled",
+                accessibilityIdentifier: "usePhotoLocationButton",
+                action: { usePhotoLocation(location) }
+            )
+        } else if options.count > 1 {
+            locationActionButton(
+                "选择照片位置",
+                systemImage: "photo.on.rectangle.angled",
+                accessibilityIdentifier: "choosePhotoLocationButton",
+                action: beginChoosingPhotoLocation
+            )
+        }
+
+        if isUsingPhotoLocation {
+            locationActionButton(
+                "使用当前位置",
+                systemImage: "location",
+                accessibilityIdentifier: "useCurrentMemoryLocationButton",
+                action: requestLocation
+            )
+        }
+    }
+
+    private var availablePhotoLocations: [NoteLocation] {
+#if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing-photo-locations") {
+            return [
+                NoteLocation(
+                    latitude: 30.240_125,
+                    longitude: 120.102_249,
+                    name: "灵隐寺"
+                ),
+                NoteLocation(
+                    latitude: 30.274_084_8,
+                    longitude: 120.155_070_7,
+                    name: "西湖"
+                )
+            ]
+        }
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing-photo-location") {
+            return [NoteLocation(
+                latitude: 30.240_125,
+                longitude: 120.102_249,
+                name: "灵隐寺"
+            )]
+        }
+#endif
+        return photos.compactMap(\.location)
+    }
+
+    private var uniquePhotoLocations: [NoteLocation] {
+        availablePhotoLocations.reduce(into: []) { uniqueLocations, location in
+            guard !uniqueLocations.contains(where: { sameCoordinate($0, location) }) else {
+                return
+            }
+            uniqueLocations.append(location)
+        }
+    }
+
+    private var selectablePhotoLocations: [NoteLocation] {
+        guard let selectedLocation = memoryLocation.location else {
+            return uniquePhotoLocations
+        }
+        return uniquePhotoLocations.filter { !sameCoordinate($0, selectedLocation) }
+    }
+
+    private var isUsingPhotoLocation: Bool {
+        guard let selectedLocation = memoryLocation.location else { return false }
+        return uniquePhotoLocations.contains { sameCoordinate($0, selectedLocation) }
+    }
+
+    private func sameCoordinate(_ lhs: NoteLocation, _ rhs: NoteLocation) -> Bool {
+        abs(lhs.latitude - rhs.latitude) < 0.000_001
+            && abs(lhs.longitude - rhs.longitude) < 0.000_001
     }
 
     private var refreshLocationButton: some View {
@@ -286,6 +388,16 @@ struct ComposeMemoryView: View {
         memoryLocation.removeLocation()
     }
 
+    private func usePhotoLocation(_ location: NoteLocation) {
+        haptics.play(.selection)
+        memoryLocation.usePhotoLocation(location)
+    }
+
+    private func beginChoosingPhotoLocation() {
+        haptics.play(.tap)
+        isChoosingPhotoLocation = true
+    }
+
     private func openSystemSettings() {
         haptics.play(.tap)
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
@@ -316,13 +428,18 @@ struct ComposeMemoryView: View {
             guard let data = try await item.loadTransferable(type: Data.self),
                   let image = UIImage(data: data) else { continue }
             let type = item.supportedContentTypes.first ?? .jpeg
+            let location = PhotoLocationExtractor.location(
+                itemIdentifier: item.itemIdentifier,
+                imageData: data
+            )
             loaded.append(
                 SelectedPhoto(
                     data: data,
                     filename: "memory-\(UUID().uuidString).\(type.preferredFilenameExtension ?? "jpg")",
                     mimeType: type.preferredMIMEType ?? "image/jpeg",
                     width: Int(image.size.width * image.scale),
-                    height: Int(image.size.height * image.scale)
+                    height: Int(image.size.height * image.scale),
+                    location: location
                 )
             )
         }

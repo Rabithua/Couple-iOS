@@ -18,6 +18,23 @@ struct SelectedPhoto: Identifiable, Sendable {
     let mimeType: String
     let width: Int
     let height: Int
+    let location: NoteLocation?
+
+    init(
+        data: Data,
+        filename: String,
+        mimeType: String,
+        width: Int,
+        height: Int,
+        location: NoteLocation? = nil
+    ) {
+        self.data = data
+        self.filename = filename
+        self.mimeType = mimeType
+        self.width = width
+        self.height = height
+        self.location = location
+    }
 }
 
 enum SignOutDisposition: Equatable, Sendable {
