@@ -6,6 +6,7 @@ import UIKit
 enum SessionPhase: Equatable, Sendable {
     case launching
     case signedOut
+    case onboarding
     case pairing
     case main
 }
@@ -66,6 +67,11 @@ final class AppStore {
     private(set) var pendingTodoIDs: Set<String> = []
     private(set) var isDemo: Bool
     private let startsWithUnpairedDemo: Bool
+    private let startsWithOnboardingDemo: Bool
+
+    var requiresOnboardingProfile: Bool {
+        currentUser?.hasCompletedOnboarding == false
+    }
 
     var homeAnniversary: Anniversary? {
         guard let cached = home?.nextAnniversary else {
@@ -105,6 +111,7 @@ final class AppStore {
         let demo = environment["COUPLE_DEMO_MODE"] == "1" || arguments.contains("-ui-testing-demo")
         self.isDemo = demo
         self.startsWithUnpairedDemo = demo && arguments.contains("-ui-testing-unpaired")
+        self.startsWithOnboardingDemo = demo && arguments.contains("-ui-testing-onboarding")
 
         guard !demo else { return }
         do {
@@ -121,6 +128,10 @@ final class AppStore {
 
     func start() async {
         if isDemo {
+            if startsWithOnboardingDemo {
+                phase = .signedOut
+                return
+            }
             if startsWithUnpairedDemo {
                 loadUnpairedSampleData()
             } else {
@@ -150,7 +161,9 @@ final class AppStore {
             currentUser = cached.user
             relationship = cached.relationship
             home = cached.home
-            if cached.relationship.members.count >= 2 {
+            if !cached.user.hasCompletedOnboarding {
+                phase = .onboarding
+            } else if cached.relationship.couple != nil {
                 try? await loadLocalContent()
                 phase = .main
             } else {
@@ -171,6 +184,8 @@ final class AppStore {
         } catch {
             if phase == .main {
                 scheduleRetry()
+            } else if phase == .onboarding || phase == .pairing {
+                // Keep a valid cached route available during transient network failures.
             } else {
                 errorMessage = error.localizedDescription
                 phase = .signedOut
@@ -184,11 +199,22 @@ final class AppStore {
         phase = .main
     }
 
-    func register(displayName: String) async {
+    func register() async {
         guard await recoverPendingSpaceCleanup() else { return }
         await runBusy {
+            if isDemo {
+                currentUser = User(
+                    id: SampleData.user.id,
+                    displayName: "oursince",
+                    timezone: TimeZone.current.identifier,
+                    onboardingCompleted: false
+                )
+                relationship = unpairedRelationshipStatus()
+                phase = .onboarding
+                return
+            }
             let timezone = TimeZone.current.identifier
-            let result = try await api.registrationOptions(displayName: displayName, timezone: timezone)
+            let result = try await api.registrationOptions(timezone: timezone)
             let credential = try await passkeys.register(options: result.options)
             let auth = try await api.verifyRegistration(
                 challengeKey: result.challengeKey,
@@ -204,6 +230,11 @@ final class AppStore {
     func signIn() async {
         guard await recoverPendingSpaceCleanup() else { return }
         await runBusy {
+            if isDemo {
+                loadSampleData()
+                phase = .main
+                return
+            }
             let result = try await api.authenticationOptions()
             let credential = try await passkeys.authenticate(options: result.options)
             let auth = try await api.verifyAuthentication(
@@ -213,6 +244,91 @@ final class AppStore {
             try await api.install(tokens: auth.tokens)
             let relationship = try await api.relationshipStatus()
             try await finishAuthentication(user: auth.user, relationship: relationship, trigger: .login)
+        }
+    }
+
+    func completeOnboarding(
+        displayName: String,
+        birthday: Date,
+        action: OnboardingSpaceAction,
+        inviteCode: String?
+    ) async {
+        await runBusy {
+            let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard (1...100).contains(trimmedName.count), birthday <= .now else {
+                throw APIError.server(
+                    status: 400,
+                    code: "VALIDATION_ERROR",
+                    message: AppLocalization.string("请填写有效的名字和生日")
+                )
+            }
+            let normalizedCode = inviteCode?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .uppercased()
+            if action == .join, normalizedCode?.count != 8 {
+                throw APIError.server(
+                    status: 400,
+                    code: "VALIDATION_ERROR",
+                    message: AppLocalization.string("请输入 8 位邀请码")
+                )
+            }
+
+            if isDemo {
+                let user = User(
+                    id: currentUser?.id ?? SampleData.user.id,
+                    displayName: trimmedName,
+                    timezone: TimeZone.current.identifier,
+                    onboardingCompleted: true
+                )
+                currentUser = user
+                if action == .join {
+                    loadSampleData()
+                    applyCurrentUser(user)
+                } else {
+                    loadUnpairedSampleData()
+                    currentUser = user
+                    relationship = RelationshipStatus(
+                        couple: SampleData.relationship.couple,
+                        members: [CoupleMember(id: user.id, displayName: user.displayName)],
+                        pendingInvite: SampleData.pendingInvite
+                    )
+                }
+                if let coupleId = relationship?.couple?.id {
+                    anniversaries.append(Anniversary(
+                        id: UUID().uuidString.lowercased(),
+                        coupleId: coupleId,
+                        ownerId: user.id,
+                        title: user.displayName,
+                        date: birthday.dateOnlyString,
+                        annual: true,
+                        visibility: .shared,
+                        reminderEnabled: true,
+                        reminderOffset: 1_440,
+                        reminderLocalTime: "09:00",
+                        reminderInstant: nil,
+                        createdAt: .now,
+                        updatedAt: .now,
+                        nextOccurrence: nil,
+                        systemKind: "birthday"
+                    ))
+                }
+                phase = .main
+                return
+            }
+
+            let result = try await api.completeOnboarding(
+                CompleteOnboardingRequest(
+                    displayName: trimmedName,
+                    birthday: birthday.dateOnlyString,
+                    action: action,
+                    inviteCode: normalizedCode
+                )
+            )
+            try await finishAuthentication(
+                user: result.user,
+                relationship: result.relationship,
+                trigger: .login
+            )
         }
     }
 
@@ -502,6 +618,7 @@ final class AppStore {
         visibility: Visibility,
         reminder: ReminderPreset
     ) async throws {
+        guard !anniversary.isSystemBirthday else { return }
         if isDemo {
             guard let index = anniversaries.firstIndex(where: {
                 $0.id.caseInsensitiveCompare(anniversary.id) == .orderedSame
@@ -532,7 +649,25 @@ final class AppStore {
         triggerSyncAfterWrite()
     }
 
+    func updateSystemBirthdayDate(_ anniversary: Anniversary, date: Date) async throws {
+        guard anniversary.isSystemBirthday else { return }
+        if isDemo {
+            guard let index = anniversaries.firstIndex(where: { $0.id == anniversary.id }) else {
+                return
+            }
+            anniversaries[index].date = date.dateOnlyString
+            anniversaries[index].nextOccurrence = nil
+            anniversaries[index].updatedAt = .now
+            return
+        }
+        guard let offlineStore else { throw APIError.invalidResponse }
+        try offlineStore.editSystemBirthdayDate(id: anniversary.id, date: date)
+        try await loadLocalContent()
+        triggerSyncAfterWrite()
+    }
+
     func deleteAnniversary(_ anniversary: Anniversary) async throws {
+        guard !anniversary.isSystemBirthday else { return }
         if isDemo {
             anniversaries.removeAll {
                 $0.id.caseInsensitiveCompare(anniversary.id) == .orderedSame
@@ -755,7 +890,8 @@ final class AppStore {
             updatedUser = User(
                 id: currentUser.id,
                 displayName: trimmedName,
-                timezone: currentUser.timezone
+                timezone: currentUser.timezone,
+                onboardingCompleted: currentUser.onboardingCompleted
             )
         } else {
             updatedUser = try await api.updateMe(displayName: trimmedName)
@@ -847,7 +983,11 @@ final class AppStore {
         currentUser = user
         self.relationship = relationship
         try persistSession()
-        if relationship.members.count < 2 {
+        if !user.hasCompletedOnboarding {
+            phase = .onboarding
+            return
+        }
+        if relationship.couple == nil {
             phase = .pairing
             return
         }

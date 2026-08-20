@@ -7,6 +7,7 @@ struct NowView: View {
     @Environment(AppStore.self) private var store
     let composePullProgress: CGFloat
     let isActive: Bool
+    let isInteractionEnabled: Bool
     let verticalScrollingDisabled: Bool
     let showComposer: () -> Void
     let showSettings: () -> Void
@@ -33,8 +34,7 @@ struct NowView: View {
     }
 
     private var needsPairing: Bool {
-        guard let relationship = store.relationship else { return false }
-        return relationship.members.count < 2
+        (store.relationship?.members.count ?? 0) < 2
     }
 
     var body: some View {
@@ -44,9 +44,10 @@ struct NowView: View {
                     if needsPairing {
                         HomeInviteRow()
                         DesignDivider()
+                    } else {
+                        relationshipHero
+                        DesignDivider()
                     }
-                    relationshipHero
-                    DesignDivider()
                     anniversarySection
                     DesignDivider()
                     todoSection
@@ -61,6 +62,7 @@ struct NowView: View {
 
             pullToCompose
         }
+        .disabled(!isActive || !isInteractionEnabled)
         .overlay(alignment: .top) {
             DesignTopEdgeBackground(length: AppTheme.homeTopFadeLength)
         }
@@ -95,6 +97,7 @@ struct NowView: View {
                     .font(AppTheme.titleFont())
                 Text(daysTogether, format: .number)
                     .font(AppTheme.roundedNumberFont())
+                    .foregroundStyle(AppTheme.accent)
                     .contentTransition(.numericText())
                 Text(dayUnit(for: daysTogether))
                     .font(AppTheme.titleFont())
@@ -177,6 +180,7 @@ struct NowView: View {
                         .font(AppTheme.titleFont())
                     Text(days, format: .number)
                         .font(AppTheme.roundedNumberFont())
+                        .foregroundStyle(AppTheme.accent)
                     Text(dayUnit(for: days))
                         .font(AppTheme.titleFont())
                 }
@@ -190,16 +194,14 @@ struct NowView: View {
                         )
                             .font(.caption)
                             .foregroundStyle(AppTheme.muted)
-                        Label(anniversary.title, systemImage: "birthday.cake.fill")
+                        Label(anniversary.displayTitle, systemImage: "birthday.cake.fill")
                             .font(AppTheme.titleFont())
                     }
                 }
                 .padding(.horizontal, 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .editableContentActions(
-                    deletionTitle: AppLocalization.string("deleteAnniversaryConfirmation",
-                        defaultValue: "删除纪念日“\(anniversary.title)”？"
-                    ),
+                .anniversaryContentActions(
+                    anniversary,
                     editAction: { editingAnniversary = anniversary },
                     deleteAction: { try await store.deleteAnniversary(anniversary) }
                 )
@@ -235,8 +237,13 @@ struct NowView: View {
                 )
             }
             if activeTodos.isEmpty {
-                Label("共同清单已经完成", systemImage: "checkmark.square")
-                    .font(AppTheme.titleFont())
+                if store.todos.isEmpty {
+                    Text("还没有共同清单")
+                        .font(AppTheme.titleFont())
+                } else {
+                    Label("共同清单已经完成", systemImage: "checkmark.square")
+                        .font(AppTheme.titleFont())
+                }
             }
         }
         .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: activeTodos.map(\.id))

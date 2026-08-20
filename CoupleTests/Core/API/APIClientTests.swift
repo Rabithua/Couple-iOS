@@ -7,6 +7,69 @@ extension Tag {
 }
 
 struct APIClientTests {
+    @Test("Passkey registration options use the server placeholder profile", .tags(.networking))
+    func registrationOptionsDoNotSendDisplayName() async throws {
+        let baseURL = try #require(URL(string: "https://example.com/v1/api"))
+        let session = MockHTTPSession(stubs: [
+            .init(
+                pathSuffix: "/auth/passkey/register/options",
+                statusCode: 200,
+                data: Self.registrationOptionsData
+            )
+        ])
+        let client = APIClient(
+            baseURL: baseURL,
+            session: session,
+            keychain: KeychainStore(
+                service: "couple-tests-\(UUID().uuidString)",
+                persistenceEnabled: false
+            )
+        )
+
+        _ = try await client.registrationOptions(timezone: "Asia/Shanghai")
+
+        let body = try #require(await session.lastRequestBody())
+        let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: String])
+        #expect(json == ["timezone": "Asia/Shanghai"])
+    }
+
+    @Test("Onboarding completion submits profile and space action atomically", .tags(.networking))
+    func completeOnboardingRequest() async throws {
+        let baseURL = try #require(URL(string: "https://example.com/v1/api"))
+        let keychain = KeychainStore(
+            service: "couple-tests-\(UUID().uuidString)",
+            persistenceEnabled: false
+        )
+        let session = MockHTTPSession(stubs: [
+            .init(
+                pathSuffix: "/onboarding/complete",
+                statusCode: 200,
+                data: Self.onboardingCompletedData
+            )
+        ])
+        let client = APIClient(baseURL: baseURL, session: session, keychain: keychain)
+        try await client.install(tokens: Self.initialTokens)
+
+        let result = try await client.completeOnboarding(CompleteOnboardingRequest(
+            displayName: "Tester",
+            birthday: "2000-08-20",
+            action: .join,
+            inviteCode: "OURSINCE"
+        ))
+
+        #expect(result.user.onboardingCompleted == true)
+        #expect(result.relationship.couple?.id == "couple-1")
+        let body = try #require(await session.lastRequestBody())
+        let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: String])
+        #expect(json == [
+            "displayName": "Tester",
+            "birthday": "2000-08-20",
+            "action": "join",
+            "inviteCode": "OURSINCE",
+        ])
+        await client.clearSession()
+    }
+
     @Test("Concurrent refresh calls share one request", .tags(.networking))
     func concurrentRefreshCallsShareOneRequest() async throws {
         let baseURL = try #require(URL(string: "https://example.com/v1/api"))
@@ -218,6 +281,49 @@ struct APIClientTests {
         accessToken: "old-access",
         refreshToken: "old-refresh"
     )
+
+    private static let registrationOptionsData = Data(#"""
+    {
+      "code": 0,
+      "message": "success",
+      "data": {
+        "options": {
+          "challenge": "challenge",
+          "rp": { "id": "oursince.com", "name": "oursince" },
+          "user": { "id": "user-1", "name": "oursince", "displayName": "oursince" },
+          "excludeCredentials": []
+        },
+        "challengeKey": "challenge-key",
+        "userId": "user-1"
+      }
+    }
+    """#.utf8)
+
+    private static let onboardingCompletedData = Data(#"""
+    {
+      "code": 0,
+      "message": "success",
+      "data": {
+        "user": {
+          "id": "user-1",
+          "displayName": "Tester",
+          "timezone": "Asia/Shanghai",
+          "onboardingCompleted": true
+        },
+        "relationship": {
+          "couple": {
+            "id": "couple-1",
+            "startedOn": null,
+            "timezone": "Asia/Shanghai",
+            "createdAt": null,
+            "updatedAt": null
+          },
+          "members": [{ "id": "user-1", "displayName": "Tester" }],
+          "pendingInvite": null
+        }
+      }
+    }
+    """#.utf8)
 
     private static let refreshSuccessData = Data(#"""
     {

@@ -1,6 +1,33 @@
 {
   "sourceLanguage": "zh-Hans",
   "strings": {
+    "1–100 个字符": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"1–100 characters"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"1–100 个字符"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"1–100 個字元"}}}},
+    "8 位邀请码": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"8-character invite code"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"8 位邀请码"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"8 位邀請碼"}}}},
+    "上一步": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Back"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"上一步"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"上一步"}}}},
+    "先告诉我们你的名字和生日，完成后会生成邀请码。": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Tell us your name and birthday first. We’ll create an invite code when you finish."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"先告诉我们你的名字和生日，完成后会生成邀请码。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"先告訴我們你的名字和生日，完成後會產生邀請碼。"}}}},
+    "共同空间最多两个人；邀请码有效期为 7 天。": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"A shared space is for two people. Invite codes are valid for 7 days."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"共同空间最多两个人；邀请码有效期为 7 天。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"共同空間最多兩個人；邀請碼有效期為 7 天。"}}}},
+    "创建一个新的共同空间，或使用邀请码加入对方。": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Create a new shared space, or join your partner with an invite code."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"创建一个新的共同空间，或使用邀请码加入对方。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"建立新的共同空間，或使用邀請碼加入對方。"}}}},
+    "创建共同空间": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Create Shared Space"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"创建共同空间"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"建立共同空間"}}}},
+    "创建空间": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Create a Space"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"创建空间"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"建立空間"}}}},
+    "加入共同空间": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Join Shared Space"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"加入共同空间"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"加入共同空間"}}}},
+    "加入空间": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Join a Space"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"加入空间"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"加入空間"}}}},
+    "名字需要在 1 到 100 个字符之间": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your name must be between 1 and 100 characters."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"名字需要在 1 到 100 个字符之间"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"名字需要在 1 到 100 個字元之間"}}}},
+    "填写资料和对方的邀请码，一次完成加入。": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Enter your details and your partner’s invite code to join."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"填写资料和对方的邀请码，一次完成加入。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"填寫資料和對方的邀請碼，一次完成加入。"}}}},
+    "已有账号？登录": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Already have an account? Sign in"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"已有账号？登录"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"已有帳號？登入"}}}},
+    "开始吧！": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Let’s start!"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"开始吧！"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"開始吧！"}}}},
+    "我们的空间": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Our Space"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"我们的空间"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"我們的空間"}}}},
+    "生日": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Birthday"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"生日"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"生日"}}}},
+    "生成邀请码，邀请你的另一半": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Create a code to invite your partner"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"生成邀请码，邀请你的另一半"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"產生邀請碼，邀請你的另一半"}}}},
+    "系统生日只允许修改日期；标题会跟随你的名字更新。": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Only the date can be changed. The title follows your profile name."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"系统生日只允许修改日期；标题会跟随你的名字更新。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"系統生日只允許修改日期；標題會跟隨你的名字更新。"}}}},
+    "编辑生日": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Edit Birthday"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"编辑生日"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"編輯生日"}}}},
+    "请输入 8 位邀请码": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Enter an 8-character invite code."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"请输入 8 位邀请码"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"請輸入 8 位邀請碼"}}}},
+    "输入对方分享的邀请码，就可以进入共同空间。": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Enter the invite code your partner shared to join the space."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"输入对方分享的邀请码，就可以进入共同空间。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"輸入對方分享的邀請碼，就可以進入共同空間。"}}}},
+    "请填写有效的名字和生日": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Enter a valid name and birthday."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"请填写有效的名字和生日"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"請填寫有效的名字和生日"}}}},
+    "邀请码": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Invite Code"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"邀请码"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"邀請碼"}}}},
+    "输入对方分享的 8 位邀请码": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Enter your partner’s 8-character invite code"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"输入对方分享的 8 位邀请码"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"輸入對方分享的 8 位邀請碼"}}}},
+    "属于我们的共同记录": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Our shared story"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"属于我们的共同记录"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"屬於我們的共同記錄"}}}},
+    "你的名字": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your Name"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"你的名字"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"你的名字"}}}},
+    "systemBirthdayTitleFormat": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"%@’s birthday"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"%@的生日"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"%@的生日"}}}},
     "允许系统通知": {
       "extractionState": "manual",
       "localizations": {"en": {"stringUnit": {"state": "translated", "value": "Allow System Notifications"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "允许系统通知"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "允許系統通知"}}}
@@ -1251,6 +1278,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "還沒有共同完成的事"
+          }
+        }
+      }
+    },
+    "还没有共同清单": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No shared list items yet"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有共同清单"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "還沒有共同清單"
           }
         }
       }

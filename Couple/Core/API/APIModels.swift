@@ -67,6 +67,26 @@ struct User: Codable, Identifiable, Hashable, Sendable {
     let id: String
     var displayName: String
     var timezone: String
+    var onboardingCompleted: Bool? = nil
+
+    var hasCompletedOnboarding: Bool { onboardingCompleted != false }
+}
+
+enum OnboardingSpaceAction: String, Codable, Sendable {
+    case create
+    case join
+}
+
+struct CompleteOnboardingRequest: Encodable, Sendable {
+    let displayName: String
+    let birthday: String
+    let action: OnboardingSpaceAction
+    let inviteCode: String?
+}
+
+struct CompleteOnboardingResult: Decodable, Sendable {
+    let user: User
+    let relationship: RelationshipStatus
 }
 
 struct TokenPair: Codable, Hashable, Sendable {
@@ -178,6 +198,27 @@ struct Anniversary: Codable, Identifiable, Hashable, Sendable {
     let createdAt: Date
     var updatedAt: Date
     var nextOccurrence: String?
+    var systemKind: String? = nil
+
+    var isSystemBirthday: Bool { systemKind == "birthday" }
+
+    var displayTitle: String {
+        localizedDisplayTitle()
+    }
+
+    func localizedDisplayTitle(
+        language: AppLanguage = .persisted(),
+        bundle: Bundle = .main
+    ) -> String {
+        guard isSystemBirthday else { return title }
+        let format = AppLocalization.string(
+            "systemBirthdayTitleFormat",
+            defaultValue: "%@的生日",
+            bundle: bundle,
+            language: language
+        )
+        return String(format: format, locale: language.locale, title)
+    }
 }
 
 struct Todo: Codable, Identifiable, Hashable, Sendable {

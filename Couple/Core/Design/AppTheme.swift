@@ -41,6 +41,8 @@ enum AppTheme {
     static let calendarReturnToTodayTravelDuration = 0.44
     static let calendarReturnToTodayFocusDuration = 0.18
     static let contentTop: CGFloat = 75
+    static let accent = Color.accentColor
+    static let accentSelectionBackground = Color.accentColor.opacity(0.12)
     static let muted = Color.secondary
     static let faint = Color.primary.opacity(0.08)
 
@@ -65,6 +67,7 @@ extension View {
 
     func appProminentButtonStyle() -> some View {
         buttonStyle(.borderedProminent)
-            .foregroundStyle(Color(.systemBackground))
+            .tint(AppTheme.accent)
+            .foregroundStyle(.white)
     }
 }

@@ -11,8 +11,10 @@ struct AppRootView: View {
                 launchView
             case .signedOut:
                 AuthView()
+            case .onboarding:
+                OnboardingFlowView()
             case .pairing:
-                PairingView()
+                OnboardingFlowView()
             case .main:
                 MainPagerView()
             }
@@ -25,6 +27,7 @@ struct AppRootView: View {
         VStack(spacing: 12) {
             Image(systemName: "heart.fill")
                 .font(.title.bold())
+                .foregroundStyle(AppTheme.accent)
                 .symbolEffect(.pulse)
             ProgressView()
                 .controlSize(.small)

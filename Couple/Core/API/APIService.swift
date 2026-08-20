@@ -23,11 +23,11 @@ enum NoteQuery: Hashable, Sendable {
 }
 
 extension APIClient {
-    func registrationOptions(displayName: String, timezone: String) async throws -> RegistrationOptionsResult {
+    func registrationOptions(timezone: String) async throws -> RegistrationOptionsResult {
         try await request(
             "/auth/passkey/register/options",
             method: .post,
-            body: ["displayName": displayName, "timezone": timezone],
+            body: ["timezone": timezone],
             authenticated: false
         )
     }
@@ -86,6 +86,10 @@ extension APIClient {
 
     func relationshipStatus() async throws -> RelationshipStatus {
         try await request("/couples/status")
+    }
+
+    func completeOnboarding(_ request: CompleteOnboardingRequest) async throws -> CompleteOnboardingResult {
+        try await self.request("/onboarding/complete", method: .post, body: request)
     }
 
     func createInvite() async throws -> InviteResult {

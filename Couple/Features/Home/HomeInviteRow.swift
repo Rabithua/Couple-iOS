@@ -34,7 +34,11 @@ struct HomeInviteRow: View {
             } else {
                 Button(action: createInvite) {
                     HStack(spacing: 8) {
-                        Label("生成邀请码", systemImage: "link.badge.plus")
+                        Label {
+                            Text("生成邀请码")
+                        } icon: {
+                            Image(systemName: "link.badge.plus")
+                        }
                         if store.isBusy {
                             ProgressView()
                                 .controlSize(.small)
@@ -49,6 +53,7 @@ struct HomeInviteRow: View {
             }
         }
         .font(AppTheme.titleFont())
+        .foregroundStyle(AppTheme.accent)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, AppTheme.horizontalPadding)
     }

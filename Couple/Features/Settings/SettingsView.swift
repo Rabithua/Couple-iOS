@@ -81,7 +81,7 @@ struct SettingsView: View {
                     ForEach(store.anniversaries) { item in
                         Label {
                             VStack(alignment: .leading) {
-                                Text(item.title)
+                                Text(item.displayTitle)
                                 Text(anniversaryDate(item))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
@@ -91,11 +91,8 @@ struct SettingsView: View {
                             Image(systemName: "birthday.cake.fill")
                         }
                         .settingsRow()
-                        .editableContentActions(
-                            deletionTitle: AppLocalization.string(
-                                "deleteAnniversaryConfirmation",
-                                defaultValue: "删除纪念日“\(item.title)”？"
-                            ),
+                        .anniversaryContentActions(
+                            item,
                             editAction: { editingAnniversary = item },
                             deleteAction: { try await store.deleteAnniversary(item) }
                         )

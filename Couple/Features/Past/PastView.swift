@@ -47,6 +47,8 @@ struct PastView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let filter: PastFilter
     let pageDragOffset: CGFloat
+    let isActive: Bool
+    let isInteractionEnabled: Bool
     let verticalScrollingDisabled: Bool
     let selectFilter: (PastFilter) -> Void
 
@@ -89,6 +91,7 @@ struct PastView: View {
                 .animation(pageAnimation, value: filter)
             }
             .clipped()
+            .disabled(!isActive || !isInteractionEnabled)
         } navigationBar: {
             DesignTabBar(
                 items: PastFilter.allCases.map { ($0, $0.title) },

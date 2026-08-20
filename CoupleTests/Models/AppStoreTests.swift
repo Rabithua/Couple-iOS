@@ -4,6 +4,107 @@ import Testing
 
 @MainActor
 struct AppStoreTests {
+    @Test("New Passkey registration continues through onboarding")
+    func newRegistrationCompletesCreatePath() async throws {
+        let store = AppStore(
+            environment: [:],
+            arguments: ["CoupleTests", "-ui-testing-demo", "-ui-testing-onboarding"]
+        )
+        await store.start()
+        #expect(store.phase == .signedOut)
+
+        await store.register()
+        #expect(store.phase == .onboarding)
+        #expect(store.currentUser?.onboardingCompleted == false)
+
+        let birthday = try #require(
+            Calendar.current.date(from: DateComponents(year: 2000, month: 8, day: 20))
+        )
+        await store.completeOnboarding(
+            displayName: " 新用户 ",
+            birthday: birthday,
+            action: .create,
+            inviteCode: nil
+        )
+
+        #expect(store.phase == .main)
+        #expect(store.currentUser?.displayName == "新用户")
+        #expect(store.currentUser?.onboardingCompleted == true)
+        #expect(store.relationship?.members.count == 1)
+        #expect(store.relationship?.pendingInvite != nil)
+        #expect(store.anniversaries.count == 1)
+        #expect(store.anniversaries.first?.systemKind == "birthday")
+        #expect(store.anniversaries.first?.date == "2000-08-20")
+    }
+
+    @Test("Cached incomplete registration resumes at space selection")
+    func cachedIncompleteOnboardingResumes() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appending(path: "OnboardingResumeTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let offline = try OfflineStore.makeInMemory(attachmentRoot: root)
+        var user = SampleData.user
+        user.displayName = "oursince"
+        user.onboardingCompleted = false
+        let relationship = RelationshipStatus(couple: nil, members: [], pendingInvite: nil)
+        try offline.saveSession(user: user, relationship: relationship, home: nil)
+        let api = APIClient(
+            baseURL: URL(string: "https://offline.invalid/v1/api")!,
+            session: AlwaysOfflineHTTPSession(),
+            keychain: KeychainStore(
+                service: "couple-tests-\(UUID().uuidString)",
+                persistenceEnabled: false
+            )
+        )
+        try await api.install(tokens: TokenPair(accessToken: "access", refreshToken: "refresh"))
+        let store = AppStore(
+            api: api,
+            offlineStore: offline,
+            environment: [:],
+            arguments: ["CoupleTests"]
+        )
+
+        await store.start()
+
+        #expect(store.phase == .onboarding)
+        #expect(store.requiresOnboardingProfile)
+        await api.clearSession()
+    }
+
+    @Test("A one-member existing space opens the home instead of pairing")
+    func cachedOneMemberSpaceOpensHome() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appending(path: "OneMemberSpaceTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let offline = try OfflineStore.makeInMemory(attachmentRoot: root)
+        try offline.saveSession(
+            user: SampleData.user,
+            relationship: SampleData.unpairedRelationship,
+            home: SampleData.unpairedHome
+        )
+        let api = APIClient(
+            baseURL: URL(string: "https://offline.invalid/v1/api")!,
+            session: AlwaysOfflineHTTPSession(),
+            keychain: KeychainStore(
+                service: "couple-tests-\(UUID().uuidString)",
+                persistenceEnabled: false
+            )
+        )
+        try await api.install(tokens: TokenPair(accessToken: "access", refreshToken: "refresh"))
+        let store = AppStore(
+            api: api,
+            offlineStore: offline,
+            environment: [:],
+            arguments: ["CoupleTests"]
+        )
+
+        await store.start()
+
+        #expect(store.phase == .main)
+        #expect(store.relationship?.members.count == 1)
+        await api.clearSession()
+    }
+
     @Test("Demo data never contains an empty note")
     func demoDataContainsNoEmptyNotes() {
         #expect(SampleData.notes.allSatisfy { $0.hasRecordContent })

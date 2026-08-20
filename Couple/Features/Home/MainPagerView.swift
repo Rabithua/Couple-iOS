@@ -41,11 +41,14 @@ struct MainPagerView: View {
                     MainPagerPage(
                         isActive: route.isPast,
                         isInteractionEnabled: pageContentInteractionEnabled,
+                        usesDisabledState: false,
                         size: proxy.size
                     ) {
                         PastView(
                             filter: route.pastFilter ?? .all,
                             pageDragOffset: route.isPast ? innerPageDragOffset : 0,
+                            isActive: route.isPast,
+                            isInteractionEnabled: pageContentInteractionEnabled,
                             verticalScrollingDisabled: route.isPast && verticalScrollingDisabled,
                             selectFilter: selectPastFilter
                         )
@@ -54,6 +57,7 @@ struct MainPagerView: View {
                     MainPagerPage(
                         isActive: route == .now,
                         isInteractionEnabled: pageContentInteractionEnabled,
+                        usesDisabledState: false,
                         size: proxy.size
                     ) {
                         NowView(
@@ -61,6 +65,7 @@ struct MainPagerView: View {
                                 ? mainGestureState.composeProgress
                                 : 0,
                             isActive: route == .now,
+                            isInteractionEnabled: pageContentInteractionEnabled,
                             verticalScrollingDisabled: route == .now
                                 && verticalScrollingDisabled,
                             showComposer: presentComposer,
@@ -72,14 +77,16 @@ struct MainPagerView: View {
                     MainPagerPage(
                         isActive: route.isFuture,
                         isInteractionEnabled: pageContentInteractionEnabled,
+                        usesDisabledState: false,
                         size: proxy.size
                     ) {
                         FutureView(
                             mode: route.futureMode ?? .calendar,
                             pageDragOffset: route.isFuture ? innerPageDragOffset : 0,
+                            isActive: route.isFuture,
                             verticalScrollingDisabled: route.isFuture
                                 && verticalScrollingDisabled,
-                            calendarSelectionDisabled: suppressPageContentInteractions,
+                            pageInteractionDisabled: suppressPageContentInteractions,
                             notificationDestination: calendarNotificationDestination,
                             selectMode: selectFutureMode
                         )

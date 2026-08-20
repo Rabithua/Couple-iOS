@@ -559,6 +559,33 @@ final class OfflineStore: SyncStore {
         )
     }
 
+    func editSystemBirthdayDate(
+        id: String,
+        date: Date,
+        now: Date = .now
+    ) throws {
+        guard let entity = try anniversaryEntity(id: id) else {
+            throw OfflineStoreError.missingEntity(.anniversary, id)
+        }
+        guard entity.systemKind == "birthday", !entity.isTombstoned else { return }
+        let hlc = try nextHLC(at: now)
+        entity.date = date.dateOnlyString
+        entity.nextOccurrence = nil
+        entity.updatedAt = now
+        entity.isDirty = true
+        try setClock(hlc, groups: ["schedule"], on: entity)
+        try enqueue(
+            entityType: .anniversary,
+            entityId: id,
+            kind: .update,
+            payload: .init(fields: ["date": .string(entity.date)]),
+            changedGroups: ["schedule"],
+            hlc: hlc,
+            now: now
+        )
+        try context.save()
+    }
+
     func deleteAnniversary(id: String, now: Date = .now) throws {
         guard let entity = try anniversaryEntity(id: id) else {
             throw OfflineStoreError.missingEntity(.anniversary, id)
@@ -1360,10 +1387,14 @@ final class OfflineStore: SyncStore {
             createdAt: change.maximumClock.date,
             updatedAt: change.updatedAt ?? change.maximumClock.date,
             nextOccurrence: nil,
+            systemKind: change.fields["systemKind"]?.optionalString,
             fieldClocksData: remoteClocksData
         )
         if existing == nil { context.insert(entity) }
         if try applyLifecycle(change, entity: entity) { return }
+        if let systemKind = change.fields["systemKind"]?.optionalString {
+            entity.systemKind = systemKind
+        }
         var clocks = try clocks(from: entity.fieldClocksData)
         for group in change.changedFieldGroups where shouldApply(group, remote: change, local: clocks) {
             switch group {
@@ -1857,12 +1888,14 @@ final class OfflineStore: SyncStore {
                     createdAt: remote.createdAt,
                     updatedAt: remote.updatedAt,
                     nextOccurrence: remote.nextOccurrence,
+                    systemKind: remote.systemKind,
                     fieldClocksData: try Self.encode(Self.clocks(groups: ["content", "schedule", "visibility"], hlc: remoteClock))
                 )
             )
             return
         }
         guard prepareForRemoteMerge(local) else { return }
+        local.systemKind = remote.systemKind
         var clocks = try clocks(from: local.fieldClocksData)
         if clocks["content"] == nil || clocks["content"]! < remoteClock {
             local.title = remote.title
@@ -2124,7 +2157,8 @@ final class OfflineStore: SyncStore {
             reminderInstant: local.reminderInstant,
             createdAt: local.createdAt,
             updatedAt: local.updatedAt,
-            nextOccurrence: local.nextOccurrence
+            nextOccurrence: local.nextOccurrence,
+            systemKind: local.systemKind
         )
     }
 

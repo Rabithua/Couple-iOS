@@ -2,6 +2,41 @@ import XCTest
 
 @MainActor
 final class CoupleJourneyUITests: XCTestCase {
+    func testOnboardingCreateAndJoinFormsAndOuterEdgeHitTargets() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-onboarding"]
+        app.launchInSimplifiedChinese()
+
+        let start = app.buttons["onboardingStartButton"]
+        XCTAssertTrue(start.waitForExistence(timeout: 5))
+        XCTAssertGreaterThanOrEqual(start.frame.height, 44)
+        start.coordinate(withNormalizedOffset: CGVector(dx: 0.98, dy: 0.5)).tap()
+
+        let choice = app.descendants(matching: .any)["onboardingSpaceChoice"]
+        XCTAssertTrue(choice.waitForExistence(timeout: 5))
+        app.buttons["onboardingJoinSpaceButton"].tap()
+        XCTAssertTrue(app.textFields["onboardingDisplayNameField"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.descendants(matching: .any)["onboardingBirthdayPicker"].exists)
+        XCTAssertTrue(app.textFields["onboardingInviteCodeField"].exists)
+
+        app.buttons["onboardingBackButton"].tap()
+        XCTAssertTrue(app.buttons["onboardingCreateSpaceButton"].waitForExistence(timeout: 2))
+        app.buttons["onboardingCreateSpaceButton"].tap()
+        let name = app.textFields["onboardingDisplayNameField"]
+        XCTAssertTrue(name.waitForExistence(timeout: 2))
+        XCTAssertFalse(app.textFields["onboardingInviteCodeField"].exists)
+        name.tap()
+        name.typeText("测试用户")
+
+        let continueButton = app.buttons["onboardingContinueButton"]
+        XCTAssertTrue(continueButton.isEnabled)
+        XCTAssertGreaterThanOrEqual(continueButton.frame.height, 44)
+        continueButton.coordinate(withNormalizedOffset: CGVector(dx: 0.98, dy: 0.12)).tap()
+
+        XCTAssertTrue(app.buttons["homeInviteCode"].waitForExistence(timeout: 5))
+    }
+
     func testUnpairedHomeShowsInviteCodeAndSharesFromItsOuterEdge() {
         continueAfterFailure = false
         let app = XCUIApplication()
@@ -13,12 +48,12 @@ final class CoupleJourneyUITests: XCTestCase {
         let inviteRow = nowScroll.buttons["homeInviteCode"]
         XCTAssertTrue(inviteRow.waitForExistence(timeout: 5))
         XCTAssertTrue(inviteRow.label.contains("OURSINCE"))
-        let relationshipCaption = nowScroll.staticTexts["每天都是独一无二纪念日，庆祝一下吧 🎉"]
         let emptyAnniversary = nowScroll.staticTexts["还没有纪念日"]
-        XCTAssertTrue(relationshipCaption.exists)
         XCTAssertTrue(emptyAnniversary.exists)
-        XCTAssertLessThan(inviteRow.frame.minY, relationshipCaption.frame.minY)
-        XCTAssertEqual(relationshipCaption.frame.minX, emptyAnniversary.frame.minX, accuracy: 1)
+        XCTAssertTrue(nowScroll.staticTexts["还没有共同清单"].exists)
+        XCTAssertFalse(nowScroll.staticTexts["在一起"].exists)
+        XCTAssertFalse(nowScroll.staticTexts["每天都是独一无二纪念日，庆祝一下吧 🎉"].exists)
+        XCTAssertLessThan(inviteRow.frame.minY, emptyAnniversary.frame.minY)
         XCTAssertEqual(inviteRow.frame.minX, emptyAnniversary.frame.minX, accuracy: 1)
 
         inviteRow.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: 0.12)).tap()

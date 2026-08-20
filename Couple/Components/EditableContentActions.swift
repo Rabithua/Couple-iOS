@@ -71,6 +71,24 @@ struct EditableContentActionsModifier: ViewModifier {
     }
 }
 
+struct EditOnlyContentActionModifier: ViewModifier {
+    @Environment(AppHaptics.self) private var haptics
+    let editAction: @MainActor () -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .contextMenu {
+                Button("编辑", systemImage: "pencil", action: beginEditing)
+            }
+            .accessibilityAction(named: Text(AppLocalization.string("编辑")), beginEditing)
+    }
+
+    private func beginEditing() {
+        haptics.play(.tap)
+        editAction()
+    }
+}
+
 extension View {
     func editableContentActions(
         deletionTitle: String,
@@ -82,5 +100,31 @@ extension View {
             editAction: editAction,
             deleteAction: deleteAction
         ))
+    }
+
+    func editOnlyContentAction(
+        editAction: @escaping @MainActor () -> Void
+    ) -> some View {
+        modifier(EditOnlyContentActionModifier(editAction: editAction))
+    }
+
+    @ViewBuilder
+    func anniversaryContentActions(
+        _ anniversary: Anniversary,
+        editAction: @escaping @MainActor () -> Void,
+        deleteAction: @escaping @MainActor () async throws -> Void
+    ) -> some View {
+        if anniversary.isSystemBirthday {
+            editOnlyContentAction(editAction: editAction)
+        } else {
+            editableContentActions(
+                deletionTitle: AppLocalization.string(
+                    "deleteAnniversaryConfirmation",
+                    defaultValue: "删除纪念日“\(anniversary.displayTitle)”？"
+                ),
+                editAction: editAction,
+                deleteAction: deleteAction
+            )
+        }
     }
 }
