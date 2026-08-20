@@ -2,6 +2,30 @@ import XCTest
 
 @MainActor
 final class CoupleJourneyUITests: XCTestCase {
+    func testUnpairedHomeShowsInviteCodeAndSharesFromItsOuterEdge() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-unpaired", "-ui-testing-now"]
+        app.launchInSimplifiedChinese()
+
+        let nowScroll = app.scrollViews["nowScroll"]
+        XCTAssertTrue(nowScroll.waitForExistence(timeout: 5))
+        let inviteRow = nowScroll.buttons["homeInviteCode"]
+        XCTAssertTrue(inviteRow.waitForExistence(timeout: 5))
+        XCTAssertTrue(inviteRow.label.contains("OURSINCE"))
+        let relationshipCaption = nowScroll.staticTexts["每天都是独一无二纪念日，庆祝一下吧 🎉"]
+        let emptyAnniversary = nowScroll.staticTexts["还没有纪念日"]
+        XCTAssertTrue(relationshipCaption.exists)
+        XCTAssertTrue(emptyAnniversary.exists)
+        XCTAssertLessThan(inviteRow.frame.minY, relationshipCaption.frame.minY)
+        XCTAssertEqual(relationshipCaption.frame.minX, emptyAnniversary.frame.minX, accuracy: 1)
+        XCTAssertEqual(inviteRow.frame.minX, emptyAnniversary.frame.minX, accuracy: 1)
+
+        inviteRow.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: 0.12)).tap()
+
+        XCTAssertTrue(app.otherElements["ActivityListView"].waitForExistence(timeout: 3))
+    }
+
     func testSettingsIsAvailableAfterTheTodoList() {
         continueAfterFailure = false
         let app = XCUIApplication()

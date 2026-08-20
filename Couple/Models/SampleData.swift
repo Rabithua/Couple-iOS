@@ -22,6 +22,16 @@ enum SampleData {
         members: [CoupleMember(id: user.id, displayName: user.displayName), partner],
         pendingInvite: nil
     )
+    static let pendingInvite = CoupleInvite(
+        id: "70000000-0000-4000-8000-000000000001",
+        code: "OURSINCE",
+        expiresAt: Calendar.current.date(byAdding: .day, value: 7, to: now) ?? now
+    )
+    static let unpairedRelationship = RelationshipStatus(
+        couple: relationship.couple,
+        members: [CoupleMember(id: user.id, displayName: user.displayName)],
+        pendingInvite: pendingInvite
+    )
 
     static let anniversary = Anniversary(
         id: "30000000-0000-4000-8000-000000000001",
@@ -126,6 +136,12 @@ enum SampleData {
             allDay: nil,
             occurrenceId: nil
         ),
+        latestTimelineEntry: nil
+    )
+    static let unpairedHome = HomeData(
+        daysTogether: 0,
+        nextAnniversary: nil,
+        nextUpcoming: nil,
         latestTimelineEntry: nil
     )
 

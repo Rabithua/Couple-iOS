@@ -50,6 +50,7 @@
 		4851E43C8D192D1271740ED1 /* EditableContentActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AA676000AC7E0320A51D735 /* EditableContentActions.swift */; };
 		4ECED4BF55946E402A50FA69 /* AppHapticFeedbackModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = E728E9791F235E108CB45A5B /* AppHapticFeedbackModifier.swift */; };
 		4F7E70AA36D8D52E1E87462F /* NowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31475F86AC39EF3B94050D5E /* NowView.swift */; };
+		F1A2B3C4D5E6F70809101112 /* HomeInviteRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4D5E6F70809101113 /* HomeInviteRow.swift */; };
 		55BF5D05D162644DB032EB6E /* OfflineModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 862492117B1F02A0757AD9D4 /* OfflineModels.swift */; };
 		5744B0F6700EF8FEC5F3BD9B /* TodoCompletionStrike.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BABCD37148C166C49F4ED67 /* TodoCompletionStrike.swift */; };
 		C5F4A9D8E7B64102A3C5D6E7 /* TodoCompletionInteraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7D9C2E41B6345809F12A3BC /* TodoCompletionInteraction.swift */; };
@@ -153,6 +154,7 @@
 		2AA676000AC7E0320A51D735 /* EditableContentActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditableContentActions.swift; sourceTree = "<group>"; };
 		2EEEE5CF092AD4AA9B5E06BA /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		31475F86AC39EF3B94050D5E /* NowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowView.swift; sourceTree = "<group>"; };
+		F1A2B3C4D5E6F70809101113 /* HomeInviteRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeInviteRow.swift; sourceTree = "<group>"; };
 		33D4839F23CF0F830401E804 /* PastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastView.swift; sourceTree = "<group>"; };
 		373EB62D1A338E001E192E14 /* ComposeMemoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComposeMemoryView.swift; sourceTree = "<group>"; };
 		3950B5B300C206EBA7D6F45B /* NewTodoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTodoView.swift; sourceTree = "<group>"; };
@@ -430,6 +432,7 @@
 				AD3FB7ACAC3C260B3FDE3EE9 /* MainPagerRoute.swift */,
 				79B2058D10B1619A09A3B483 /* MainPagerView.swift */,
 				31475F86AC39EF3B94050D5E /* NowView.swift */,
+				F1A2B3C4D5E6F70809101113 /* HomeInviteRow.swift */,
 			);
 			path = Home;
 			sourceTree = "<group>";
@@ -782,6 +785,7 @@
 				6A63C217AE6EDD7524E51236 /* NewCalendarEventView.swift in Sources */,
 				402E857575BFA75588152F86 /* NewTodoView.swift in Sources */,
 				4F7E70AA36D8D52E1E87462F /* NowView.swift in Sources */,
+				F1A2B3C4D5E6F70809101112 /* HomeInviteRow.swift in Sources */,
 				55BF5D05D162644DB032EB6E /* OfflineModels.swift in Sources */,
 				3B39692EB3FF3E55873ABADD /* OfflineStore.swift in Sources */,
 				71563E98015D90C644CF9E7E /* PairingView.swift in Sources */,

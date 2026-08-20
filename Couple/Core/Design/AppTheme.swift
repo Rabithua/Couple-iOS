@@ -2,12 +2,13 @@ import SwiftUI
 
 enum AppTheme {
     static let horizontalPadding: CGFloat = 20
-    static let topPadding: CGFloat = 18
+    static let topPadding: CGFloat = 12
+    static let homeSectionSpacing: CGFloat = 12
     static let tabBarTopPadding: CGFloat = 6
     static let tabBarBottomPadding: CGFloat = 8
     static let navigationBarHeight: CGFloat = 58
     static let navigationFadeLength: CGFloat = 68
-    static let homeTopFadeLength: CGFloat = 44
+    static let homeTopFadeLength: CGFloat = 16
     static let navigationBackdropOverlap: CGFloat = 112
     static let futureContentBottomPadding: CGFloat = 80
     static let heroPhotoSpacing: CGFloat = 14

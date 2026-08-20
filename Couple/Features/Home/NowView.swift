@@ -32,10 +32,19 @@ struct NowView: View {
         store.homeAnniversary
     }
 
+    private var needsPairing: Bool {
+        guard let relationship = store.relationship else { return false }
+        return relationship.members.count < 2
+    }
+
     var body: some View {
         ZStack(alignment: .bottom) {
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(spacing: AppTheme.homeSectionSpacing) {
+                    if needsPairing {
+                        HomeInviteRow()
+                        DesignDivider()
+                    }
                     relationshipHero
                     DesignDivider()
                     anniversarySection
@@ -155,6 +164,7 @@ struct NowView: View {
                 .font(.caption)
                 .foregroundStyle(AppTheme.muted)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, AppTheme.horizontalPadding)
     }
 

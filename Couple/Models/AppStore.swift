@@ -65,6 +65,7 @@ final class AppStore {
     var errorMessage: String?
     private(set) var pendingTodoIDs: Set<String> = []
     private(set) var isDemo: Bool
+    private let startsWithUnpairedDemo: Bool
 
     var homeAnniversary: Anniversary? {
         guard let cached = home?.nextAnniversary else {
@@ -103,6 +104,7 @@ final class AppStore {
         self.userDefaults = userDefaults
         let demo = environment["COUPLE_DEMO_MODE"] == "1" || arguments.contains("-ui-testing-demo")
         self.isDemo = demo
+        self.startsWithUnpairedDemo = demo && arguments.contains("-ui-testing-unpaired")
 
         guard !demo else { return }
         do {
@@ -119,7 +121,11 @@ final class AppStore {
 
     func start() async {
         if isDemo {
-            loadSampleData()
+            if startsWithUnpairedDemo {
+                loadUnpairedSampleData()
+            } else {
+                loadSampleData()
+            }
             phase = .main
             return
         }
@@ -236,7 +242,11 @@ final class AppStore {
 
     func refreshContent() async {
         guard !isDemo else {
-            loadSampleData(keepingTodoState: true)
+            if startsWithUnpairedDemo {
+                loadUnpairedSampleData()
+            } else {
+                loadSampleData(keepingTodoState: true)
+            }
             return
         }
         guard !isRefreshing else { return }
@@ -1189,6 +1199,17 @@ final class AppStore {
         if !keepingTodoState || todos.isEmpty { todos = SampleData.todos }
         anniversaries = [SampleData.anniversary]
         calendarEvents = SampleData.events
+    }
+
+    private func loadUnpairedSampleData() {
+        currentUser = SampleData.user
+        relationship = SampleData.unpairedRelationship
+        home = SampleData.unpairedHome
+        notes = []
+        rebuildPastNoteCaches()
+        todos = []
+        anniversaries = []
+        calendarEvents = []
     }
 
     private func rebuildPastNoteCaches() {

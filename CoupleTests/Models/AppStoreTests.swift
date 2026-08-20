@@ -9,6 +9,23 @@ struct AppStoreTests {
         #expect(SampleData.notes.allSatisfy { $0.hasRecordContent })
     }
 
+    @Test("Unpaired home demo exposes its invite and empty content")
+    func unpairedHomeDemoState() async {
+        let store = AppStore(
+            environment: [:],
+            arguments: ["CoupleTests", "-ui-testing-demo", "-ui-testing-unpaired"]
+        )
+
+        await store.start()
+
+        #expect(store.phase == .main)
+        #expect(store.relationship?.members.count == 1)
+        #expect(store.relationship?.pendingInvite == SampleData.pendingInvite)
+        #expect(store.notes.isEmpty)
+        #expect(store.todos.isEmpty)
+        #expect(store.anniversaries.isEmpty)
+    }
+
     @Test("A todo association cannot create an empty note")
     func todoAssociationCannotCreateEmptyNote() async {
         let store = AppStore(
