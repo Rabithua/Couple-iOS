@@ -122,6 +122,7 @@ final class AppStore {
         passkeys: PasskeyService = PasskeyService(),
         offlineStore suppliedOfflineStore: OfflineStore? = nil,
         syncTransport suppliedSyncTransport: (any SyncTransport)? = nil,
+        syncV2Transport suppliedSyncV2Transport: (any SyncV2Transporting)? = nil,
         userDefaults: UserDefaults = .standard,
         environment: [String: String] = ProcessInfo.processInfo.environment,
         arguments: [String] = ProcessInfo.processInfo.arguments
@@ -146,9 +147,15 @@ final class AppStore {
                 syncCoordinator = SyncCoordinator(store: local, transport: suppliedSyncTransport)
             } else {
                 let repository = SyncRepositoryV2(modelContainer: local.container)
+                let transport: any SyncV2Transporting
+                if let suppliedSyncV2Transport {
+                    transport = suppliedSyncV2Transport
+                } else {
+                    transport = SyncV2Transport(api: api, store: local, repository: repository)
+                }
                 let engine = SyncEngineV2(
                     repository: repository,
-                    transport: SyncV2Transport(api: api, store: local, repository: repository)
+                    transport: transport
                 )
                 syncRepositoryV2 = repository
                 syncEngineV2 = engine
@@ -463,7 +470,10 @@ final class AppStore {
             && !isDemo
         if shouldPoll {
             try? await syncEngineV2.resume()
-            await syncEngineV2.startForegroundPolling()
+            await syncEngineV2.startForegroundPolling { [weak self] in
+                guard let self else { return }
+                _ = await self.synchronizeFromForegroundPoll()
+            }
         } else {
             await syncEngineV2.stopForegroundPolling()
         }
@@ -493,6 +503,11 @@ final class AppStore {
             }
             return result
         }
+    }
+
+    func synchronizeFromForegroundPoll() async -> SyncRunResult {
+        guard phase == .main else { return .cancelled }
+        return await synchronize(trigger: .poll, surfaceError: false)
     }
 
     func ensureCalendarEvents(including date: Date) {

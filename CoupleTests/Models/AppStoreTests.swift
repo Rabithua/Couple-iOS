@@ -427,6 +427,39 @@ struct AppStoreTests {
         await api.clearSession()
     }
 
+    @Test("Foreground polling removes a calendar event deleted by the partner")
+    func foregroundPollReloadsPartnerCalendarDeletion() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appending(path: "ForegroundPollTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let offline = try OfflineStore.makeInMemory(attachmentRoot: root)
+        let event = try #require(SampleData.events.first)
+        try offline.bootstrap(
+            notes: [],
+            todos: [],
+            anniversaries: [],
+            calendarEvents: [event]
+        )
+        let transport = PartnerCalendarDeletionTransport(event: event)
+        let store = AppStore(
+            offlineStore: offline,
+            syncV2Transport: transport,
+            environment: [:],
+            arguments: ["CoupleTests"]
+        )
+        store.currentUser = SampleData.user
+        store.relationship = SampleData.relationship
+        store.calendarEvents = [event]
+        store.phase = .main
+
+        let result = await store.synchronizeFromForegroundPoll()
+
+        #expect(result == .success)
+        #expect(store.calendarEvents.contains(where: { $0.id == event.id }) == false)
+        let snapshot = try await offline.loadSnapshot()
+        #expect(snapshot.canonicalCalendarEvents.contains(where: { $0.id == event.id }) == false)
+    }
+
     @Test("Interrupted space cleanup is completed before a session can open")
     func interruptedSpaceCleanupRecoversBeforeOpeningSession() async throws {
         let root = FileManager.default.temporaryDirectory
@@ -512,6 +545,47 @@ private actor EmptySyncTransport: SyncTransport {
                 nextCursor: cursor,
                 hasMore: false,
                 serverTime: .now
+            )
+        )
+    }
+}
+
+private actor PartnerCalendarDeletionTransport: SyncV2Transporting {
+    private let event: CalendarEvent
+
+    init(event: CalendarEvent) {
+        self.event = event
+    }
+
+    func exchange(
+        cursor: String?,
+        operations: [PendingOperation],
+        limit: Int
+    ) async throws -> SyncV2Exchange {
+        let tombstone = HybridLogicalTimestamp(
+            wallTimeMilliseconds: event.updatedAt.millisecondsSince1970 + 1,
+            counter: 0,
+            deviceId: "partner-device"
+        )
+        return SyncV2Exchange(
+            operationResults: [],
+            page: PullPage(
+                changes: [RemoteEntityChange(
+                    entityType: .calendarEvent,
+                    entityId: event.id,
+                    ownerId: event.ownerId,
+                    visibility: event.visibility.rawValue,
+                    kind: .delete,
+                    fields: [:],
+                    attachments: [],
+                    changedFieldGroups: ["lifecycle"],
+                    fieldClocks: [:],
+                    tombstone: tombstone,
+                    updatedAt: tombstone.date
+                )],
+                nextCursor: "partner-delete",
+                hasMore: false,
+                serverTime: tombstone.date
             )
         )
     }

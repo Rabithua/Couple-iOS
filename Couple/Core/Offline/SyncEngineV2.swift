@@ -105,14 +105,16 @@ actor SyncEngineV2 {
         return summary
     }
 
-    func startForegroundPolling() {
+    func startForegroundPolling(
+        performPoll: @escaping @Sendable () async -> Void
+    ) {
         guard acceptingTriggers, pollingTask == nil else { return }
         pollingTask = Task { [weak self] in
             while !Task.isCancelled {
                 do {
                     try await Task.sleep(for: .seconds(30))
-                    guard let self, !Task.isCancelled else { return }
-                    _ = await self.trigger(.poll)
+                    guard self != nil, !Task.isCancelled else { return }
+                    await performPoll()
                 } catch is CancellationError {
                     return
                 } catch {
