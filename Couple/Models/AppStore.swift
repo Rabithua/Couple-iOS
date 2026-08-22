@@ -94,6 +94,7 @@ final class AppStore {
     private(set) var isPreviewSession = false
     private let startsWithUnpairedDemo: Bool
     private let startsWithOnboardingDemo: Bool
+    private let startsWithUnnamedLocationDemo: Bool
 
     var requiresOnboardingProfile: Bool {
         currentUser?.hasCompletedOnboarding == false
@@ -122,6 +123,7 @@ final class AppStore {
         passkeys: PasskeyService = PasskeyService(),
         offlineStore suppliedOfflineStore: OfflineStore? = nil,
         syncTransport suppliedSyncTransport: (any SyncTransport)? = nil,
+        syncV2Transport suppliedSyncV2Transport: (any SyncV2Transporting)? = nil,
         userDefaults: UserDefaults = .standard,
         environment: [String: String] = ProcessInfo.processInfo.environment,
         arguments: [String] = ProcessInfo.processInfo.arguments
@@ -137,6 +139,8 @@ final class AppStore {
         self.isPreviewSession = previewSession
         self.startsWithUnpairedDemo = demo && arguments.contains("-ui-testing-unpaired")
         self.startsWithOnboardingDemo = demo && arguments.contains("-ui-testing-onboarding")
+        self.startsWithUnnamedLocationDemo = demo
+            && arguments.contains("-ui-testing-unnamed-location")
 
         guard !demo else { return }
         do {
@@ -146,9 +150,15 @@ final class AppStore {
                 syncCoordinator = SyncCoordinator(store: local, transport: suppliedSyncTransport)
             } else {
                 let repository = SyncRepositoryV2(modelContainer: local.container)
+                let transport: any SyncV2Transporting
+                if let suppliedSyncV2Transport {
+                    transport = suppliedSyncV2Transport
+                } else {
+                    transport = SyncV2Transport(api: api, store: local, repository: repository)
+                }
                 let engine = SyncEngineV2(
                     repository: repository,
-                    transport: SyncV2Transport(api: api, store: local, repository: repository)
+                    transport: transport
                 )
                 syncRepositoryV2 = repository
                 syncEngineV2 = engine
@@ -463,7 +473,10 @@ final class AppStore {
             && !isDemo
         if shouldPoll {
             try? await syncEngineV2.resume()
-            await syncEngineV2.startForegroundPolling()
+            await syncEngineV2.startForegroundPolling { [weak self] in
+                guard let self else { return }
+                _ = await self.synchronizeFromForegroundPoll()
+            }
         } else {
             await syncEngineV2.stopForegroundPolling()
         }
@@ -493,6 +506,11 @@ final class AppStore {
             }
             return result
         }
+    }
+
+    func synchronizeFromForegroundPoll() async -> SyncRunResult {
+        guard phase == .main else { return .cancelled }
+        return await synchronize(trigger: .poll, surfaceError: false)
     }
 
     func ensureCalendarEvents(including date: Date) {
@@ -1504,6 +1522,11 @@ final class AppStore {
         relationship = SampleData.relationship
         home = SampleData.home
         notes = SampleData.notes
+#if DEBUG
+        if startsWithUnnamedLocationDemo, !notes.isEmpty {
+            notes[0].locationName = nil
+        }
+#endif
         rebuildPastNoteCaches()
         if !keepingTodoState || todos.isEmpty { todos = SampleData.todos }
         anniversaries = [SampleData.anniversary]

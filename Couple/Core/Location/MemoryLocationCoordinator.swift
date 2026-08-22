@@ -5,6 +5,7 @@ enum MemoryLocationStatus: Equatable {
     case idle
     case requestingAuthorization
     case locating
+    case resolvingName
     case located
     case denied
     case servicesDisabled
@@ -16,7 +17,9 @@ enum MemoryLocationStatus: Equatable {
 final class MemoryLocationCoordinator: NSObject, @preconcurrency CLLocationManagerDelegate {
     private let manager: CLLocationManager
     private let geocoder: CLGeocoder
+    private let photoGeocoder: CLGeocoder
     private var availabilityTask: Task<Void, Never>?
+    private var locationTimeoutTask: Task<Void, Never>?
     private var geocodingTask: Task<Void, Never>?
     private var geocodingTimeoutTask: Task<Void, Never>?
     private var captureRequested = false
@@ -24,18 +27,23 @@ final class MemoryLocationCoordinator: NSObject, @preconcurrency CLLocationManag
 
     private(set) var status: MemoryLocationStatus = .idle
     private(set) var location: NoteLocation?
+    private(set) var currentLocation: NoteLocation?
     private(set) var errorMessage: String?
 
     var isCapturing: Bool {
-        status == .requestingAuthorization || status == .locating
+        status == .requestingAuthorization
+            || status == .locating
+            || status == .resolvingName
     }
 
     init(
         manager: CLLocationManager = CLLocationManager(),
-        geocoder: CLGeocoder = CLGeocoder()
+        geocoder: CLGeocoder = CLGeocoder(),
+        photoGeocoder: CLGeocoder = CLGeocoder()
     ) {
         self.manager = manager
         self.geocoder = geocoder
+        self.photoGeocoder = photoGeocoder
         super.init()
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
@@ -44,16 +52,38 @@ final class MemoryLocationCoordinator: NSObject, @preconcurrency CLLocationManag
     func prepare(existingLocation: NoteLocation?, automaticallyCapture: Bool) {
         cancelPendingWork()
         location = existingLocation
+        currentLocation = nil
         status = existingLocation == nil ? .idle : .located
         errorMessage = nil
-        if automaticallyCapture { captureCurrentLocation() }
+        if automaticallyCapture {
+            captureCurrentLocation()
+        } else if let existingLocation,
+                  (existingLocation.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
+                      .isEmpty {
+            resolveName(
+                for: CLLocation(
+                    latitude: existingLocation.latitude,
+                    longitude: existingLocation.longitude
+                ),
+                pendingLocation: existingLocation,
+                cacheAsCurrentLocation: false,
+                preservePendingLocationOnFailure: true
+            )
+        }
     }
 
     func captureCurrentLocation() {
         cancelPendingWork()
+        currentLocation = nil
 #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-ui-testing-location") {
-            location = NoteLocation(latitude: 30.274_084_8, longitude: 120.155_070_7, name: "西湖")
+            let resolvedLocation = NoteLocation(
+                latitude: 30.274_084_8,
+                longitude: 120.155_070_7,
+                name: "西湖"
+            )
+            location = resolvedLocation
+            currentLocation = resolvedLocation
             status = .located
             errorMessage = nil
             return
@@ -62,6 +92,12 @@ final class MemoryLocationCoordinator: NSObject, @preconcurrency CLLocationManag
         captureRequested = true
         errorMessage = nil
         status = .locating
+#if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing-location-timeout") {
+            startLocationTimeout(after: .milliseconds(200))
+            return
+        }
+#endif
         availabilityTask = Task { [weak self] in
             let servicesEnabled = await Task.detached {
                 CLLocationManager.locationServicesEnabled()
@@ -103,19 +139,72 @@ final class MemoryLocationCoordinator: NSObject, @preconcurrency CLLocationManag
         location = photoLocation
         errorMessage = nil
 
-        guard photoLocation.name == nil else {
+        if let name = photoLocation.name?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !name.isEmpty {
+            location = NoteLocation(
+                latitude: photoLocation.latitude,
+                longitude: photoLocation.longitude,
+                name: name
+            )
             status = .located
             return
         }
 
-        status = .locating
+        status = .resolvingName
         resolveName(
             for: CLLocation(
                 latitude: photoLocation.latitude,
                 longitude: photoLocation.longitude
             ),
-            pendingLocation: photoLocation
+            pendingLocation: photoLocation,
+            cacheAsCurrentLocation: false,
+            preservePendingLocationOnFailure: false
         )
+    }
+
+    func useCurrentLocation() {
+        guard let currentLocation else {
+            captureCurrentLocation()
+            return
+        }
+        cancelPendingWork()
+        location = currentLocation
+        status = .located
+        errorMessage = nil
+    }
+
+    func resolvingPhotoLocationNames(_ photoLocations: [NoteLocation]) async -> [NoteLocation] {
+        photoGeocoder.cancelGeocode()
+        var resolvedLocations: [NoteLocation] = []
+        resolvedLocations.reserveCapacity(photoLocations.count)
+
+        for photoLocation in photoLocations {
+            guard !Task.isCancelled else { return resolvedLocations }
+            if let name = photoLocation.name?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !name.isEmpty {
+                resolvedLocations.append(NoteLocation(
+                    latitude: photoLocation.latitude,
+                    longitude: photoLocation.longitude,
+                    name: name
+                ))
+                continue
+            }
+
+            let name = await reverseGeocodedName(
+                for: CLLocation(
+                    latitude: photoLocation.latitude,
+                    longitude: photoLocation.longitude
+                ),
+                using: photoGeocoder
+            )
+            guard !Task.isCancelled else { return resolvedLocations }
+            resolvedLocations.append(NoteLocation(
+                latitude: photoLocation.latitude,
+                longitude: photoLocation.longitude,
+                name: name
+            ))
+        }
+        return resolvedLocations
     }
 
     func cancelPendingWork() {
@@ -123,6 +212,8 @@ final class MemoryLocationCoordinator: NSObject, @preconcurrency CLLocationManag
         servicesChecked = false
         availabilityTask?.cancel()
         availabilityTask = nil
+        locationTimeoutTask?.cancel()
+        locationTimeoutTask = nil
         geocodingTask?.cancel()
         geocodingTask = nil
         geocodingTimeoutTask?.cancel()
@@ -160,35 +251,84 @@ final class MemoryLocationCoordinator: NSObject, @preconcurrency CLLocationManag
         }
 
         let coordinate = current.coordinate
+        locationTimeoutTask?.cancel()
+        locationTimeoutTask = nil
         let pendingLocation = NoteLocation(
             latitude: coordinate.latitude,
             longitude: coordinate.longitude,
             name: nil
         )
-        resolveName(for: current, pendingLocation: pendingLocation)
+        resolveName(
+            for: current,
+            pendingLocation: pendingLocation,
+            cacheAsCurrentLocation: true,
+            preservePendingLocationOnFailure: false
+        )
     }
 
-    private func resolveName(for sourceLocation: CLLocation, pendingLocation: NoteLocation) {
+    private func resolveName(
+        for sourceLocation: CLLocation,
+        pendingLocation: NoteLocation,
+        cacheAsCurrentLocation: Bool,
+        preservePendingLocationOnFailure: Bool
+    ) {
         location = pendingLocation
+        status = .resolvingName
         geocodingTask?.cancel()
         geocodingTimeoutTask?.cancel()
         geocodingTimeoutTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(5))
-            guard !Task.isCancelled else { return }
-            self?.geocoder.cancelGeocode()
+            guard let self, !Task.isCancelled else { return }
+            geocodingTask?.cancel()
+            geocodingTask = nil
+            geocoder.cancelGeocode()
+            completeUnresolvedName(
+                pendingLocation: pendingLocation,
+                preservePendingLocation: preservePendingLocationOnFailure
+            )
+            geocodingTimeoutTask = nil
         }
         geocodingTask = Task { [weak self] in
             guard let self else { return }
-            let name = await reverseGeocodedName(for: sourceLocation)
+            let name = await reverseGeocodedName(for: sourceLocation, using: geocoder)
             guard !Task.isCancelled else { return }
             geocodingTimeoutTask?.cancel()
             geocodingTimeoutTask = nil
-            location = NoteLocation(
+            guard let name else {
+                completeUnresolvedName(
+                    pendingLocation: pendingLocation,
+                    preservePendingLocation: preservePendingLocationOnFailure
+                )
+                geocodingTask = nil
+                return
+            }
+            let resolvedLocation = NoteLocation(
                 latitude: pendingLocation.latitude,
                 longitude: pendingLocation.longitude,
                 name: name
             )
+            location = resolvedLocation
+            if cacheAsCurrentLocation {
+                currentLocation = resolvedLocation
+            }
             finish(with: .located)
+        }
+    }
+
+    private func completeUnresolvedName(
+        pendingLocation: NoteLocation,
+        preservePendingLocation: Bool
+    ) {
+        if preservePendingLocation {
+            location = pendingLocation
+            finish(with: .located)
+        } else {
+            location = nil
+            currentLocation = nil
+            finish(
+                with: .failed,
+                message: AppLocalization.string("没有获取到可用的位置，请重试")
+            )
         }
     }
 
@@ -204,10 +344,32 @@ final class MemoryLocationCoordinator: NSObject, @preconcurrency CLLocationManag
 
     private func requestLocation() {
         status = .locating
+        startLocationTimeout(after: .seconds(12))
         manager.requestLocation()
     }
 
-    private func reverseGeocodedName(for location: CLLocation) async -> String? {
+    private func startLocationTimeout(after duration: Duration) {
+        locationTimeoutTask?.cancel()
+        locationTimeoutTask = Task { [weak self] in
+            try? await Task.sleep(for: duration)
+            guard let self, !Task.isCancelled, captureRequested else { return }
+            manager.stopUpdatingLocation()
+            finish(
+                with: .failed,
+                message: AppLocalization.string("定位超时，请重试")
+            )
+        }
+    }
+
+    private func reverseGeocodedName(
+        for location: CLLocation,
+        using geocoder: CLGeocoder
+    ) async -> String? {
+#if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing-geocoding-unavailable") {
+            return nil
+        }
+#endif
         do {
             let placemark = try await geocoder.reverseGeocodeLocation(
                 location,
@@ -227,6 +389,8 @@ final class MemoryLocationCoordinator: NSObject, @preconcurrency CLLocationManag
     }
 
     private func finish(with status: MemoryLocationStatus, message: String? = nil) {
+        locationTimeoutTask?.cancel()
+        locationTimeoutTask = nil
         captureRequested = false
         self.status = status
         errorMessage = message

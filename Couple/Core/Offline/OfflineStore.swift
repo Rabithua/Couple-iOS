@@ -118,7 +118,9 @@ final class OfflineStore: SyncStore {
     func loadSnapshot() async throws -> OfflineSnapshot {
         try await cleanReadyAttachmentFiles()
         try await cleanTombstonedAttachmentFiles()
-        let localAttachments = try context.fetch(FetchDescriptor<LocalAttachmentEntity>())
+        let snapshotContext = ModelContext(container)
+        snapshotContext.autosaveEnabled = false
+        let localAttachments = try snapshotContext.fetch(FetchDescriptor<LocalAttachmentEntity>())
             .filter { !$0.isTombstoned }
         var attachmentsByMemory: [String: [Attachment]] = [:]
         for local in localAttachments {
@@ -131,7 +133,7 @@ final class OfflineStore: SyncStore {
         }
 
         let localMemories = Self.deduplicatedEntities(
-            try context.fetch(FetchDescriptor<LocalMemoryEntity>())
+            try snapshotContext.fetch(FetchDescriptor<LocalMemoryEntity>())
                 .filter { !$0.isTombstoned }
         )
         let notes = localMemories
@@ -163,28 +165,28 @@ final class OfflineStore: SyncStore {
             }
 
         let localTodos = Self.deduplicatedEntities(
-            try context.fetch(FetchDescriptor<LocalTodoEntity>())
+            try snapshotContext.fetch(FetchDescriptor<LocalTodoEntity>())
                 .filter { !$0.isTombstoned }
         )
         let todos = localTodos
             .sorted { $0.createdAt > $1.createdAt }
             .map(mapTodo)
         let localAnniversaries = Self.deduplicatedEntities(
-            try context.fetch(FetchDescriptor<LocalAnniversaryEntity>())
+            try snapshotContext.fetch(FetchDescriptor<LocalAnniversaryEntity>())
                 .filter { !$0.isTombstoned }
         )
         let anniversaries = localAnniversaries
             .sorted { $0.date < $1.date }
             .map(mapAnniversary)
         let localCalendarEvents = Self.deduplicatedEntities(
-            try context.fetch(FetchDescriptor<LocalCalendarEventEntity>())
+            try snapshotContext.fetch(FetchDescriptor<LocalCalendarEventEntity>())
                 .filter { !$0.isTombstoned }
         )
         let calendar = localCalendarEvents
             .sorted { $0.startTime < $1.startTime }
             .map(mapCalendarEvent)
         let localTimelineEntries = Self.deduplicatedEntities(
-            try context.fetch(FetchDescriptor<LocalTimelineEntity>())
+            try snapshotContext.fetch(FetchDescriptor<LocalTimelineEntity>())
                 .filter { !$0.isTombstoned }
         )
         let timeline = localTimelineEntries
