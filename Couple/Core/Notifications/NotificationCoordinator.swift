@@ -83,9 +83,7 @@ final class NotificationCoordinator {
         self.language = language
         await refreshAuthorizationStatus()
         guard store.shouldRegisterPushDevice else { return }
-        if authorizationStatus.allowsNotifications {
-            UIApplication.shared.registerForRemoteNotifications()
-        }
+        UIApplication.shared.registerForRemoteNotifications()
         await uploadRegistrationIfPossible()
     }
 
@@ -101,9 +99,8 @@ final class NotificationCoordinator {
             }
             await refreshAuthorizationStatus()
         }
-        guard authorizationStatus.allowsNotifications else { return false }
         UIApplication.shared.registerForRemoteNotifications()
-        return true
+        return authorizationStatus.allowsNotifications
     }
 
     func refreshAuthorizationStatus() async {
@@ -128,8 +125,7 @@ final class NotificationCoordinator {
     func refreshRegistration() async {
         await refreshAuthorizationStatus()
         if let store,
-           store.shouldRegisterPushDevice,
-           authorizationStatus.allowsNotifications {
+           store.shouldRegisterPushDevice {
             UIApplication.shared.registerForRemoteNotifications()
             await uploadRegistrationIfPossible()
         }
@@ -194,7 +190,6 @@ final class NotificationCoordinator {
 
     private func uploadRegistrationIfPossible() async {
         guard !isUploading,
-              authorizationStatus.allowsNotifications,
               let token = deviceToken,
               let store,
               store.shouldRegisterPushDevice,

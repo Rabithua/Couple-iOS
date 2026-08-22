@@ -145,6 +145,7 @@ struct FutureView: View {
                             CalendarMonthView(
                                 month: month,
                                 schedule: store.calendarScheduleIndex,
+                                unsyncedContent: store.unsyncedContent,
                                 today: currentCalendarDayStart,
                                 todayVisibleFrame: calendarVisibleFrame,
                                 editEvent: editCalendarEvent,
@@ -268,6 +269,7 @@ struct FutureView: View {
                             editTodo(todo)
                         }
                     )
+                    .unsyncedPulse(store.unsyncedContent.contains(todo))
                     .editableContentActions(
                         deletionTitle: AppLocalization.string("deleteTodoConfirmation",
                             defaultValue: "删除清单“\(todo.title)”？"

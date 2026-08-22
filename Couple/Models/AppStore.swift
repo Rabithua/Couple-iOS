@@ -52,10 +52,15 @@ final class AppStore {
     private let userDefaults: UserDefaults
     private(set) var offlineStore: OfflineStore?
     private var syncCoordinator: SyncCoordinator?
+    private var syncRepositoryV2: SyncRepositoryV2?
+    private var syncEngineV2: SyncEngineV2?
+    private var syncStateTask: Task<Void, Never>?
     private var connectivityMonitor: ConnectivityMonitor?
     private var connectivityTask: Task<Void, Never>?
     private var retryTask: Task<Void, Never>?
     private var retryAttempt = 0
+    private var sessionActivityGeneration: UInt64 = 0
+    private var hasShownPendingSyncToast = false
     private var localStoreInitializationError: Error?
 
     var phase: SessionPhase = .launching
@@ -80,9 +85,13 @@ final class AppStore {
     var isBusy = false
     var isRefreshing = false
     var isSyncing = false
+    private(set) var lastManualSyncSummary: SyncV2RunSummary?
     var errorMessage: String?
     private(set) var pendingTodoIDs: Set<String> = []
+    private(set) var unsyncedContent = UnsyncedContentIDs.empty
+    private(set) var syncToastNotice: SyncToastNotice?
     private(set) var isDemo: Bool
+    private(set) var isPreviewSession = false
     private let startsWithUnpairedDemo: Bool
     private let startsWithOnboardingDemo: Bool
 
@@ -91,12 +100,7 @@ final class AppStore {
     }
 
     var homeAnniversary: Anniversary? {
-        guard let cached = home?.nextAnniversary else {
-            return anniversaries.nextUpcomingAnniversary()
-        }
-        return anniversaries.first {
-            $0.id.caseInsensitiveCompare(cached.id) == .orderedSame
-        } ?? cached
+        anniversaries.nextUpcomingAnniversary()
     }
 
     private func rebuildCalendarScheduleIndex() {
@@ -125,8 +129,12 @@ final class AppStore {
         self.api = api
         self.passkeys = passkeys
         self.userDefaults = userDefaults
-        let demo = environment["COUPLE_DEMO_MODE"] == "1" || arguments.contains("-ui-testing-demo")
+        let previewSession = arguments.contains("-ui-testing-preview-session")
+        let demo = environment["COUPLE_DEMO_MODE"] == "1"
+            || arguments.contains("-ui-testing-demo")
+            || previewSession
         self.isDemo = demo
+        self.isPreviewSession = previewSession
         self.startsWithUnpairedDemo = demo && arguments.contains("-ui-testing-unpaired")
         self.startsWithOnboardingDemo = demo && arguments.contains("-ui-testing-onboarding")
 
@@ -134,10 +142,23 @@ final class AppStore {
         do {
             let local = try suppliedOfflineStore ?? OfflineStore.makeLive()
             offlineStore = local
-            syncCoordinator = SyncCoordinator(
-                store: local,
-                transport: suppliedSyncTransport ?? SyncV1Transport(api: api, store: local)
-            )
+            if let suppliedSyncTransport {
+                syncCoordinator = SyncCoordinator(store: local, transport: suppliedSyncTransport)
+            } else {
+                let repository = SyncRepositoryV2(modelContainer: local.container)
+                let engine = SyncEngineV2(
+                    repository: repository,
+                    transport: SyncV2Transport(api: api, store: local, repository: repository)
+                )
+                syncRepositoryV2 = repository
+                syncEngineV2 = engine
+                syncStateTask = Task { [weak self, engine] in
+                    for await state in await engine.states() {
+                        guard !Task.isCancelled, let self else { return }
+                        self.isSyncing = if case .syncing = state { true } else { false }
+                    }
+                }
+            }
         } catch {
             localStoreInitializationError = error
         }
@@ -210,10 +231,29 @@ final class AppStore {
         }
     }
 
-    func enterPreview() {
+    func enterPreview() async {
+        guard phase == .main, !isDemo else { return }
+        await stopSessionActivity()
+        isPreviewSession = true
         isDemo = true
         loadSampleData()
         phase = .main
+    }
+
+    func exitPreview() async {
+        guard isPreviewSession else { return }
+        await stopSessionActivity()
+        isPreviewSession = false
+        isDemo = false
+        currentUser = nil
+        relationship = nil
+        clearLoadedContent()
+        errorMessage = nil
+        phase = .launching
+        await start()
+        if phase == .main {
+            beginConnectivityObservation()
+        }
     }
 
     func register() async {
@@ -373,7 +413,7 @@ final class AppStore {
         await refreshContent()
     }
 
-    func refreshContent() async {
+    func refreshContent(trigger: SyncTrigger = .manual) async {
         guard !isDemo else {
             if startsWithUnpairedDemo {
                 loadUnpairedSampleData()
@@ -388,14 +428,13 @@ final class AppStore {
 
         do {
             try await loadLocalContent()
-            let result = await synchronize(trigger: .manual, surfaceError: false)
-            if case .failed = result, try await localDomainIsEmpty() {
+            let result = await synchronize(trigger: trigger, surfaceError: false)
+            if syncEngineV2 == nil, case .failed = result, try await localDomainIsEmpty() {
                 try await bootstrapFromLegacyAPI()
                 try await loadLocalContent()
             }
             do {
-                home = try await api.home()
-                if let home { try offlineStore?.updateCachedHome(home) }
+                try await refreshSharedSummary()
             } catch is CancellationError {
                 throw CancellationError()
             } catch {
@@ -410,7 +449,24 @@ final class AppStore {
 
     func handleForeground() {
         guard phase == .main, !isDemo else { return }
-        Task { _ = await synchronize(trigger: .foreground, surfaceError: false) }
+        Task { [weak self] in
+            await self?.refreshContent(trigger: .foreground)
+        }
+    }
+
+    func updateForegroundActivity(isActive: Bool) async {
+        guard let syncEngineV2 else { return }
+        let shouldPoll = isActive
+            && phase == .main
+            && currentUser != nil
+            && relationship?.couple != nil
+            && !isDemo
+        if shouldPoll {
+            try? await syncEngineV2.resume()
+            await syncEngineV2.startForegroundPolling()
+        } else {
+            await syncEngineV2.stopForegroundPolling()
+        }
     }
 
     func notificationDeviceIdentifier() -> String? {
@@ -425,7 +481,18 @@ final class AppStore {
 
     func synchronizeFromPush() async -> SyncRunResult {
         guard phase == .main || phase == .pairing else { return .cancelled }
-        return await synchronize(trigger: .push, surfaceError: false)
+        let result = await synchronize(trigger: .push, surfaceError: false)
+        do {
+            try await refreshSharedSummary()
+            return result
+        } catch is CancellationError {
+            return .cancelled
+        } catch {
+            if case .success = result {
+                return .failed(error.localizedDescription)
+            }
+            return result
+        }
     }
 
     func ensureCalendarEvents(including date: Date) {
@@ -689,13 +756,11 @@ final class AppStore {
             anniversaries.removeAll {
                 $0.id.caseInsensitiveCompare(anniversary.id) == .orderedSame
             }
-            refreshHomeAfterDeletingAnniversary(id: anniversary.id)
             return
         }
         guard let offlineStore else { throw APIError.invalidResponse }
         try offlineStore.deleteAnniversary(id: anniversary.id)
         try await loadLocalContent()
-        refreshHomeAfterDeletingAnniversary(id: anniversary.id)
         triggerSyncAfterWrite()
     }
 
@@ -1021,8 +1086,9 @@ final class AppStore {
         try await loadLocalContent()
         phase = .main
         beginConnectivityObservation()
+        try await syncEngineV2?.resume()
         let result = await synchronize(trigger: trigger, surfaceError: false)
-        if case .failed = result, try await localDomainIsEmpty() {
+        if syncEngineV2 == nil, case .failed = result, try await localDomainIsEmpty() {
             try await bootstrapFromLegacyAPI()
             try await loadLocalContent()
         }
@@ -1033,43 +1099,113 @@ final class AppStore {
     }
 
     private func synchronize(trigger: SyncTrigger, surfaceError: Bool) async -> SyncRunResult {
-        guard let syncCoordinator, !isDemo else { return .success }
+        guard !isDemo else { return .success }
+        if let syncEngineV2 {
+            let generation = sessionActivityGeneration
+            let summary = await syncEngineV2.trigger(trigger)
+            guard generation == sessionActivityGeneration else { return .cancelled }
+            if trigger == .manual { lastManualSyncSummary = summary }
+            if summary.requiresSnapshotReload {
+                try? await loadLocalContent()
+            }
+            switch summary.result {
+            case .success:
+                if summary.rejectedOperationCount > 0 {
+                    syncToastNotice = SyncToastNotice(
+                        kind: .error,
+                        message: AppLocalization.string("有内容未能同步，请检查后重试")
+                    )
+                } else if hasShownPendingSyncToast, unsyncedContent.isEmpty {
+                    hasShownPendingSyncToast = false
+                    syncToastNotice = SyncToastNotice(
+                        kind: .success,
+                        message: AppLocalization.string("内容已同步")
+                    )
+                }
+            case .failed(let message):
+                if surfaceError { errorMessage = message }
+                if !surfaceError, !unsyncedContent.isEmpty, !hasShownPendingSyncToast {
+                    hasShownPendingSyncToast = true
+                    syncToastNotice = SyncToastNotice(
+                        kind: .pending,
+                        message: AppLocalization.string("已保存到本机，联网后自动同步")
+                    )
+                }
+            case .cancelled:
+                break
+            }
+            return summary.result
+        }
+        guard let syncCoordinator else { return .failed(AppLocalization.string("同步器未初始化")) }
         isSyncing = true
         let result = await syncCoordinator.trigger(trigger)
         isSyncing = false
         switch result {
         case .success:
+            let shouldConfirmRecovery = hasShownPendingSyncToast
             retryAttempt = 0
             retryTask?.cancel()
             retryTask = nil
             try? await loadLocalContent()
+            if shouldConfirmRecovery, unsyncedContent.isEmpty {
+                hasShownPendingSyncToast = false
+                syncToastNotice = SyncToastNotice(
+                    kind: .success,
+                    message: AppLocalization.string("内容已同步")
+                )
+            }
+            if !unsyncedContent.isEmpty {
+                scheduleRetry(requiresOutboxWork: true)
+            }
         case .failed(let message):
             if surfaceError { errorMessage = message }
-            scheduleRetry()
+            if !surfaceError, !unsyncedContent.isEmpty, !hasShownPendingSyncToast {
+                hasShownPendingSyncToast = true
+                syncToastNotice = SyncToastNotice(
+                    kind: .pending,
+                    message: AppLocalization.string("已保存到本机，联网后自动同步")
+                )
+            }
+            scheduleRetry(requiresOutboxWork: !unsyncedContent.isEmpty)
         case .cancelled:
             break
         }
         return result
     }
 
-    private func scheduleRetry() {
+    private func scheduleRetry(requiresOutboxWork: Bool = false) {
+        guard syncEngineV2 == nil else { return }
         guard retryTask == nil, phase == .main else { return }
         retryAttempt += 1
-        let delay = min(pow(2, Double(min(retryAttempt, 10))), 3_600)
+        let fallbackDelay = min(pow(2, Double(min(retryAttempt, 10))), 3_600)
+        let pendingRetryDate: Date?
+        do {
+            pendingRetryDate = try offlineStore?.nextPendingOperationDate()
+        } catch {
+            pendingRetryDate = nil
+        }
+        guard !requiresOutboxWork || pendingRetryDate != nil else { return }
+        let delay = pendingRetryDate.map {
+            max($0.timeIntervalSinceNow, 0.25)
+        } ?? fallbackDelay
         retryTask = Task { [weak self] in
             do {
                 try await Task.sleep(for: .seconds(delay))
                 guard let self else { return }
                 self.retryTask = nil
                 _ = await self.synchronize(trigger: .retry, surfaceError: false)
-            } catch {}
+            } catch is CancellationError {
+                return
+            } catch {
+                return
+            }
         }
     }
 
     private func triggerSyncAfterWrite() {
         Task { [weak self] in
             guard let self else { return }
-            _ = await self.synchronize(trigger: .manual, surfaceError: false)
+            _ = await self.synchronize(trigger: .localWrite, surfaceError: false)
         }
     }
 
@@ -1099,6 +1235,7 @@ final class AppStore {
         let start = calendar.date(byAdding: .month, value: -1, to: .now) ?? .now
         let end = calendar.date(byAdding: .month, value: 13, to: .now) ?? .now
         canonicalCalendarEvents = snapshot.canonicalCalendarEvents
+        unsyncedContent = snapshot.unsyncedContent
         calendarEvents = CalendarOccurrenceExpander.expand(
             canonicalEvents: canonicalCalendarEvents,
             from: start,
@@ -1157,6 +1294,15 @@ final class AppStore {
         try offlineStore?.saveSession(user: currentUser, relationship: relationship, home: home)
     }
 
+    private func refreshSharedSummary() async throws {
+        async let relationshipResult = api.relationshipStatus()
+        async let homeResult = api.home()
+        let (latestRelationship, latestHome) = try await (relationshipResult, homeResult)
+        relationship = latestRelationship
+        home = latestHome
+        try persistSession()
+    }
+
     private func localIdentity() throws -> (coupleId: String, userId: String) {
         guard let coupleId = relationship?.couple?.id, let userId = currentUser?.id else {
             throw APIError.missingSession
@@ -1165,21 +1311,6 @@ final class AppStore {
             throw localStoreInitializationError ?? APIError.invalidResponse
         }
         return (coupleId, userId)
-    }
-
-    private func refreshHomeAfterDeletingAnniversary(id: String) {
-        guard let currentHome = home,
-              currentHome.nextAnniversary?.id.caseInsensitiveCompare(id) == .orderedSame else {
-            return
-        }
-        let updatedHome = HomeData(
-            daysTogether: currentHome.daysTogether,
-            nextAnniversary: anniversaries.nextUpcomingAnniversary(),
-            nextUpcoming: currentHome.nextUpcoming,
-            latestTimelineEntry: currentHome.latestTimelineEntry
-        )
-        home = updatedHome
-        if !isDemo { try? offlineStore?.updateCachedHome(updatedHome) }
     }
 
     private func performLeaveSpace(discardLocalChanges: Bool) async -> Bool {
@@ -1202,6 +1333,7 @@ final class AppStore {
             try await api.leaveCouple()
         } catch {
             errorMessage = error.localizedDescription
+            try? await syncEngineV2?.resume()
             beginConnectivityObservation()
             return false
         }
@@ -1270,6 +1402,7 @@ final class AppStore {
             }
         } catch {
             errorMessage = error.localizedDescription
+            try? await syncEngineV2?.resume()
             beginConnectivityObservation()
             return false
         }
@@ -1277,6 +1410,7 @@ final class AppStore {
             try await NotificationCoordinator.shared.unregisterCurrentDevice()
         } catch {
             errorMessage = error.localizedDescription
+            try? await syncEngineV2?.resume()
             beginConnectivityObservation()
             return false
         }
@@ -1289,12 +1423,14 @@ final class AppStore {
     }
 
     private func stopSessionActivity() async {
+        sessionActivityGeneration &+= 1
         retryTask?.cancel()
         retryTask = nil
         connectivityTask?.cancel()
         connectivityTask = nil
         connectivityMonitor?.cancel()
         connectivityMonitor = nil
+        await syncEngineV2?.stopAndWait()
         await syncCoordinator?.cancel()
     }
 
@@ -1308,6 +1444,9 @@ final class AppStore {
         calendarEvents = []
         canonicalCalendarEvents = []
         pendingTodoIDs = []
+        unsyncedContent = .empty
+        syncToastNotice = nil
+        hasShownPendingSyncToast = false
         selectedNoteQuery = .all
     }
 
@@ -1358,6 +1497,9 @@ final class AppStore {
     }
 
     private func loadSampleData(keepingTodoState: Bool = false) {
+        unsyncedContent = .empty
+        syncToastNotice = nil
+        hasShownPendingSyncToast = false
         currentUser = SampleData.user
         relationship = SampleData.relationship
         home = SampleData.home
@@ -1369,6 +1511,9 @@ final class AppStore {
     }
 
     private func loadUnpairedSampleData() {
+        unsyncedContent = .empty
+        syncToastNotice = nil
+        hasShownPendingSyncToast = false
         currentUser = SampleData.user
         relationship = SampleData.unpairedRelationship
         home = SampleData.unpairedHome

@@ -382,13 +382,7 @@ actor APIClient {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .custom { decoder in
             let value = try decoder.singleValueContainer().decode(String.self)
-            let fractional = ISO8601DateFormatter()
-            fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            let regular = ISO8601DateFormatter()
-            regular.formatOptions = [.withInternetDateTime]
-            for formatter in [fractional, regular] {
-                if let date = formatter.date(from: value) { return date }
-            }
+            if let date = APIISO8601Instant.parse(value) { return date }
             throw DecodingError.dataCorruptedError(
                 in: try decoder.singleValueContainer(),
                 debugDescription: "Unsupported ISO date: \(value)"

@@ -1,5 +1,17 @@
 import Foundation
 
+enum APIISO8601Instant {
+    static func parse(_ value: String) -> Date? {
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = fractional.date(from: value) { return date }
+
+        let regular = ISO8601DateFormatter()
+        regular.formatOptions = [.withInternetDateTime]
+        return regular.date(from: value)
+    }
+}
+
 extension Date {
     var apiISOString: String {
         let formatter = ISO8601DateFormatter()

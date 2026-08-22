@@ -37,9 +37,11 @@ final class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency UNUser
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
-        await NotificationCoordinator.shared.handleForegroundNotification(
-            notification.request.content.userInfo
-        )
+        let userInfo = notification.request.content.userInfo
+        await NotificationCoordinator.shared.handleForegroundNotification(userInfo)
+        if userInfo["eventType"] as? String == "sync_v2_invalidation" {
+            return []
+        }
         return [.banner, .list, .sound]
     }
 

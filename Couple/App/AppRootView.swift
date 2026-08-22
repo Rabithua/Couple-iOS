@@ -25,10 +25,12 @@ struct AppRootView: View {
 
     private var launchView: some View {
         VStack(spacing: 12) {
-            Image(systemName: "heart.fill")
-                .font(.title.bold())
-                .foregroundStyle(AppTheme.accent)
-                .symbolEffect(.pulse)
+            Image("LoadingLogo")
+                .renderingMode(.original)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 112)
+                .accessibilityHidden(true)
             ProgressView()
                 .controlSize(.small)
         }

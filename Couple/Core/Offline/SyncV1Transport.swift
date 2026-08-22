@@ -52,7 +52,7 @@ actor SyncV1Transport: SyncTransport {
         }
     }
 
-    private func prepareAttachments(for operation: PendingOperation) async throws -> PendingOperation {
+    func prepareAttachments(for operation: PendingOperation) async throws -> PendingOperation {
         guard !operation.payload.attachmentLocalIds.isEmpty else { return operation }
         let records = try await store.pendingAttachmentRecords(for: operation.entityId)
         let requestedIds = Set(operation.payload.attachmentLocalIds)
@@ -71,6 +71,11 @@ actor SyncV1Transport: SyncTransport {
             let bytes = try await store.pendingAttachment(relativePath: record.relativePath)
             var objectKey = record.uploadObjectKey
             var uploadURL = record.presignedUploadURL.flatMap(URL.init(string:))
+            if let existingUploadURL = uploadURL,
+               Self.presignedUploadURLIsExpired(existingUploadURL) {
+                objectKey = nil
+                uploadURL = nil
+            }
             if objectKey == nil || uploadURL == nil {
                 let prepared = try await prepareUpload(record: record, width: width, height: height)
                 objectKey = prepared.objectKey
@@ -131,6 +136,33 @@ actor SyncV1Transport: SyncTransport {
         )
         return (upload.objectKey, url)
     }
+
+    static func presignedUploadURLIsExpired(
+        _ url: URL,
+        at now: Date = .now
+    ) -> Bool {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            return true
+        }
+        var query: [String: String] = [:]
+        for item in components.queryItems ?? [] {
+            query[item.name.lowercased()] = item.value ?? ""
+        }
+        guard let rawDate = query["x-amz-date"],
+              let lifetime = TimeInterval(query["x-amz-expires"] ?? "") else {
+            return false
+        }
+        guard rawDate.count == 16, rawDate.hasSuffix("Z") else { return true }
+        let characters = Array(rawDate)
+        let normalized = "\(String(characters[0..<4]))-"
+            + "\(String(characters[4..<6]))-"
+            + "\(String(characters[6..<8]))T"
+            + "\(String(characters[9..<11])):"
+            + "\(String(characters[11..<13])):"
+            + "\(String(characters[13..<15]))Z"
+        guard let signedAt = ISO8601DateFormatter().date(from: normalized) else { return true }
+        return signedAt.addingTimeInterval(lifetime) <= now.addingTimeInterval(30)
+    }
 }
 
 extension APIClient {
@@ -179,7 +211,7 @@ struct SyncV1Mutation: Encodable, Sendable {
         data = operation.mutationKind == .delete ? nil : SyncV1MutationData(operation.payload.fields)
     }
 
-    private static func validate(_ operation: PendingOperation) throws {
+    static func validate(_ operation: PendingOperation) throws {
         guard operation.entityType != .attachment else {
             throw SyncTransportError.rejected(AppLocalization.string("attachment 是只读同步实体"))
         }
@@ -386,7 +418,26 @@ struct SyncV1Entity: Decodable, Sendable {
         } else {
             wireKind = .upsert
         }
-        let fields = data?.compactMapValues(\.mutationValue) ?? [:]
+        if wireKind != .delete, data == nil {
+            throw APIError.decoding(AppLocalization.string(
+                "同步实体缺少完整数据：\(entityType)"
+            ))
+        }
+        var fields: [String: MutationValue] = [:]
+        for (field, value) in data ?? [:] where field != "attachments" {
+            if let mutationValue = try value.mutationValue(
+                entityType: type,
+                field: field
+            ) {
+                fields[field] = mutationValue
+            }
+        }
+        if wireKind != .delete, type == .calendarEvent,
+           fields["startTime"]?.optionalDateValue == nil {
+            throw APIError.decoding(AppLocalization.string(
+                "同步日历事件缺少有效的 startTime"
+            ))
+        }
         let aggregateClock = try hlc.timestamp()
         return RemoteEntityChange(
             entityType: type,
@@ -425,7 +476,7 @@ struct SyncV1WireHLC: Decodable, Sendable {
     }
 }
 
-private struct DynamicCodingKey: CodingKey {
+struct DynamicCodingKey: CodingKey {
     let stringValue: String
     let intValue: Int? = nil
 
@@ -454,11 +505,30 @@ indirect enum JSONValue: Decodable, Sendable {
         else { self = .array(try container.decode([JSONValue].self)) }
     }
 
-    var mutationValue: MutationValue? {
+    func mutationValue(
+        entityType: SyncEntityType,
+        field: String
+    ) throws -> MutationValue? {
+        if Self.timestampFields[entityType, default: []].contains(field) {
+            switch self {
+            case .string(let value):
+                guard let date = APIISO8601Instant.parse(value) else {
+                    throw APIError.decoding(AppLocalization.string(
+                        "同步时间字段格式无效：\(entityType.rawValue).\(field)"
+                    ))
+                }
+                return .date(date)
+            case .null:
+                return .null
+            default:
+                throw APIError.decoding(AppLocalization.string(
+                    "同步时间字段类型无效：\(entityType.rawValue).\(field)"
+                ))
+            }
+        }
+
         switch self {
-        case .string(let value):
-            if let date = Self.parseDate(value) { return .date(date) }
-            return .string(value)
+        case .string(let value): return .string(value)
         case .integer(let value): return .integer(value)
         case .double(let value): return .double(value)
         case .boolean(let value): return .boolean(value)
@@ -472,6 +542,14 @@ indirect enum JSONValue: Decodable, Sendable {
         case .null: return .null
         }
     }
+
+    private static let timestampFields: [SyncEntityType: Set<String>] = [
+        .todo: ["dueTime", "completedAt", "createdAt", "updatedAt"],
+        .anniversary: ["reminderInstant", "createdAt", "updatedAt"],
+        .calendarEvent: ["startTime", "endTime", "createdAt", "updatedAt"],
+        .memory: ["createdAt", "updatedAt"],
+        .timeline: ["createdAt", "updatedAt"],
+    ]
 
     var remoteAttachments: [RemoteAttachmentMetadata]? {
         guard case .array(let values) = self else { return nil }
@@ -498,12 +576,6 @@ indirect enum JSONValue: Decodable, Sendable {
         }
     }
 
-    private static func parseDate(_ value: String) -> Date? {
-        guard value.contains("T"), value.hasSuffix("Z") else { return nil }
-        let fractional = ISO8601DateFormatter()
-        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return fractional.date(from: value) ?? ISO8601DateFormatter().date(from: value)
-    }
 }
 
 private extension Dictionary where Key == String, Value == JSONValue {

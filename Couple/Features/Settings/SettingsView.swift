@@ -18,9 +18,12 @@ struct SettingsView: View {
     @State private var showingLeaveConfirmation = false
     @State private var showingUnsyncedLeave = false
     @State private var showingUnsyncedSignOut = false
+    @State private var showingPreviewEntryConfirmation = false
+    @State private var showingPreviewExitConfirmation = false
     @State private var pendingChangeCount = 0
     @State private var isSavingName = false
     @State private var isPerformingAccountAction = false
+    @State private var isChangingPreviewMode = false
     @State private var errorMessage = ""
     @State private var showingError = false
 
@@ -31,6 +34,42 @@ struct SettingsView: View {
 
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 32) {
+                if store.isPreviewSession {
+                    settingsSection(
+                        "预览模式",
+                        description: "这里的操作只会修改临时示例内容，不会同步到你的真实空间。"
+                    ) {
+                        Button(role: .destructive, action: requestPreviewExit) {
+                            HStack(spacing: 12) {
+                                Label(
+                                    "退出演示",
+                                    systemImage: "rectangle.portrait.and.arrow.backward"
+                                )
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
+                            .contentShape(.rect)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(isChangingPreviewMode)
+                        .accessibilityHint("演示中的修改会被丢弃，随后恢复你的真实账号数据。")
+                        .accessibilityIdentifier("exitPreviewButton")
+                        .confirmationDialog(
+                            "退出演示模式？",
+                            isPresented: $showingPreviewExitConfirmation,
+                            titleVisibility: .visible
+                        ) {
+                            Button("退出并返回", role: .destructive, action: beginPreviewExit)
+                            Button("取消", role: .cancel) {}
+                        } message: {
+                            Text("演示中的修改会被丢弃，随后恢复你的真实账号数据。")
+                        }
+                    }
+                }
+
                 settingsSection("个人资料") {
                     Button(action: presentNameEditor) {
                         LabeledContent {
@@ -88,9 +127,10 @@ struct SettingsView: View {
                                     .accessibilityIdentifier("anniversaryDate-\(item.id)")
                             }
                         } icon: {
-                            Image(systemName: "birthday.cake.fill")
+                            Image(systemName: item.systemImageName)
                         }
                         .settingsRow()
+                        .unsyncedPulse(store.unsyncedContent.contains(item))
                         .anniversaryContentActions(
                             item,
                             editAction: { editingAnniversary = item },
@@ -187,6 +227,42 @@ struct SettingsView: View {
                     }
                 }
 
+                if !store.isDemo {
+                    settingsSection("预览模式") {
+                        Button(action: requestPreviewEntry) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "sparkles.rectangle.stack")
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("预览设计与交互")
+                                    Text("使用示例内容体验完整设计与交互")
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
+                            .contentShape(.rect)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(isChangingPreviewMode || isPerformingAccountAction)
+                        .accessibilityHint("使用示例内容体验完整设计与交互")
+                        .accessibilityIdentifier("enterPreviewButton")
+                        .confirmationDialog(
+                            "进入演示模式？",
+                            isPresented: $showingPreviewEntryConfirmation,
+                            titleVisibility: .visible
+                        ) {
+                            Button("进入演示", action: beginPreviewEntry)
+                            Button("取消", role: .cancel) {}
+                        } message: {
+                            Text("将暂时显示示例数据并暂停账号同步。退出演示后会自动恢复你的真实数据。")
+                        }
+                    }
+                }
+
                 settingsSection("连接") {
                     LabeledContent("服务器", value: "oursince.com")
                         .settingsRow()
@@ -197,39 +273,41 @@ struct SettingsView: View {
                     .settingsRow()
                 }
 
-                settingsSection {
-                    Button(role: .destructive) {
-                        haptics.play(.warning)
-                        showingLeaveConfirmation = true
-                    } label: {
-                        Label("退出空间", systemImage: "rectangle.portrait.and.arrow.right")
-                            .foregroundStyle(.red)
-                    }
-                    .settingsRow()
-                    .buttonStyle(.plain)
-                    .disabled(store.relationship?.couple == nil || isPerformingAccountAction)
-                    .accessibilityIdentifier("leaveSpaceButton")
-                    .confirmationDialog(
-                        "退出当前共同空间？",
-                        isPresented: $showingLeaveConfirmation,
-                        titleVisibility: .visible
-                    ) {
-                        Button("确认退出空间", role: .destructive, action: beginLeavingSpace)
-                        Button("取消", role: .cancel) {}
-                    } message: {
-                        Text("退出后你将无法再查看这个空间；共同记录会为另一位成员保留。")
-                    }
+                if !store.isPreviewSession {
+                    settingsSection {
+                        Button(role: .destructive) {
+                            haptics.play(.warning)
+                            showingLeaveConfirmation = true
+                        } label: {
+                            Label("退出空间", systemImage: "rectangle.portrait.and.arrow.right")
+                                .foregroundStyle(.red)
+                        }
+                        .settingsRow()
+                        .buttonStyle(.plain)
+                        .disabled(store.relationship?.couple == nil || isPerformingAccountAction)
+                        .accessibilityIdentifier("leaveSpaceButton")
+                        .confirmationDialog(
+                            "退出当前共同空间？",
+                            isPresented: $showingLeaveConfirmation,
+                            titleVisibility: .visible
+                        ) {
+                            Button("确认退出空间", role: .destructive, action: beginLeavingSpace)
+                            Button("取消", role: .cancel) {}
+                        } message: {
+                            Text("退出后你将无法再查看这个空间；共同记录会为另一位成员保留。")
+                        }
 
-                    Button(role: .destructive) {
-                        haptics.play(.warning)
-                        beginSigningOut()
-                    } label: {
-                        Label("退出登录", systemImage: "person.crop.circle.badge.xmark")
-                            .foregroundStyle(.red)
+                        Button(role: .destructive) {
+                            haptics.play(.warning)
+                            beginSigningOut()
+                        } label: {
+                            Label("退出登录", systemImage: "person.crop.circle.badge.xmark")
+                                .foregroundStyle(.red)
+                        }
+                        .settingsRow()
+                        .buttonStyle(.plain)
+                        .disabled(isPerformingAccountAction)
                     }
-                    .settingsRow()
-                    .buttonStyle(.plain)
-                    .disabled(isPerformingAccountAction)
                 }
             }
             .padding(.horizontal, AppTheme.horizontalPadding)
@@ -240,14 +318,14 @@ struct SettingsView: View {
         .scrollDisabled(scrollingDisabled)
         .accessibilityIdentifier("settingsForm")
         .overlay {
-            if isSavingName || isPerformingAccountAction {
+            if isSavingName || isPerformingAccountAction || isChangingPreviewMode {
                 ProgressView()
                     .controlSize(.large)
                     .padding(20)
                     .background(.regularMaterial, in: .rect(cornerRadius: 18))
             }
         }
-        .task { loadDraftValues() }
+        .task(id: store.isPreviewSession) { loadDraftValues() }
         .task(id: startedOn.dateOnlyString) { await saveStartedOnIfNeeded() }
         .sheet(isPresented: $showingNewAnniversary) { NewAnniversaryView() }
         .sheet(item: $editingAnniversary) { anniversary in
@@ -290,13 +368,22 @@ struct SettingsView: View {
     @ViewBuilder
     private func settingsSection<Content: View>(
         _ title: LocalizedStringKey? = nil,
+        description: LocalizedStringKey? = nil,
         @ViewBuilder content: () -> Content
     ) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             if let title {
-                Text(title)
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+
+                    if let description {
+                        Text(description)
+                            .font(.footnote)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
             }
 
             VStack(spacing: 4) {
@@ -322,10 +409,15 @@ struct SettingsView: View {
     }
 
     private func loadDraftValues() {
+        hasLoadedDraftValues = false
+        persistedStartedOn = nil
         displayNameDraft = store.currentUser?.displayName ?? ""
         defer { hasLoadedDraftValues = true }
         guard let rawDate = store.relationship?.couple?.startedOn,
-              let date = Date.fromDateOnly(rawDate) else { return }
+              let date = Date.fromDateOnly(rawDate) else {
+            startedOn = .now
+            return
+        }
         persistedStartedOn = date
         startedOn = date
     }
@@ -357,6 +449,36 @@ struct SettingsView: View {
         haptics.play(.tap)
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
         openURL(url)
+    }
+
+    private func requestPreviewEntry() {
+        haptics.play(.tap)
+        showingPreviewEntryConfirmation = true
+    }
+
+    private func beginPreviewEntry() {
+        guard !isChangingPreviewMode else { return }
+        isChangingPreviewMode = true
+        Task {
+            await store.enterPreview()
+            isChangingPreviewMode = false
+            haptics.play(.success)
+        }
+    }
+
+    private func requestPreviewExit() {
+        haptics.play(.warning)
+        showingPreviewExitConfirmation = true
+    }
+
+    private func beginPreviewExit() {
+        guard !isChangingPreviewMode else { return }
+        isChangingPreviewMode = true
+        Task {
+            await store.exitPreview()
+            isChangingPreviewMode = false
+            haptics.play(.success)
+        }
     }
 
     private func beginLeavingSpace() {
