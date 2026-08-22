@@ -1,4 +1,5 @@
 @preconcurrency import CoreLocation
+@preconcurrency import MapKit
 import Observation
 
 enum MemoryLocationStatus: Equatable {
@@ -93,6 +94,10 @@ final class MemoryLocationCoordinator: NSObject, @preconcurrency CLLocationManag
         errorMessage = nil
         status = .locating
 #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing-location-loading") {
+            startLocationTimeout(after: .seconds(5))
+            return
+        }
         if ProcessInfo.processInfo.arguments.contains("-ui-testing-location-timeout") {
             startLocationTimeout(after: .milliseconds(200))
             return
@@ -163,12 +168,18 @@ final class MemoryLocationCoordinator: NSObject, @preconcurrency CLLocationManag
     }
 
     func useCurrentLocation() {
-        guard let currentLocation else {
+        guard let currentLocation,
+              let name = currentLocation.name?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !name.isEmpty else {
             captureCurrentLocation()
             return
         }
         cancelPendingWork()
-        location = currentLocation
+        location = NoteLocation(
+            latitude: currentLocation.latitude,
+            longitude: currentLocation.longitude,
+            name: name
+        )
         status = .located
         errorMessage = nil
     }
@@ -258,6 +269,7 @@ final class MemoryLocationCoordinator: NSObject, @preconcurrency CLLocationManag
             longitude: coordinate.longitude,
             name: nil
         )
+        currentLocation = pendingLocation
         resolveName(
             for: current,
             pendingLocation: pendingLocation,
@@ -277,7 +289,7 @@ final class MemoryLocationCoordinator: NSObject, @preconcurrency CLLocationManag
         geocodingTask?.cancel()
         geocodingTimeoutTask?.cancel()
         geocodingTimeoutTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(5))
+            try? await Task.sleep(for: .seconds(12))
             guard let self, !Task.isCancelled else { return }
             geocodingTask?.cancel()
             geocodingTask = nil
@@ -327,7 +339,7 @@ final class MemoryLocationCoordinator: NSObject, @preconcurrency CLLocationManag
             currentLocation = nil
             finish(
                 with: .failed,
-                message: AppLocalization.string("没有获取到可用的位置，请重试")
+                message: AppLocalization.string("地址解析失败，请重试")
             )
         }
     }
@@ -370,22 +382,71 @@ final class MemoryLocationCoordinator: NSObject, @preconcurrency CLLocationManag
             return nil
         }
 #endif
+        if #available(iOS 26.0, *) {
+            if let name = await mapKitName(for: location) {
+                return name
+            }
+            guard !Task.isCancelled else { return nil }
+        }
         do {
             let placemark = try await geocoder.reverseGeocodeLocation(
                 location,
                 preferredLocale: .current
             ).first
-            return [placemark?.name, placemark?.subLocality, placemark?.locality]
-                .compactMap { value in
-                    let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines)
-                    return trimmed?.isEmpty == false ? trimmed : nil
-                }
-                .first
+            return firstNonemptyName([
+                placemark?.name,
+                placemark?.areasOfInterest?.first,
+                streetName(for: placemark),
+                placemark?.subLocality,
+                placemark?.locality,
+                placemark?.administrativeArea,
+                placemark?.country
+            ])
         } catch is CancellationError {
             return nil
         } catch {
             return nil
         }
+    }
+
+    @available(iOS 26.0, *)
+    private func mapKitName(for location: CLLocation) async -> String? {
+        guard let request = MKReverseGeocodingRequest(location: location) else { return nil }
+        request.preferredLocale = .current
+        return await withTaskCancellationHandler {
+            do {
+                let mapItems = try await request.mapItems
+                guard !Task.isCancelled else { return nil }
+                return mapItems.lazy.compactMap { mapItem in
+                    self.firstNonemptyName([
+                        mapItem.name,
+                        mapItem.address?.shortAddress,
+                        mapItem.address?.fullAddress
+                    ])
+                }.first
+            } catch is CancellationError {
+                return nil
+            } catch {
+                return nil
+            }
+        } onCancel: {
+            request.cancel()
+        }
+    }
+
+    private func streetName(for placemark: CLPlacemark?) -> String? {
+        let components = [placemark?.subThoroughfare, placemark?.thoroughfare]
+            .compactMap(trimmedName)
+        return components.isEmpty ? nil : components.joined(separator: " ")
+    }
+
+    private func firstNonemptyName(_ candidates: [String?]) -> String? {
+        candidates.lazy.compactMap(trimmedName).first
+    }
+
+    private func trimmedName(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed?.isEmpty == false ? trimmed : nil
     }
 
     private func finish(with status: MemoryLocationStatus, message: String? = nil) {

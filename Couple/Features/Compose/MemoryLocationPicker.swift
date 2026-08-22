@@ -1,4 +1,5 @@
 import SwiftUI
+import Toasts
 import UIKit
 
 struct MemoryLocationPicker: View {
@@ -6,19 +7,19 @@ struct MemoryLocationPicker: View {
         static let none = "none"
         static let current = "current"
         static let existing = "existing"
-        static let status = "status"
         static let settings = "settings"
     }
 
     @Environment(AppHaptics.self) private var haptics
     @Environment(MemoryLocationCoordinator.self) private var memoryLocation
     @Environment(\.openURL) private var openURL
+    @Environment(\.presentToast) private var presentToast
     @State private var resolvedPhotoLocations: [NoteLocation] = []
     @State private var selectedChoice = ChoiceID.none
     let photoLocations: [NoteLocation]
 
     var body: some View {
-        Picker("位置", selection: $selectedChoice) {
+        Picker(selection: $selectedChoice) {
             Text("不添加")
                 .tag(ChoiceID.none)
                 .accessibilityIdentifier("removeMemoryLocationButton")
@@ -38,18 +39,24 @@ struct MemoryLocationPicker: View {
                     .tag(existingChoice.0)
             }
 
-            if let statusChoice {
-                Text(statusChoice.1)
-                    .tag(statusChoice.0)
-            }
-
             if shouldOfferSettings {
                 Text("打开系统设置")
                     .tag(ChoiceID.settings)
                     .accessibilityIdentifier("openMemoryLocationSettingsButton")
             }
+        } label: {
+            HStack(spacing: 8) {
+                Text("位置")
+                if memoryLocation.isCapturing {
+                    ProgressView()
+                        .controlSize(.small)
+                        .accessibilityLabel(valueTitle)
+                        .accessibilityIdentifier("memoryLocationProgress")
+                }
+            }
+            .contentShape(.rect)
         }
-        .accessibilityValue(valueTitle)
+        .accessibilityValue(pickerValueTitle)
         .accessibilityIdentifier("memoryLocationPicker")
         .onChange(of: selectedChoice) { _, choice in
             guard choice != derivedChoice else { return }
@@ -57,6 +64,9 @@ struct MemoryLocationPicker: View {
         }
         .onChange(of: derivedChoice) { _, choice in
             selectedChoice = choice
+        }
+        .onChange(of: memoryLocation.status) { _, status in
+            presentLocationErrorToast(for: status)
         }
         .onAppear {
             selectedChoice = derivedChoice
@@ -71,9 +81,6 @@ struct MemoryLocationPicker: View {
     }
 
     private var derivedChoice: String {
-        if let statusChoice {
-            return statusChoice.0
-        }
         if let location = memoryLocation.location {
             if let photoLocation = presentedPhotoLocations.first(where: {
                 sameCoordinate($0, location)
@@ -103,17 +110,6 @@ struct MemoryLocationPicker: View {
         )
     }
 
-    private var statusChoice: (String, String)? {
-        let title: String
-        switch memoryLocation.status {
-        case .denied, .servicesDisabled, .failed:
-            title = valueTitle
-        default:
-            return nil
-        }
-        return (ChoiceID.status, title)
-    }
-
     private var presentedPhotoLocations: [NoteLocation] {
         guard resolvedPhotoLocations.count == photoLocations.count,
               zip(resolvedPhotoLocations, photoLocations).allSatisfy({
@@ -128,13 +124,17 @@ struct MemoryLocationPicker: View {
            let name = specificName(currentLocation) {
             return name
         }
-        if memoryLocation.status == .resolvingName {
-            return AppLocalization.string("正在解析位置")
-        }
-        if memoryLocation.isCapturing {
-            return AppLocalization.string("正在获取位置")
-        }
         return AppLocalization.string("获取当前位置")
+    }
+
+    private var pickerValueTitle: String {
+        if derivedChoice == ChoiceID.current {
+            return currentLocationTitle
+        }
+        if let location = memoryLocation.location {
+            return specificName(location) ?? AppLocalization.string("位置信息不可用")
+        }
+        return AppLocalization.string("不添加")
     }
 
     private var valueTitle: String {
@@ -204,6 +204,29 @@ struct MemoryLocationPicker: View {
 
     private func photoChoiceID(_ location: NoteLocation) -> String {
         "photo:\(location.latitude):\(location.longitude)"
+    }
+
+    private func presentLocationErrorToast(for status: MemoryLocationStatus) {
+        let message: String
+        switch status {
+        case .denied:
+            message = AppLocalization.string("定位权限未开启")
+        case .servicesDisabled:
+            message = AppLocalization.string("系统定位服务已关闭")
+        case .failed:
+            message = memoryLocation.errorMessage
+                ?? AppLocalization.string("没有获取到可用的位置，请重试")
+        case .idle, .requestingAuthorization, .locating, .resolvingName, .located:
+            return
+        }
+        presentToast(
+            ToastValue(
+                icon: Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.red),
+                message: message,
+                duration: 4
+            )
+        )
     }
 
     private func openSystemSettings() {

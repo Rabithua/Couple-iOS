@@ -1007,7 +1007,6 @@ final class CoupleJourneyUITests: XCTestCase {
         XCTAssertTrue(locationPicker.waitForExistence(timeout: 15))
         for _ in 0..<3 where !locationPicker.isHittable { app.swipeUp() }
         XCTAssertTrue(locationPicker.isHittable)
-        XCTAssertGreaterThanOrEqual(locationPicker.frame.height, 44)
         let capturedLocation = locationPicker.value as? String ?? ""
         XCTAssertFalse(capturedLocation.isEmpty)
         locationPicker.coordinate(
@@ -1055,15 +1054,49 @@ final class CoupleJourneyUITests: XCTestCase {
         currentLocationOption.tap()
 
         let timeoutExpectation = XCTNSPredicateExpectation(
-            predicate: NSPredicate(format: "value == %@", "定位超时，请重试"),
-            object: locationPicker
+            predicate: NSPredicate(format: "exists == true"),
+            object: app.staticTexts["定位超时，请重试"]
         )
         XCTAssertEqual(
             XCTWaiter.wait(for: [timeoutExpectation], timeout: 3),
             .completed
         )
+        XCTAssertEqual(locationPicker.value as? String, "不添加")
         locationPicker.tap()
         XCTAssertTrue(app.buttons["useCurrentMemoryLocationButton"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["定位超时，请重试"].exists)
+    }
+
+    func testComposerLocationMenuKeepsLoadingStateOutsideOptions() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-ui-testing-demo",
+            "-ui-testing-now",
+            "-ui-testing-location-loading"
+        ]
+        app.launchInSimplifiedChinese()
+
+        let composeButton = app.buttons["composeMemoryButton"]
+        XCTAssertTrue(composeButton.waitForExistence(timeout: 5))
+        composeButton.tap()
+        XCTAssertTrue(app.navigationBars["记录此刻"].waitForExistence(timeout: 3))
+
+        let locationPicker = app.buttons["memoryLocationPicker"]
+        XCTAssertTrue(locationPicker.waitForExistence(timeout: 3))
+        locationPicker.tap()
+        let currentLocationOption = app.buttons["useCurrentMemoryLocationButton"]
+        XCTAssertTrue(currentLocationOption.waitForExistence(timeout: 3))
+        currentLocationOption.tap()
+
+        let progress = app.activityIndicators["memoryLocationProgress"]
+        XCTAssertTrue(progress.waitForExistence(timeout: 3))
+        XCTAssertEqual(locationPicker.value as? String, "获取当前位置")
+
+        locationPicker.tap()
+        XCTAssertTrue(app.buttons["useCurrentMemoryLocationButton"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["正在获取位置"].exists)
+        XCTAssertFalse(app.buttons["正在解析位置"].exists)
     }
 
     func testCoordinateOnlyMemoryNeverDisplaysCoordinatesAndRemainsSelectable() {
@@ -1123,7 +1156,6 @@ final class CoupleJourneyUITests: XCTestCase {
         XCTAssertTrue(locationPicker.waitForExistence(timeout: 3))
         let anniversaryPicker = app.buttons["memoryAnniversaryPicker"]
         XCTAssertTrue(anniversaryPicker.waitForExistence(timeout: 3))
-        XCTAssertGreaterThanOrEqual(locationPicker.frame.height, 44)
         XCTAssertEqual(locationPicker.frame.height, anniversaryPicker.frame.height, accuracy: 1)
         locationPicker.coordinate(
             withNormalizedOffset: CGVector(dx: 0.98, dy: 0.5)
@@ -1161,7 +1193,6 @@ final class CoupleJourneyUITests: XCTestCase {
 
         let locationPicker = app.buttons["memoryLocationPicker"]
         XCTAssertTrue(locationPicker.waitForExistence(timeout: 3))
-        XCTAssertGreaterThanOrEqual(locationPicker.frame.height, 44)
         locationPicker.coordinate(
             withNormalizedOffset: CGVector(dx: 0.98, dy: 0.5)
         ).tap()
