@@ -5,6 +5,18 @@ import XCTest
 
 @MainActor
 final class OfflineSyncTests: XCTestCase {
+    func testCoordinateOnlyLocationDoesNotExposeCoordinatesAsDisplayName() {
+        let location = NoteLocation(
+            latitude: 30.474,
+            longitude: 120.012,
+            name: nil
+        )
+
+        XCTAssertEqual(location.displayName, "")
+        XCTAssertFalse(location.displayName.contains("30.474"))
+        XCTAssertFalse(location.displayName.contains("120.012"))
+    }
+
     func testMemoryLocationPersistsAndSyncsCreateUpdateAndClear() async throws {
         let (store, root) = try makeStore()
         defer { try? FileManager.default.removeItem(at: root) }

@@ -94,6 +94,7 @@ final class AppStore {
     private(set) var isPreviewSession = false
     private let startsWithUnpairedDemo: Bool
     private let startsWithOnboardingDemo: Bool
+    private let startsWithUnnamedLocationDemo: Bool
 
     var requiresOnboardingProfile: Bool {
         currentUser?.hasCompletedOnboarding == false
@@ -138,6 +139,8 @@ final class AppStore {
         self.isPreviewSession = previewSession
         self.startsWithUnpairedDemo = demo && arguments.contains("-ui-testing-unpaired")
         self.startsWithOnboardingDemo = demo && arguments.contains("-ui-testing-onboarding")
+        self.startsWithUnnamedLocationDemo = demo
+            && arguments.contains("-ui-testing-unnamed-location")
 
         guard !demo else { return }
         do {
@@ -1519,6 +1522,11 @@ final class AppStore {
         relationship = SampleData.relationship
         home = SampleData.home
         notes = SampleData.notes
+#if DEBUG
+        if startsWithUnnamedLocationDemo, !notes.isEmpty {
+            notes[0].locationName = nil
+        }
+#endif
         rebuildPastNoteCaches()
         if !keepingTodoState || todos.isEmpty { todos = SampleData.todos }
         anniversaries = [SampleData.anniversary]

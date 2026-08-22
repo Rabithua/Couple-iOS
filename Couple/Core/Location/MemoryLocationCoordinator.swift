@@ -55,7 +55,21 @@ final class MemoryLocationCoordinator: NSObject, @preconcurrency CLLocationManag
         currentLocation = nil
         status = existingLocation == nil ? .idle : .located
         errorMessage = nil
-        if automaticallyCapture { captureCurrentLocation() }
+        if automaticallyCapture {
+            captureCurrentLocation()
+        } else if let existingLocation,
+                  (existingLocation.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
+                      .isEmpty {
+            resolveName(
+                for: CLLocation(
+                    latitude: existingLocation.latitude,
+                    longitude: existingLocation.longitude
+                ),
+                pendingLocation: existingLocation,
+                cacheAsCurrentLocation: false,
+                preservePendingLocationOnFailure: true
+            )
+        }
     }
 
     func captureCurrentLocation() {
@@ -143,7 +157,8 @@ final class MemoryLocationCoordinator: NSObject, @preconcurrency CLLocationManag
                 longitude: photoLocation.longitude
             ),
             pendingLocation: photoLocation,
-            cacheAsCurrentLocation: false
+            cacheAsCurrentLocation: false,
+            preservePendingLocationOnFailure: false
         )
     }
 
@@ -246,14 +261,16 @@ final class MemoryLocationCoordinator: NSObject, @preconcurrency CLLocationManag
         resolveName(
             for: current,
             pendingLocation: pendingLocation,
-            cacheAsCurrentLocation: true
+            cacheAsCurrentLocation: true,
+            preservePendingLocationOnFailure: false
         )
     }
 
     private func resolveName(
         for sourceLocation: CLLocation,
         pendingLocation: NoteLocation,
-        cacheAsCurrentLocation: Bool
+        cacheAsCurrentLocation: Bool,
+        preservePendingLocationOnFailure: Bool
     ) {
         location = pendingLocation
         status = .resolvingName
@@ -265,10 +282,9 @@ final class MemoryLocationCoordinator: NSObject, @preconcurrency CLLocationManag
             geocodingTask?.cancel()
             geocodingTask = nil
             geocoder.cancelGeocode()
-            location = nil
-            finish(
-                with: .failed,
-                message: AppLocalization.string("没有获取到可用的位置，请重试")
+            completeUnresolvedName(
+                pendingLocation: pendingLocation,
+                preservePendingLocation: preservePendingLocationOnFailure
             )
             geocodingTimeoutTask = nil
         }
@@ -278,16 +294,41 @@ final class MemoryLocationCoordinator: NSObject, @preconcurrency CLLocationManag
             guard !Task.isCancelled else { return }
             geocodingTimeoutTask?.cancel()
             geocodingTimeoutTask = nil
+            guard let name else {
+                completeUnresolvedName(
+                    pendingLocation: pendingLocation,
+                    preservePendingLocation: preservePendingLocationOnFailure
+                )
+                geocodingTask = nil
+                return
+            }
             let resolvedLocation = NoteLocation(
                 latitude: pendingLocation.latitude,
                 longitude: pendingLocation.longitude,
                 name: name
             )
             location = resolvedLocation
-            if cacheAsCurrentLocation, name != nil {
+            if cacheAsCurrentLocation {
                 currentLocation = resolvedLocation
             }
             finish(with: .located)
+        }
+    }
+
+    private func completeUnresolvedName(
+        pendingLocation: NoteLocation,
+        preservePendingLocation: Bool
+    ) {
+        if preservePendingLocation {
+            location = pendingLocation
+            finish(with: .located)
+        } else {
+            location = nil
+            currentLocation = nil
+            finish(
+                with: .failed,
+                message: AppLocalization.string("没有获取到可用的位置，请重试")
+            )
         }
     }
 
@@ -324,6 +365,11 @@ final class MemoryLocationCoordinator: NSObject, @preconcurrency CLLocationManag
         for location: CLLocation,
         using geocoder: CLGeocoder
     ) async -> String? {
+#if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing-geocoding-unavailable") {
+            return nil
+        }
+#endif
         do {
             let placemark = try await geocoder.reverseGeocodeLocation(
                 location,

@@ -95,10 +95,12 @@ struct MemoryLocationPicker: View {
     private var existingChoice: (String, String)? {
         guard let location = memoryLocation.location,
               memoryLocation.currentLocation.map({ !sameCoordinate($0, location) }) ?? true,
-              !presentedPhotoLocations.contains(where: { sameCoordinate($0, location) }),
-              let name = specificName(location)
+              !presentedPhotoLocations.contains(where: { sameCoordinate($0, location) })
         else { return nil }
-        return (ChoiceID.existing, name)
+        return (
+            ChoiceID.existing,
+            specificName(location) ?? AppLocalization.string("位置信息不可用")
+        )
     }
 
     private var statusChoice: (String, String)? {

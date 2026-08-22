@@ -1066,6 +1066,44 @@ final class CoupleJourneyUITests: XCTestCase {
         XCTAssertTrue(app.buttons["useCurrentMemoryLocationButton"].waitForExistence(timeout: 3))
     }
 
+    func testCoordinateOnlyMemoryNeverDisplaysCoordinatesAndRemainsSelectable() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-ui-testing-demo",
+            "-ui-testing-past",
+            "-ui-testing-unnamed-location",
+            "-ui-testing-geocoding-unavailable"
+        ]
+        app.launchInSimplifiedChinese()
+
+        let memoryText = app.staticTexts.matching(
+            NSPredicate(format: "label BEGINSWITH %@", "遇到了特别特别特别好看的夕阳")
+        ).firstMatch
+        XCTAssertTrue(memoryText.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["30.4740, 120.0120"].exists)
+        memoryText.press(forDuration: 1)
+
+        let editButton = app.buttons["编辑"]
+        XCTAssertTrue(editButton.waitForExistence(timeout: 2))
+        editButton.tap()
+        XCTAssertTrue(app.navigationBars["编辑动态"].waitForExistence(timeout: 3))
+
+        let locationPicker = app.buttons["memoryLocationPicker"]
+        XCTAssertTrue(locationPicker.waitForExistence(timeout: 3))
+        let unavailableExpectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "value == %@", "位置信息不可用"),
+            object: locationPicker
+        )
+        XCTAssertEqual(
+            XCTWaiter.wait(for: [unavailableExpectation], timeout: 3),
+            .completed
+        )
+        locationPicker.tap()
+        XCTAssertTrue(app.buttons["位置信息不可用"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.staticTexts["30.4740, 120.0120"].exists)
+    }
+
     func testComposerCanUseSelectedPhotoLocationFromButtonEdge() {
         continueAfterFailure = false
         let app = XCUIApplication()
