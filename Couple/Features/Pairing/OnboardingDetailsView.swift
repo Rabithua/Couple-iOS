@@ -99,6 +99,8 @@ struct OnboardingDetailsView: View {
                 .labelsHidden()
                 .datePickerStyle(.graphical)
                 .padding()
+                .presentationCompactAdaptation(.sheet)
+                .presentationDetents([.height(400)])
                 .accessibilityIdentifier("onboardingBirthdayEditor")
             }
             .accessibilityLabel("选择你的生日")

@@ -38,7 +38,7 @@ actor AttachmentFileStore {
             ).first else {
                 throw StoreError.applicationSupportUnavailable
             }
-            root = applicationSupport.appending(path: "CoupleOffline", directoryHint: .isDirectory)
+            root = applicationSupport.appending(path: "CoupleOfflineV2", directoryHint: .isDirectory)
         }
         pendingDirectory = root.appending(path: "PendingAttachments", directoryHint: .isDirectory)
         remoteCacheDirectory = root.appending(path: "RemoteAttachmentCache", directoryHint: .isDirectory)
@@ -81,6 +81,14 @@ actor AttachmentFileStore {
     func discardAllPending() throws {
         let files = try fileManager.contentsOfDirectory(
             at: pendingDirectory,
+            includingPropertiesForKeys: nil
+        )
+        for file in files { try fileManager.removeItem(at: file) }
+    }
+
+    func discardRemoteCache() throws {
+        let files = try fileManager.contentsOfDirectory(
+            at: remoteCacheDirectory,
             includingPropertiesForKeys: nil
         )
         for file in files { try fileManager.removeItem(at: file) }

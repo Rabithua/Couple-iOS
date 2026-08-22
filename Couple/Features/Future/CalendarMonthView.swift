@@ -6,6 +6,7 @@ struct CalendarMonthView: View, @MainActor Equatable {
     @Environment(\.locale) private var locale
     let month: CalendarMonth
     let schedule: CalendarScheduleIndex
+    var unsyncedContent = UnsyncedContentIDs.empty
     let today: Date
     let todayVisibleFrame: CGRect
     var editEvent: @MainActor (CalendarEvent) -> Void = { _ in }
@@ -28,6 +29,7 @@ struct CalendarMonthView: View, @MainActor Equatable {
     static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.month == rhs.month
             && lhs.schedule == rhs.schedule
+            && lhs.unsyncedContent == rhs.unsyncedContent
             && lhs.today == rhs.today
             && lhs.todayVisibleFrame == rhs.todayVisibleFrame
             && lhs.selectedDate == rhs.selectedDate
@@ -66,6 +68,7 @@ struct CalendarMonthView: View, @MainActor Equatable {
                                         events: scheduledEvents(on: day),
                                         todos: scheduledTodos(on: day),
                                         anniversaries: scheduledAnniversaries(on: day),
+                                        unsyncedContent: unsyncedContent,
                                         editEvent: editEvent,
                                         editTodo: editTodo,
                                         editAnniversary: editAnniversary,
@@ -110,6 +113,7 @@ struct CalendarMonthView: View, @MainActor Equatable {
                                 events: scheduledEvents(on: agendaDate),
                                 todos: scheduledTodos(on: agendaDate),
                                 anniversaries: scheduledAnniversaries(on: agendaDate),
+                                unsyncedContent: unsyncedContent,
                                 highlightedAnniversaryID: highlightedAnniversaryID,
                                 createEvent: createEvent,
                                 createAnniversary: createAnniversary,

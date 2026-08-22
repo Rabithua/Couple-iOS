@@ -123,6 +123,12 @@ struct MainPagerView: View {
         .task(id: notifications.pendingDestination?.id) {
             handleNotificationDestination()
         }
+        .onChange(of: store.isPreviewSession) { wasPreviewSession, isPreviewSession in
+            handlePreviewSessionChange(
+                wasPreviewSession: wasPreviewSession,
+                isPreviewSession: isPreviewSession
+            )
+        }
         .appHapticFeedback(.selection, trigger: route)
         .sheet(isPresented: $showingComposer, onDismiss: resetMainGestureTracking) {
             ComposeMemoryView()
@@ -379,6 +385,15 @@ struct MainPagerView: View {
     private func presentSettings() {
         haptics.play(.tap)
         route = .futureSettings
+    }
+
+    private func handlePreviewSessionChange(
+        wasPreviewSession: Bool,
+        isPreviewSession: Bool
+    ) {
+        guard !wasPreviewSession, isPreviewSession else { return }
+        resetMainGestureTracking()
+        route = .now
     }
 
     private func loadActivePastNotes() async {

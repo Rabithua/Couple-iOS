@@ -206,6 +206,80 @@ struct Anniversary: Codable, Identifiable, Hashable, Sendable {
         localizedDisplayTitle()
     }
 
+    var systemImageName: String {
+        Self.systemImageName(for: title, isSystemBirthday: isSystemBirthday)
+    }
+
+    static func systemImageName(
+        for title: String,
+        isSystemBirthday: Bool = false
+    ) -> String {
+        let normalizedTitle = title
+            .folding(
+                options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive],
+                locale: .current
+            )
+            .lowercased()
+        let matches: ([String]) -> Bool = { keywords in
+            keywords.contains { normalizedTitle.contains($0) }
+        }
+
+        // Specific occasions win when a title contains more than one theme.
+        if isSystemBirthday || matches([
+            "生日", "birthday", "b-day", "bday"
+        ]) {
+            return "birthday.cake.fill"
+        }
+        if matches([
+            "结婚", "結婚", "婚礼", "婚禮", "领证", "領證",
+            "wedding", "married", "marriage"
+        ]) {
+            return "heart.circle.fill"
+        }
+        if matches([
+            "旅行", "旅游", "旅遊", "出游", "出遊", "旅程", "度假",
+            "travel", "trip", "vacation"
+        ]) {
+            return "airplane"
+        }
+        if matches([
+            "宠物", "寵物", "猫", "貓", "狗", "毛孩子", "领养", "領養",
+            "pet", "kitty", "puppy"
+        ]) {
+            return "pawprint.fill"
+        }
+        if matches([
+            "搬家", "新家", "入住", "买房", "買房",
+            "new home", "move-in", "housewarming"
+        ]) {
+            return "house.fill"
+        }
+        if matches([
+            "毕业", "畢業", "graduation", "graduate"
+        ]) {
+            return "graduationcap.fill"
+        }
+        if matches([
+            "初见", "初見", "认识", "認識", "相识", "相識", "见面", "見面",
+            "first met", "first meet"
+        ]) {
+            return "sparkles"
+        }
+        if matches([
+            "在一起", "恋爱", "戀愛", "相恋", "相戀", "告白", "表白", "初吻",
+            "together", "dating", "love", "first kiss"
+        ]) {
+            return "heart.fill"
+        }
+        if matches([
+            "火锅", "火鍋", "餐厅", "餐廳", "晚餐", "咖啡",
+            "dinner", "restaurant", "coffee"
+        ]) {
+            return "fork.knife"
+        }
+        return "party.popper.fill"
+    }
+
     func localizedDisplayTitle(
         language: AppLanguage = .persisted(),
         bundle: Bundle = .main

@@ -1,4 +1,5 @@
 import SwiftUI
+import Toasts
 
 @main
 struct CoupleApp: App {
@@ -12,7 +13,10 @@ struct CoupleApp: App {
 
     var body: some Scene {
         WindowGroup {
-            AppRootView()
+            ZStack {
+                AppRootView()
+                SyncToastHost()
+            }
                 .environment(store)
                 .environment(language)
                 .environment(notifications)
@@ -48,6 +52,7 @@ struct CoupleApp: App {
                 } message: {
                     Text(store.errorMessage ?? "")
                 }
+                .installToast(position: .bottom)
                 .appHapticsHost(haptics)
         }
     }
@@ -56,11 +61,15 @@ struct CoupleApp: App {
         await notifications.configure(store: store, language: language)
         await store.start()
         await notifications.refreshRegistration()
+        await store.updateForegroundActivity(isActive: scenePhase == .active)
     }
 
     private func handleScenePhase(_ phase: ScenePhase) {
-        guard phase == .active else { return }
-        store.handleForeground()
-        Task { await notifications.refreshRegistration() }
+        Task {
+            await store.updateForegroundActivity(isActive: phase == .active)
+            guard phase == .active else { return }
+            store.handleForeground()
+            await notifications.refreshRegistration()
+        }
     }
 }

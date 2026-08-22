@@ -30,6 +30,12 @@ final class CoupleJourneyUITests: XCTestCase {
         birthdayPicker.tap()
         let birthdayEditor = app.descendants(matching: .any)["onboardingBirthdayEditor"]
         XCTAssertTrue(birthdayEditor.waitForExistence(timeout: 2))
+        XCTAssertGreaterThan(birthdayEditor.frame.minY, app.frame.height * 0.25)
+        XCTAssertLessThanOrEqual(
+            app.frame.maxY - birthdayEditor.frame.maxY,
+            100,
+            "Birthday editor frame: \(birthdayEditor.frame), app frame: \(app.frame)"
+        )
         app.swipeDown(velocity: .fast)
         XCTAssertTrue(birthdayEditor.waitForNonExistence(timeout: 2))
         XCTAssertTrue(app.textFields["onboardingInviteCodeField"].exists)
@@ -100,6 +106,24 @@ final class CoupleJourneyUITests: XCTestCase {
         settingsForm.swipeRight()
         XCTAssertTrue(app.buttons["清单"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["清单"].isSelected)
+    }
+
+    func testPreviewExitRowRespondsAtItsOuterEdge() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-ui-testing-demo",
+            "-ui-testing-preview-session",
+            "-ui-testing-settings"
+        ]
+        app.launchInSimplifiedChinese()
+
+        let exitPreview = app.buttons["exitPreviewButton"]
+        XCTAssertTrue(exitPreview.waitForExistence(timeout: 5))
+        XCTAssertGreaterThanOrEqual(exitPreview.frame.height, 44)
+        exitPreview.coordinate(withNormalizedOffset: CGVector(dx: 0.98, dy: 0.08)).tap()
+
+        XCTAssertTrue(app.buttons["退出并返回"].waitForExistence(timeout: 2))
     }
 
     func testSettingsLanguagePickerSwitchesImmediately() {
@@ -381,6 +405,52 @@ final class CoupleJourneyUITests: XCTestCase {
             withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)
         ).tap()
         XCTAssertTrue(app.navigationBars["新日程"].waitForExistence(timeout: 2))
+    }
+
+    func testCalendarAgendaAnniversaryAndEventTitlesAlign() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-demo", "-ui-testing-future"]
+        app.launchInSimplifiedChinese()
+
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd"
+        guard let eventDate = Calendar.current.date(byAdding: .day, value: 3, to: .now) else {
+            return XCTFail("Unable to make the demo event date")
+        }
+
+        let day = app.buttons["calendarDay-\(formatter.string(from: eventDate))"]
+        XCTAssertTrue(day.waitForExistence(timeout: 5))
+        day.tap()
+
+        let addAnniversary = app.buttons["calendarAgendaNewAnniversaryButton"]
+        XCTAssertTrue(addAnniversary.waitForExistence(timeout: 2))
+        addAnniversary.tap()
+
+        let titleField = app.textFields["纪念日名称"]
+        XCTAssertTrue(titleField.waitForExistence(timeout: 2))
+        titleField.tap()
+        titleField.typeText("对齐测试")
+        app.buttons["保存"].tap()
+
+        let anniversaryTitle = app.staticTexts["对齐测试"]
+        let eventTitle = app.staticTexts["一起吃晚饭"]
+        XCTAssertTrue(anniversaryTitle.waitForExistence(timeout: 3))
+        XCTAssertTrue(eventTitle.exists)
+        XCTAssertEqual(
+            anniversaryTitle.frame.minX,
+            eventTitle.frame.minX,
+            accuracy: 1,
+            "Anniversary and event titles should share the same leading column"
+        )
+
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Calendar agenda aligned rows"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
     }
 
     func testCalendarCanBrowseAndOpenPastMonth() {

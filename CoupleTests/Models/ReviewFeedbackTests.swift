@@ -121,24 +121,63 @@ struct ReviewFeedbackTests {
         #expect(shifted == start.addingTimeInterval(9_000))
     }
 
-    @Test("Home anniversary matching ignores ID case and retains cached fallback")
-    func homeAnniversaryMatchesCaseInsensitivelyAndFallsBack() async {
+    @Test("Adding a nearer local anniversary immediately updates home")
+    func addingNearerAnniversaryImmediatelyUpdatesHome() async {
         let store = AppStore(
             environment: ["COUPLE_DEMO_MODE": "1"],
             arguments: ["CoupleTests"]
         )
         await store.start()
-        let local = anniversary(id: "abc-def", title: "本地纪念日", daysFromNow: 2)
-        let cached = anniversary(id: "ABC-DEF", title: "缓存纪念日", daysFromNow: 2)
-        store.anniversaries = [local]
-        store.home = home(nextAnniversary: cached)
+        let previous = anniversary(id: "previous", title: "原纪念日", daysFromNow: 3)
+        let nearer = anniversary(id: "nearer", title: "新纪念日", daysFromNow: 1)
+        store.anniversaries = [previous]
+        store.home = home(nextAnniversary: previous)
 
-        #expect(store.homeAnniversary?.title == "本地纪念日")
-        store.anniversaries = []
-        #expect(store.homeAnniversary?.title == "缓存纪念日")
+        #expect(store.homeAnniversary?.id == previous.id)
+        store.anniversaries.append(nearer)
+        #expect(store.homeAnniversary?.id == nearer.id)
     }
 
-    @Test("Deleting the cached home anniversary selects the next actual occurrence")
+    @Test("Editing an anniversary date immediately updates home")
+    func editingAnniversaryImmediatelyUpdatesHome() async throws {
+        let store = AppStore(
+            environment: ["COUPLE_DEMO_MODE": "1"],
+            arguments: ["CoupleTests"]
+        )
+        await store.start()
+        let previous = anniversary(id: "previous", title: "原纪念日", daysFromNow: 2)
+        let edited = anniversary(id: "edited", title: "待编辑纪念日", daysFromNow: 3)
+        store.anniversaries = [previous, edited]
+        store.home = home(nextAnniversary: previous)
+
+        #expect(store.homeAnniversary?.id == previous.id)
+        let nearerDate = try #require(Calendar.current.date(byAdding: .day, value: 1, to: .now))
+        try await store.updateAnniversary(
+            edited,
+            title: edited.title,
+            date: nearerDate,
+            annual: false,
+            visibility: edited.visibility,
+            reminder: .off
+        )
+        #expect(store.homeAnniversary?.id == edited.id)
+    }
+
+    @Test("Home anniversary does not resurrect a stale cached summary")
+    func homeAnniversaryIgnoresStaleCachedSummary() async {
+        let store = AppStore(
+            environment: ["COUPLE_DEMO_MODE": "1"],
+            arguments: ["CoupleTests"]
+        )
+        await store.start()
+        let cached = anniversary(id: "cached", title: "缓存纪念日", daysFromNow: 2)
+        store.anniversaries = []
+        store.home = home(nextAnniversary: cached)
+
+        #expect(store.homeAnniversary == nil)
+    }
+
+    @Test("Deleting the current home anniversary selects the next actual occurrence")
     func deletingHomeAnniversarySelectsNextOccurrence() async throws {
         let store = AppStore(
             environment: ["COUPLE_DEMO_MODE": "1"],

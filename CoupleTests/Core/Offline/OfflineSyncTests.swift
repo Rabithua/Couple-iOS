@@ -253,8 +253,15 @@ final class OfflineSyncTests: XCTestCase {
             todoTitle: todo.title,
             visibility: .shared
         )
+        let pendingCreates = try await store.loadSnapshot()
+        XCTAssertTrue(pendingCreates.unsyncedContent.contains(todo))
+        XCTAssertTrue(pendingCreates.unsyncedContent.contains(anniversary))
+        XCTAssertTrue(pendingCreates.unsyncedContent.contains(event))
+        XCTAssertTrue(pendingCreates.unsyncedContent.contains(note))
         let creates = try await store.pendingOperations(limit: 100, now: .distantFuture)
         try await store.acknowledge(operationIds: creates.map(\.operationId), now: .now)
+        let synchronizedCreates = try await store.loadSnapshot()
+        XCTAssertTrue(synchronizedCreates.unsyncedContent.isEmpty)
 
         try store.editTodo(
             id: todo.id,
@@ -299,6 +306,10 @@ final class OfflineSyncTests: XCTestCase {
         XCTAssertEqual(edited.notes.first?.content, "新动态")
         XCTAssertEqual(edited.notes.first?.visibility, .private)
         XCTAssertTrue(edited.notes.first?.associations.isEmpty == true)
+        XCTAssertTrue(edited.unsyncedContent.contains(todo))
+        XCTAssertTrue(edited.unsyncedContent.contains(anniversary))
+        XCTAssertTrue(edited.unsyncedContent.contains(event))
+        XCTAssertTrue(edited.unsyncedContent.contains(note))
 
         let updates = try await store.pendingOperations(limit: 100, now: .distantFuture)
         XCTAssertEqual(updates.count, 4)
@@ -309,6 +320,8 @@ final class OfflineSyncTests: XCTestCase {
             XCTAssertNoThrow(try SyncV1Mutation(operation: operation, deviceId: deviceID))
         }
         try await store.acknowledge(operationIds: updates.map(\.operationId), now: .now)
+        let synchronizedUpdates = try await store.loadSnapshot()
+        XCTAssertTrue(synchronizedUpdates.unsyncedContent.isEmpty)
 
         try store.deleteTodo(id: todo.id)
         try store.deleteAnniversary(id: anniversary.id)
@@ -473,10 +486,10 @@ final class OfflineSyncTests: XCTestCase {
         )
         let snapshot = try await reopened.loadSnapshot()
         XCTAssertEqual(snapshot.todos.map(\.title), ["重启后仍存在"])
-        XCTAssertEqual(try reopened.unsyncedCount(), 2)
+        XCTAssertEqual(try reopened.unsyncedCount(), 1)
     }
 
-    func testIdenticalOutboxMutationIsCoalescedAndOperationIdIsStable() async throws {
+    func testIdenticalOutboxMutationIsCoalescedUnderAFreshImmutableOperationId() async throws {
         let (store, root) = try makeStore()
         defer { try? FileManager.default.removeItem(at: root) }
         let todo = try store.createTodo(
@@ -491,12 +504,12 @@ final class OfflineSyncTests: XCTestCase {
         try store.editTodoTitle(id: todo.id, title: "相同内容")
         let after = try await store.pendingOperations(limit: 100, now: .distantFuture)
 
-        XCTAssertEqual(before.count, 2)
-        XCTAssertEqual(after.count, 2)
-        XCTAssertEqual(Set(before.map(\.operationId)), Set(after.map(\.operationId)))
+        XCTAssertEqual(before.count, 1)
+        XCTAssertEqual(after.count, 1)
+        XCTAssertNotEqual(Set(before.map(\.operationId)), Set(after.map(\.operationId)))
     }
 
-    func testReturningToEarlierPayloadCreatesNewerOperationInsteadOfReusingStaleHLC() async throws {
+    func testUnsentCreateAbsorbsLatestEditByReplacingItsImmutableOperation() async throws {
         let (store, root) = try makeStore()
         defer { try? FileManager.default.removeItem(at: root) }
         let todo = try store.createTodo(
@@ -506,18 +519,94 @@ final class OfflineSyncTests: XCTestCase {
             dueDate: nil,
             visibility: .shared
         )
+        let initialOperations = try await store.pendingOperations(
+            limit: 100,
+            now: .distantFuture
+        )
+        let initial = try XCTUnwrap(initialOperations.first)
         try store.editTodoTitle(id: todo.id, title: "B")
         try store.editTodoTitle(id: todo.id, title: "C")
         try store.editTodoTitle(id: todo.id, title: "B")
 
         let operations = try await store.pendingOperations(limit: 100, now: .distantFuture)
-        let titleBOperations = operations.filter { $0.payload.fields["title"] == .string("B") }
-        XCTAssertEqual(operations.count, 4)
-        XCTAssertEqual(titleBOperations.count, 2)
-        XCTAssertLessThan(
-            try XCTUnwrap(titleBOperations.first?.hlc),
-            try XCTUnwrap(titleBOperations.last?.hlc)
+        let create = try XCTUnwrap(operations.first)
+        XCTAssertEqual(operations.count, 1)
+        XCTAssertNotEqual(create.operationId, initial.operationId)
+        XCTAssertEqual(create.mutationKind, .create)
+        XCTAssertEqual(create.payload.fields["title"], .string("B"))
+        XCTAssertLessThan(initial.hlc, create.hlc)
+    }
+
+    func testFailedCreateBlocksLaterUpdateUntilCreateIsAcknowledged() async throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let createdAt = Date(timeIntervalSince1970: 1_800_000_000)
+        let todo = try store.createTodo(
+            coupleId: "couple",
+            ownerId: "owner",
+            title: "尚未创建",
+            dueDate: nil,
+            visibility: .shared,
+            now: createdAt
         )
+        let initialOperations = try await store.pendingOperations(limit: 1, now: createdAt)
+        let create = try XCTUnwrap(initialOperations.first)
+        try await store.fail(
+            operationIds: [create.operationId],
+            message: "offline",
+            now: createdAt.addingTimeInterval(1),
+            retryBaseDelay: 60
+        )
+        try store.editTodoTitle(
+            id: todo.id,
+            title: "离线编辑",
+            now: createdAt.addingTimeInterval(2)
+        )
+
+        let blocked = try await store.pendingOperations(
+            limit: 100,
+            now: createdAt.addingTimeInterval(2)
+        )
+        XCTAssertTrue(blocked.isEmpty)
+        let retryDate = try XCTUnwrap(
+            try store.nextPendingOperationDate(now: createdAt.addingTimeInterval(2))
+        )
+        XCTAssertGreaterThanOrEqual(retryDate, createdAt.addingTimeInterval(49))
+        XCTAssertLessThanOrEqual(retryDate, createdAt.addingTimeInterval(73))
+
+        let ordered = try await store.pendingOperations(
+            limit: 100,
+            now: createdAt.addingTimeInterval(75)
+        )
+        XCTAssertEqual(ordered.map(\.mutationKind), [.create, .update])
+        try await store.acknowledge(
+            operationIds: [create.operationId],
+            now: createdAt.addingTimeInterval(75)
+        )
+        let update = try await store.pendingOperations(
+            limit: 100,
+            now: createdAt.addingTimeInterval(2)
+        )
+        XCTAssertEqual(update.map(\.mutationKind), [.update])
+    }
+
+    func testExpiredPresignedUploadURLIsRenewedBeforeUpload() throws {
+        let url = try XCTUnwrap(URL(string:
+            "https://example.r2.cloudflarestorage.com/object"
+                + "?X-Amz-Date=20260821T030459Z&X-Amz-Expires=900"
+        ))
+        let signedAt = try XCTUnwrap(ISO8601DateFormatter().date(
+            from: "2026-08-21T03:04:59Z"
+        ))
+
+        XCTAssertFalse(SyncV1Transport.presignedUploadURLIsExpired(
+            url,
+            at: signedAt.addingTimeInterval(800)
+        ))
+        XCTAssertTrue(SyncV1Transport.presignedUploadURLIsExpired(
+            url,
+            at: signedAt.addingTimeInterval(871)
+        ))
     }
 
     func testHLCIsMonotonicAcrossClockRollbackAndRemoteObservation() {
@@ -753,7 +842,7 @@ final class OfflineSyncTests: XCTestCase {
         )
         let tooEarly = try await store.pendingOperations(limit: 1, now: now.addingTimeInterval(1))
         XCTAssertTrue(tooEarly.isEmpty)
-        let retried = try await store.pendingOperations(limit: 1, now: now.addingTimeInterval(2.1))
+        let retried = try await store.pendingOperations(limit: 1, now: now.addingTimeInterval(2.5))
         XCTAssertEqual(retried.first?.retryCount, 1)
         XCTAssertEqual(retried.first?.operationId, operation.operationId)
     }
@@ -1070,6 +1159,18 @@ final class OfflineSyncTests: XCTestCase {
             serverAttachment: pendingRemoteAttachment
         )
         try await store.acknowledge(operationIds: [operation.operationId], now: .now)
+        let cleanSnapshot = try await store.loadSnapshot()
+        XCTAssertTrue(cleanSnapshot.unsyncedContent.isEmpty)
+
+        try store.markAttachmentsForReconciliation(parentIds: [note.id])
+        let reconcilingSnapshot = try await store.loadSnapshot()
+        XCTAssertTrue(reconcilingSnapshot.unsyncedContent.contains(note))
+        try store.markAttachmentFinalized(
+            localId: record.localId,
+            serverAttachment: pendingRemoteAttachment
+        )
+        let finalizedSnapshot = try await store.loadSnapshot()
+        XCTAssertTrue(finalizedSnapshot.unsyncedContent.isEmpty)
         let bytesAfterAck = try await store.pendingAttachment(relativePath: record.relativePath)
         XCTAssertEqual(bytesAfterAck, bytes)
 
@@ -1201,7 +1302,8 @@ final class OfflineSyncTests: XCTestCase {
             allDay: true,
             yearly: true
         )
-        let canonical = try await store.loadSnapshot().canonicalCalendarEvents
+        let snapshot = try await store.loadSnapshot()
+        let canonical = snapshot.canonicalCalendarEvents
         let end = try XCTUnwrap(calendar.date(from: DateComponents(year: 2028, month: 1, day: 1)))
         let occurrences = CalendarOccurrenceExpander.expand(
             canonicalEvents: canonical,
@@ -1212,6 +1314,7 @@ final class OfflineSyncTests: XCTestCase {
         XCTAssertEqual(canonical.count, 1)
         XCTAssertEqual(occurrences.count, 3)
         XCTAssertTrue(occurrences.allSatisfy { $0.recurrenceSourceId == canonical[0].id })
+        XCTAssertTrue(occurrences.allSatisfy(snapshot.unsyncedContent.contains))
     }
 
     func testYearlyOccurrencesMatchServerSourceYearLeapDayAndOverlapRules() throws {

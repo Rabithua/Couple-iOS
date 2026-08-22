@@ -7,6 +7,7 @@ struct OfflineSnapshot: Sendable {
     let anniversaries: [Anniversary]
     let canonicalCalendarEvents: [CalendarEvent]
     let timelineEntries: [TimelineEntry]
+    let unsyncedContent: UnsyncedContentIDs
 }
 
 struct CachedSession: Sendable {
@@ -33,7 +34,9 @@ enum OfflineStoreError: LocalizedError {
 
 @MainActor
 final class OfflineStore: SyncStore {
-    static let activeScope = "active-couple"
+    nonisolated static let activeScope = "active-couple"
+    static let timestampWireFormatMigrationScope = "migration:sync-v1:iso8601-offsets:v1"
+    private static let v2CleanupDefaultsKey = "sync-v2.local-store-cleanup-completed"
 
     let container: ModelContainer
     let attachmentFiles: AttachmentFileStore
@@ -46,14 +49,36 @@ final class OfflineStore: SyncStore {
         self.attachmentFiles = attachmentFiles
         try recoverInterruptedOperations()
         try repairCaseVariantDuplicates()
+        try prepareSyncContractMigrations()
     }
 
     static func makeLive() throws -> OfflineStore {
+        let fileManager = FileManager.default
+        guard let applicationSupport = fileManager.urls(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask
+        ).first else {
+            throw AttachmentFileStore.StoreError.applicationSupportUnavailable
+        }
+        try fileManager.createDirectory(at: applicationSupport, withIntermediateDirectories: true)
+        if !UserDefaults.standard.bool(forKey: v2CleanupDefaultsKey) {
+            let legacyStore = applicationSupport.appending(path: "CoupleOffline.store")
+            for url in [
+                legacyStore,
+                URL(filePath: legacyStore.path + "-shm"),
+                URL(filePath: legacyStore.path + "-wal"),
+                applicationSupport.appending(path: "CoupleOffline", directoryHint: .isDirectory),
+            ] where fileManager.fileExists(atPath: url.path) {
+                try fileManager.removeItem(at: url)
+            }
+            UserDefaults.standard.set(true, forKey: v2CleanupDefaultsKey)
+        }
         let schema = Schema(OfflineSchema.models)
+        let storeURL = applicationSupport.appending(path: "CoupleOfflineV2.store")
         let configuration = ModelConfiguration(
-            "CoupleOffline",
+            "CoupleOfflineV2",
             schema: schema,
-            isStoredInMemoryOnly: false,
+            url: storeURL,
             cloudKitDatabase: .none
         )
         let container = try ModelContainer(for: schema, configurations: [configuration])
@@ -91,6 +116,7 @@ final class OfflineStore: SyncStore {
     }
 
     func loadSnapshot() async throws -> OfflineSnapshot {
+        try await cleanReadyAttachmentFiles()
         try await cleanTombstonedAttachmentFiles()
         let localAttachments = try context.fetch(FetchDescriptor<LocalAttachmentEntity>())
             .filter { !$0.isTombstoned }
@@ -104,10 +130,11 @@ final class OfflineStore: SyncStore {
             attachmentsByMemory[key]?.sort { ($0.sortOrder ?? 0) < ($1.sortOrder ?? 0) }
         }
 
-        let notes = Self.deduplicatedEntities(
+        let localMemories = Self.deduplicatedEntities(
             try context.fetch(FetchDescriptor<LocalMemoryEntity>())
                 .filter { !$0.isTombstoned }
         )
+        let notes = localMemories
             .sorted { $0.createdAt > $1.createdAt }
             .map { local in
                 var associations: [NoteAssociation] = []
@@ -135,40 +162,65 @@ final class OfflineStore: SyncStore {
                 )
             }
 
-        let todos = Self.deduplicatedEntities(
+        let localTodos = Self.deduplicatedEntities(
             try context.fetch(FetchDescriptor<LocalTodoEntity>())
                 .filter { !$0.isTombstoned }
         )
+        let todos = localTodos
             .sorted { $0.createdAt > $1.createdAt }
             .map(mapTodo)
-        let anniversaries = Self.deduplicatedEntities(
+        let localAnniversaries = Self.deduplicatedEntities(
             try context.fetch(FetchDescriptor<LocalAnniversaryEntity>())
                 .filter { !$0.isTombstoned }
         )
+        let anniversaries = localAnniversaries
             .sorted { $0.date < $1.date }
             .map(mapAnniversary)
-        let calendar = Self.deduplicatedEntities(
+        let localCalendarEvents = Self.deduplicatedEntities(
             try context.fetch(FetchDescriptor<LocalCalendarEventEntity>())
                 .filter { !$0.isTombstoned }
         )
+        let calendar = localCalendarEvents
             .sorted { $0.startTime < $1.startTime }
             .map(mapCalendarEvent)
-        let timeline = Self.deduplicatedEntities(
+        let localTimelineEntries = Self.deduplicatedEntities(
             try context.fetch(FetchDescriptor<LocalTimelineEntity>())
                 .filter { !$0.isTombstoned }
         )
+        let timeline = localTimelineEntries
             .sorted {
                 if $0.eventDate == $1.eventDate { return $0.sortOrder < $1.sortOrder }
                 return $0.eventDate > $1.eventDate
             }
             .map(mapTimeline)
 
+        let dirtyAttachmentMemoryIDs = Set(
+            localAttachments.lazy
+                .filter(\.isDirty)
+                .compactMap(\.memoryId)
+        )
+        let dirtyAttachmentTimelineIDs = Set(
+            localAttachments.lazy
+                .filter(\.isDirty)
+                .compactMap(\.timelineId)
+        )
+        let unsyncedContent = UnsyncedContentIDs(
+            noteIDs: Set(localMemories.lazy.filter(\.isDirty).map(\.id))
+                .union(dirtyAttachmentMemoryIDs),
+            todoIDs: Set(localTodos.lazy.filter(\.isDirty).map(\.id)),
+            anniversaryIDs: Set(localAnniversaries.lazy.filter(\.isDirty).map(\.id)),
+            calendarEventIDs: Set(localCalendarEvents.lazy.filter(\.isDirty).map(\.id)),
+            timelineEntryIDs: Set(localTimelineEntries.lazy.filter(\.isDirty).map(\.id))
+                .union(dirtyAttachmentTimelineIDs)
+        )
+
         return OfflineSnapshot(
             notes: notes,
             todos: todos,
             anniversaries: anniversaries,
             canonicalCalendarEvents: calendar,
-            timelineEntries: timeline
+            timelineEntries: timeline,
+            unsyncedContent: unsyncedContent
         )
     }
 
@@ -1122,13 +1174,43 @@ final class OfflineStore: SyncStore {
     }
 
     func pendingOperations(limit: Int, now: Date) async throws -> [PendingOperation] {
-        let entities = try context.fetch(FetchDescriptor<OutboxEntity>())
-            .filter {
-                ($0.state == OutboxState.pending.rawValue || $0.state == OutboxState.failed.rawValue)
-                    && ($0.nextRetryAt == nil || $0.nextRetryAt! <= now)
+        let entities = try causallyOrderedOutboxEntities()
+        var blockedEntities: Set<String> = []
+        var ready: [OutboxEntity] = []
+
+        for entity in entities {
+            let key = Self.outboxEntityKey(entity)
+            guard !blockedEntities.contains(key) else { continue }
+            let isRetryable = entity.state == OutboxState.pending.rawValue
+                || entity.state == OutboxState.failed.rawValue
+            guard isRetryable,
+                  entity.nextRetryAt == nil || entity.nextRetryAt! <= now else {
+                blockedEntities.insert(key)
+                continue
             }
-            .sorted { $0.createdAt < $1.createdAt }
-        return try entities.prefix(limit).map(mapOperation)
+            ready.append(entity)
+        }
+        return try ready.prefix(limit).map(mapOperation)
+    }
+
+    func nextPendingOperationDate(now: Date = .now) throws -> Date? {
+        let entities = try causallyOrderedOutboxEntities()
+        var seenEntities: Set<String> = []
+        var dates: [Date] = []
+
+        for entity in entities {
+            let key = Self.outboxEntityKey(entity)
+            guard seenEntities.insert(key).inserted else { continue }
+            switch OutboxState(rawValue: entity.state) {
+            case .pending, .sending:
+                dates.append(now)
+            case .failed:
+                dates.append(entity.nextRetryAt ?? now)
+            case .rejected, nil:
+                break
+            }
+        }
+        return dates.min()
     }
 
     func markSending(operationIds: [String], now: Date) async throws {
@@ -1162,7 +1244,8 @@ final class OfflineStore: SyncStore {
         for entity in try context.fetch(FetchDescriptor<OutboxEntity>()) where ids.contains(entity.operationId) {
             entity.retryCount += 1
             let exponent = min(entity.retryCount - 1, 10)
-            let delay = min(retryBaseDelay * pow(2, Double(exponent)), 3_600)
+            let baseDelay = min(retryBaseDelay * pow(2, Double(exponent)), 300)
+            let delay = baseDelay * Double.random(in: 0.8...1.2)
             entity.nextRetryAt = now.addingTimeInterval(delay)
             entity.lastError = message
             entity.state = OutboxState.failed.rawValue
@@ -1270,42 +1353,49 @@ final class OfflineStore: SyncStore {
     }
 
     func applyRemotePage(_ page: PullPage, now: Date) async throws {
-        if let serverTime = page.serverTime { try calibrateClock(serverTime: serverTime, receivedAt: now) }
-        if let authoritativeClock = page.authoritativeClock {
-            if page.shouldAdoptAuthoritativeClock {
-                try adoptAuthoritativeClock(authoritativeClock, at: now)
-            } else {
-                try observeClock(authoritativeClock, at: now)
+        do {
+            if let serverTime = page.serverTime {
+                try calibrateClock(serverTime: serverTime, receivedAt: now)
             }
-        }
-        var snapshotSeen: Set<String>?
-        if page.mode == .snapshot {
-            snapshotSeen = try metadata()?.snapshotSeenData.map {
-                Set(try Self.decode([String].self, from: $0))
-            } ?? []
+            if let authoritativeClock = page.authoritativeClock {
+                if page.shouldAdoptAuthoritativeClock {
+                    try adoptAuthoritativeClock(authoritativeClock, at: now)
+                } else {
+                    try observeClock(authoritativeClock, at: now)
+                }
+            }
+            var snapshotSeen: Set<String>?
+            if page.mode == .snapshot {
+                snapshotSeen = try metadata()?.snapshotSeenData.map {
+                    Set(try Self.decode([String].self, from: $0))
+                } ?? []
+                for change in page.changes {
+                    snapshotSeen?.insert(Self.snapshotKey(type: change.entityType, id: change.entityId))
+                }
+            }
             for change in page.changes {
-                snapshotSeen?.insert(Self.snapshotKey(type: change.entityType, id: change.entityId))
+                try observeClock(change.maximumClock, at: now)
+                try apply(change)
             }
+            if page.mode == .snapshot, !page.hasMore, let snapshotSeen {
+                try hideCleanEntitiesMissingFromSnapshot(seen: snapshotSeen)
+            }
+            try updateMetadata(
+                cursor: page.nextCursor,
+                bootstrapCompleted: true,
+                serverTime: page.serverTime,
+                successfulSyncAt: now
+            )
+            if let metadata = try metadata() {
+                metadata.snapshotSeenData = page.mode == .snapshot && page.hasMore
+                    ? try Self.encode(Array(snapshotSeen ?? []).sorted())
+                    : nil
+            }
+            try context.save()
+        } catch {
+            context.rollback()
+            throw error
         }
-        for change in page.changes {
-            try observeClock(change.maximumClock, at: now)
-            try apply(change)
-        }
-        if page.mode == .snapshot, !page.hasMore, let snapshotSeen {
-            try hideCleanEntitiesMissingFromSnapshot(seen: snapshotSeen)
-        }
-        try updateMetadata(
-            cursor: page.nextCursor,
-            bootstrapCompleted: true,
-            serverTime: page.serverTime,
-            successfulSyncAt: now
-        )
-        if let metadata = try metadata() {
-            metadata.snapshotSeenData = page.mode == .snapshot && page.hasMore
-                ? try Self.encode(Array(snapshotSeen ?? []).sorted())
-                : nil
-        }
-        try context.save()
         try await cleanReadyAttachmentFiles()
     }
 
@@ -1445,6 +1535,15 @@ final class OfflineStore: SyncStore {
     }
 
     private func applyCalendarEvent(_ change: RemoteEntityChange) throws {
+        let startTime: Date?
+        if change.kind == .delete {
+            startTime = nil
+        } else {
+            guard let remoteStartTime = change.fields["startTime"]?.optionalDate else {
+                throw OfflineStoreError.corruptStoredValue("calendarEvent.startTime")
+            }
+            startTime = remoteStartTime
+        }
         let existing = try calendarEventEntity(id: change.entityId)
         let coupleId = try activeCoupleId()
         let remoteClocksData = try Self.encode(change.fieldClocks)
@@ -1455,7 +1554,7 @@ final class OfflineStore: SyncStore {
             title: change.fields["title"]?.optionalString ?? "",
             eventDescription: change.fields["description"]?.optionalString,
             allDay: change.fields["allDay"]?.optionalBoolean ?? false,
-            startTime: change.fields["startTime"]?.optionalDate ?? change.maximumClock.date,
+            startTime: startTime ?? change.maximumClock.date,
             endTime: change.fields["endTime"]?.optionalDate,
             timezone: change.fields["timezone"]?.optionalString ?? TimeZone.current.identifier,
             yearly: change.fields["yearly"]?.optionalBoolean ?? false,
@@ -1477,7 +1576,7 @@ final class OfflineStore: SyncStore {
                 if let value = change.fields["description"] { entity.eventDescription = value.optionalString }
             case "schedule":
                 if let value = change.fields["allDay"]?.optionalBoolean { entity.allDay = value }
-                if let value = change.fields["startTime"]?.optionalDate { entity.startTime = value }
+                if let startTime { entity.startTime = startTime }
                 if let value = change.fields["endTime"] { entity.endTime = value.optionalDate }
                 if let value = change.fields["timezone"]?.optionalString { entity.timezone = value }
                 if let value = change.fields["yearly"]?.optionalBoolean { entity.yearly = value }
@@ -2251,38 +2350,229 @@ final class OfflineStore: SyncStore {
         hlc: HybridLogicalTimestamp,
         now: Date
     ) throws {
-        let payloadData = try Self.encode(payload)
-        let overlapping = try context.fetch(FetchDescriptor<OutboxEntity>())
+        let existingOperations = try context.fetch(FetchDescriptor<OutboxEntity>())
             .filter {
                 $0.entityType == entityType.rawValue
                     && Self.identifiersEqual($0.entityId, entityId)
-                    && !Set($0.changedFieldGroups).isDisjoint(with: changedGroups)
             }
-            .max { $0.createdAt < $1.createdAt }
-        if let existing = overlapping,
-           existing.mutationKind == kind.rawValue,
-           existing.payloadData == payloadData,
-           Set(existing.changedFieldGroups) == changedGroups,
-           existing.state != OutboxState.sending.rawValue {
-            existing.state = OutboxState.pending.rawValue
-            existing.nextRetryAt = nil
-            existing.lastError = nil
-            existing.updatedAt = now
+
+        // An operation ID is an idempotency key. Once an outbox row exists we
+        // never change the bytes associated with that ID. Coalescing replaces
+        // operations that are provably unsent with a fresh immutable row.
+        func wasNeverSent(_ operation: OutboxEntity) -> Bool {
+            operation.state == OutboxState.pending.rawValue
+                && operation.retryCount == 0
+                && operation.lastError == nil
+                && operation.updatedAt == operation.createdAt
+        }
+
+        if kind == .update,
+           let rejected = existingOperations.first(where: {
+               $0.state == OutboxState.rejected.rawValue
+           }) {
+            let unsentUpdates = existingOperations.filter {
+                wasNeverSent($0) && $0.mutationKind == MutationKind.update.rawValue
+            }
+            let replacementKind: MutationKind = switch MutationKind(rawValue: rejected.mutationKind) {
+            case .create: .create
+            case .restore: .restore
+            default: .update
+            }
+            let replacementGroups = unsentUpdates.reduce(
+                Set(rejected.changedFieldGroups).union(changedGroups)
+            ) { partial, operation in
+                partial.union(operation.changedFieldGroups)
+            }
+            let rejectedPayload = try Self.decode(
+                LocalMutationPayload.self,
+                from: rejected.payloadData
+            )
+            var replacement = try completePayload(
+                entityType: entityType,
+                entityId: entityId,
+                fallbackAttachmentLocalIds: payload.attachmentLocalIds.isEmpty
+                    ? rejectedPayload.attachmentLocalIds
+                    : payload.attachmentLocalIds
+            ) ?? rejectedPayload
+            replacement.fields.merge(payload.fields) { _, latest in latest }
+            if changedGroups.contains("attachments") {
+                replacement.attachmentLocalIds = payload.attachmentLocalIds
+            }
+            context.delete(rejected)
+            for operation in unsentUpdates { context.delete(operation) }
+            try insertOutboxOperation(
+                entityType: entityType,
+                entityId: entityId,
+                kind: replacementKind,
+                payload: replacement,
+                changedGroups: replacementGroups,
+                hlc: hlc,
+                now: now,
+                existingOperations: existingOperations
+            )
             return
         }
+
+        if kind == .update,
+           let unsentCreate = existingOperations.first(where: {
+               $0.mutationKind == MutationKind.create.rawValue
+                   && wasNeverSent($0)
+           }) {
+            var createPayload = try Self.decode(
+                LocalMutationPayload.self,
+                from: unsentCreate.payloadData
+            )
+            createPayload.fields.merge(payload.fields) { _, updated in updated }
+            if changedGroups.contains("attachments") {
+                createPayload.attachmentLocalIds = payload.attachmentLocalIds
+            }
+            let mergedGroups = Set(unsentCreate.changedFieldGroups).union(changedGroups)
+            context.delete(unsentCreate)
+            try insertOutboxOperation(
+                entityType: entityType,
+                entityId: entityId,
+                kind: .create,
+                payload: createPayload,
+                changedGroups: mergedGroups,
+                hlc: hlc,
+                now: now,
+                existingOperations: existingOperations
+            )
+            return
+        }
+
+        let latestImmutableDate = existingOperations
+            .filter { !wasNeverSent($0) }
+            .map(\.createdAt)
+            .max()
+        let mergeCandidate = existingOperations
+            .filter {
+                $0.mutationKind == kind.rawValue
+                    && wasNeverSent($0)
+                    && (latestImmutableDate == nil || $0.createdAt > latestImmutableDate!)
+            }
+            .max { $0.createdAt < $1.createdAt }
+        if kind == .update, let existing = mergeCandidate {
+            var merged = try Self.decode(LocalMutationPayload.self, from: existing.payloadData)
+            merged.fields.merge(payload.fields) { _, updated in updated }
+            if changedGroups.contains("attachments") {
+                merged.attachmentLocalIds = payload.attachmentLocalIds
+            }
+            let mergedGroups = Set(existing.changedFieldGroups).union(changedGroups)
+            context.delete(existing)
+            try insertOutboxOperation(
+                entityType: entityType,
+                entityId: entityId,
+                kind: .update,
+                payload: merged,
+                changedGroups: mergedGroups,
+                hlc: hlc,
+                now: now,
+                existingOperations: existingOperations
+            )
+            return
+        }
+
+        try insertOutboxOperation(
+            entityType: entityType,
+            entityId: entityId,
+            kind: kind,
+            payload: payload,
+            changedGroups: changedGroups,
+            hlc: hlc,
+            now: now,
+            existingOperations: existingOperations
+        )
+    }
+
+    private func insertOutboxOperation(
+        entityType: SyncEntityType,
+        entityId: String,
+        kind: MutationKind,
+        payload: LocalMutationPayload,
+        changedGroups: Set<String>,
+        hlc: HybridLogicalTimestamp,
+        now: Date,
+        existingOperations: [OutboxEntity]
+    ) throws {
+        let latestCreatedAt = existingOperations.map(\.createdAt).max()
+        let createdAt = latestCreatedAt.map {
+            max(now, $0.addingTimeInterval(0.000_001))
+        } ?? now
         context.insert(
             OutboxEntity(
                 operationId: UUID().uuidString.lowercased(),
                 entityType: entityType.rawValue,
                 entityId: entityId,
                 mutationKind: kind.rawValue,
-                payloadData: payloadData,
+                payloadData: try Self.encode(payload),
                 changedFieldGroups: changedGroups.sorted(),
                 hlcData: try Self.encode(hlc),
-                createdAt: now,
-                updatedAt: now
+                createdAt: createdAt,
+                updatedAt: createdAt
             )
         )
+    }
+
+    private func completePayload(
+        entityType: SyncEntityType,
+        entityId: String,
+        fallbackAttachmentLocalIds: [String]
+    ) throws -> LocalMutationPayload? {
+        var result: LocalMutationPayload?
+        switch entityType {
+        case .todo:
+            result = try todoEntity(id: entityId).map(todoPayload)
+        case .anniversary:
+            result = try anniversaryEntity(id: entityId).map(anniversaryPayload)
+        case .calendarEvent:
+            result = try calendarEventEntity(id: entityId).map(calendarPayload)
+        case .memory:
+            result = try memoryEntity(id: entityId).map(memoryPayload)
+        case .timeline:
+            result = try timelineEntity(id: entityId).map(timelinePayload)
+        case .attachment:
+            return nil
+        }
+        guard var result else { return nil }
+        if entityType == .memory || entityType == .timeline {
+            let localIds = try attachmentEntities(parentId: entityId)
+                .filter { !$0.isTombstoned && $0.localRelativePath != nil }
+                .sorted { $0.sortOrder < $1.sortOrder }
+                .map(\.id)
+            result.attachmentLocalIds = localIds.isEmpty
+                ? fallbackAttachmentLocalIds
+                : localIds
+        }
+        return result
+    }
+
+    private func causallyOrderedOutboxEntities() throws -> [OutboxEntity] {
+        try context.fetch(FetchDescriptor<OutboxEntity>())
+            .map { entity in
+                (entity, try Self.decode(HybridLogicalTimestamp.self, from: entity.hlcData))
+            }
+            .sorted { lhs, rhs in
+                if lhs.1 != rhs.1 { return lhs.1 < rhs.1 }
+                let lhsPriority = Self.mutationPriority(lhs.0.mutationKind)
+                let rhsPriority = Self.mutationPriority(rhs.0.mutationKind)
+                if lhsPriority != rhsPriority { return lhsPriority < rhsPriority }
+                return lhs.0.operationId < rhs.0.operationId
+            }
+            .map { $0.0 }
+    }
+
+    private static func outboxEntityKey(_ entity: OutboxEntity) -> String {
+        "\(entity.entityType):\(entity.entityId.lowercased())"
+    }
+
+    private static func mutationPriority(_ rawValue: String) -> Int {
+        switch MutationKind(rawValue: rawValue) {
+        case .create, .restore: 0
+        case .update: 1
+        case .delete: 2
+        case nil: 3
+        }
     }
 
     private func mapOperation(_ entity: OutboxEntity) throws -> PendingOperation {
@@ -2452,6 +2742,24 @@ final class OfflineStore: SyncStore {
     private func metadata() throws -> SyncMetadataEntity? {
         try context.fetch(FetchDescriptor<SyncMetadataEntity>())
             .first(where: { $0.scopeId == Self.activeScope })
+    }
+
+    private func prepareSyncContractMigrations() throws {
+        let metadataRows = try context.fetch(FetchDescriptor<SyncMetadataEntity>())
+        guard !metadataRows.contains(where: {
+            $0.scopeId == Self.timestampWireFormatMigrationScope
+        }) else { return }
+
+        if let activeMetadata = metadataRows.first(where: { $0.scopeId == Self.activeScope }) {
+            activeMetadata.cursor = nil
+            activeMetadata.bootstrapCompleted = false
+            activeMetadata.snapshotSeenData = nil
+        }
+        context.insert(SyncMetadataEntity(
+            scopeId: Self.timestampWireFormatMigrationScope,
+            bootstrapCompleted: true
+        ))
+        try context.save()
     }
 
     private func updateMetadata(
@@ -2651,6 +2959,8 @@ final class OfflineStore: SyncStore {
             "dueTime": entity.dueTime.map(MutationValue.date) ?? .null,
             "visibility": .string(entity.visibility),
             "completed": .boolean(entity.completed),
+            "completedAt": entity.completedAt.map(MutationValue.date) ?? .null,
+            "completedBy": entity.completedBy.map(MutationValue.string) ?? .null,
             "reminderEnabled": .boolean(entity.reminderEnabled),
             "reminderOffset": entity.reminderOffset.map(MutationValue.integer) ?? .null,
             "reminderLocalTime": entity.reminderLocalTime.map(MutationValue.string) ?? .null,

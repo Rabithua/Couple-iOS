@@ -110,6 +110,72 @@ struct AppStoreTests {
         #expect(SampleData.notes.allSatisfy { $0.hasRecordContent })
     }
 
+    @Test("Anniversary icons match birthdays and a small set of occasion themes")
+    func anniversaryIconsMatchOccasionThemes() {
+        #expect(Anniversary.systemImageName(for: "我们的纪念日") == "party.popper.fill")
+        #expect(Anniversary.systemImageName(for: "长野的生日") == "birthday.cake.fill")
+        #expect(Anniversary.systemImageName(for: "结婚旅行") == "heart.circle.fill")
+        #expect(Anniversary.systemImageName(for: "第一次见面") == "sparkles")
+        #expect(Anniversary.systemImageName(for: "清迈旅行") == "airplane")
+        #expect(Anniversary.systemImageName(for: "小狗到家") == "pawprint.fill")
+        #expect(Anniversary.systemImageName(for: "搬进新家") == "house.fill")
+        #expect(Anniversary.systemImageName(for: "毕业快乐") == "graduationcap.fill")
+        #expect(Anniversary.systemImageName(for: "第一次吃火锅") == "fork.knife")
+
+        var systemBirthday = SampleData.anniversary
+        systemBirthday.title = "程袭"
+        systemBirthday.systemKind = "birthday"
+        #expect(systemBirthday.systemImageName == "birthday.cake.fill")
+    }
+
+    @Test("Exiting an in-app preview restores cached account data")
+    func previewSessionRestoresCachedAccount() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appending(path: "PreviewSessionTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let offline = try OfflineStore.makeInMemory(attachmentRoot: root)
+        try offline.saveSession(
+            user: SampleData.user,
+            relationship: SampleData.relationship,
+            home: SampleData.unpairedHome
+        )
+        let api = APIClient(
+            baseURL: URL(string: "https://offline.invalid/v1/api")!,
+            session: AlwaysOfflineHTTPSession(),
+            keychain: KeychainStore(
+                service: "couple-tests-\(UUID().uuidString)",
+                persistenceEnabled: false
+            )
+        )
+        try await api.install(tokens: TokenPair(accessToken: "access", refreshToken: "refresh"))
+        let store = AppStore(
+            api: api,
+            offlineStore: offline,
+            environment: [:],
+            arguments: ["CoupleTests"]
+        )
+
+        await store.start()
+        #expect(store.phase == .main)
+        #expect(store.home?.daysTogether == 0)
+        #expect(store.notes.isEmpty)
+
+        await store.enterPreview()
+        #expect(store.isDemo)
+        #expect(store.isPreviewSession)
+        #expect(store.home?.daysTogether == SampleData.home.daysTogether)
+        #expect(!store.notes.isEmpty)
+
+        await store.exitPreview()
+        #expect(!store.isDemo)
+        #expect(!store.isPreviewSession)
+        #expect(store.phase == .main)
+        #expect(store.home?.daysTogether == 0)
+        #expect(store.notes.isEmpty)
+        #expect(await api.hasStoredSession)
+        await api.clearSession()
+    }
+
     @Test("Unpaired home demo exposes its invite and empty content")
     func unpairedHomeDemoState() async {
         let store = AppStore(
@@ -297,6 +363,70 @@ struct AppStoreTests {
         #expect(store.home?.daysTogether == expectedDays)
     }
 
+    @Test("Refreshing shared content also receives a partner's relationship date change")
+    func refreshContentUpdatesRelationshipSummary() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appending(path: "RelationshipRefreshTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let offline = try OfflineStore.makeInMemory(attachmentRoot: root)
+        let staleRelationship = SampleData.relationship
+        let staleHome = SampleData.home
+        try offline.saveSession(
+            user: SampleData.user,
+            relationship: staleRelationship,
+            home: staleHome
+        )
+
+        var refreshedCouple = try #require(staleRelationship.couple)
+        refreshedCouple.startedOn = "2026-08-01"
+        let refreshedRelationship = RelationshipStatus(
+            couple: refreshedCouple,
+            members: staleRelationship.members,
+            pendingInvite: staleRelationship.pendingInvite
+        )
+        let refreshedHome = HomeData(
+            daysTogether: 21,
+            nextAnniversary: staleHome.nextAnniversary,
+            nextUpcoming: staleHome.nextUpcoming,
+            latestTimelineEntry: staleHome.latestTimelineEntry
+        )
+        let session = RelationshipRefreshHTTPSession(
+            relationship: refreshedRelationship,
+            home: refreshedHome
+        )
+        let api = APIClient(
+            baseURL: URL(string: "https://example.com/v1/api")!,
+            session: session,
+            keychain: KeychainStore(
+                service: "couple-tests-\(UUID().uuidString)",
+                persistenceEnabled: false
+            )
+        )
+        try await api.install(tokens: TokenPair(accessToken: "access", refreshToken: "refresh"))
+        let store = AppStore(
+            api: api,
+            offlineStore: offline,
+            syncTransport: EmptySyncTransport(),
+            environment: [:],
+            arguments: ["CoupleTests"]
+        )
+        store.currentUser = SampleData.user
+        store.relationship = staleRelationship
+        store.home = staleHome
+        store.phase = .main
+
+        await store.refreshContent()
+
+        #expect(store.relationship?.couple?.startedOn == "2026-08-01")
+        #expect(store.home?.daysTogether == 21)
+        let cached = try #require(try offline.cachedSession())
+        #expect(cached.relationship.couple?.startedOn == "2026-08-01")
+        #expect(cached.home?.daysTogether == 21)
+        #expect(await session.requestCount(for: "/v1/api/couples/status") == 1)
+        #expect(await session.requestCount(for: "/v1/api/home") == 1)
+        await api.clearSession()
+    }
+
     @Test("Interrupted space cleanup is completed before a session can open")
     func interruptedSpaceCleanupRecoversBeforeOpeningSession() async throws {
         let root = FileManager.default.temporaryDirectory
@@ -366,5 +496,67 @@ private actor AlwaysOfflineHTTPSession: HTTPSession {
 
     func upload(for request: URLRequest, from bodyData: Data) async throws -> (Data, URLResponse) {
         throw URLError(.notConnectedToInternet)
+    }
+}
+
+private actor EmptySyncTransport: SyncTransport {
+    func exchange(
+        cursor: String?,
+        operations: [PendingOperation],
+        limit: Int
+    ) async throws -> SyncExchange {
+        SyncExchange(
+            acknowledgedOperationIds: Set(operations.map(\.operationId)),
+            page: PullPage(
+                changes: [],
+                nextCursor: cursor,
+                hasMore: false,
+                serverTime: .now
+            )
+        )
+    }
+}
+
+private actor RelationshipRefreshHTTPSession: HTTPSession {
+    private let responses: [String: Data]
+    private var requestCounts: [String: Int] = [:]
+
+    init(relationship: RelationshipStatus, home: HomeData) {
+        responses = [
+            "/v1/api/couples/status": Self.envelope(relationship),
+            "/v1/api/home": Self.envelope(home),
+        ]
+    }
+
+    func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+        guard let url = request.url,
+              let data = responses[url.path],
+              let response = HTTPURLResponse(
+                url: url,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+              ) else {
+            throw APIError.invalidResponse
+        }
+        requestCounts[url.path, default: 0] += 1
+        return (data, response)
+    }
+
+    func upload(for request: URLRequest, from bodyData: Data) async throws -> (Data, URLResponse) {
+        try await data(for: request)
+    }
+
+    func requestCount(for path: String) -> Int {
+        requestCounts[path, default: 0]
+    }
+
+    private static func envelope<Value: Encodable>(_ value: Value) -> Data {
+        let data = try? JSONSerialization.data(withJSONObject: [
+            "code": 0,
+            "message": "ok",
+            "data": JSONSerialization.jsonObject(with: APIClient.encoder.encode(value)),
+        ])
+        return data ?? Data()
     }
 }

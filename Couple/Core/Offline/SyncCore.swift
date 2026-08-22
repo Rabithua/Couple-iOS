@@ -179,6 +179,8 @@ enum SyncTrigger: String, Sendable {
     case networkRestored
     case manual
     case retry
+    case localWrite
+    case poll
 }
 
 enum SyncRunResult: Equatable, Sendable {

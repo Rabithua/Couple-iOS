@@ -52,6 +52,11 @@
 		360A604E289ACEC73CC7CEF7 /* HybridLogicalClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = C97B0B1BE123B2CDABD8416F /* HybridLogicalClock.swift */; };
 		394B76E4CC261830CD6B9C3F /* PhotoPreviewTransitionImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 696410A2ECD147B2E1A6EC81 /* PhotoPreviewTransitionImage.swift */; };
 		3B39692EB3FF3E55873ABADD /* OfflineStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44DBA5B163A90AAA086D385C /* OfflineStore.swift */; };
+		D2F100000000000000000001 /* UnsyncedContentIDs.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2F100000000000000000002 /* UnsyncedContentIDs.swift */; };
+		D2F100000000000000000003 /* UnsyncedPulseModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2F100000000000000000004 /* UnsyncedPulseModifier.swift */; };
+		D2F200000000000000000001 /* SyncToastNotice.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2F200000000000000000002 /* SyncToastNotice.swift */; };
+		D2F200000000000000000003 /* SyncToastHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2F200000000000000000004 /* SyncToastHost.swift */; };
+		D2F200000000000000000005 /* Toasts in Frameworks */ = {isa = PBXBuildFile; productRef = D2F200000000000000000006 /* Toasts */; };
 		3CADA5F144CA5455F43B02E4 /* PastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33D4839F23CF0F830401E804 /* PastView.swift */; };
 		402E857575BFA75588152F86 /* NewTodoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3950B5B300C206EBA7D6F45B /* NewTodoView.swift */; };
 		419F2E16BC943623B6CDEE8B /* AppHaptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6300E503D7463C62D9897D82 /* AppHaptics.swift */; };
@@ -65,6 +70,7 @@
 		E1A7C3D95B6F4280A4E9C2D7 /* TodoCheckboxSymbol.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2B8D4EA6C704391B5FAC3E8 /* TodoCheckboxSymbol.swift */; };
 		57A3A270851D4BEC63F80896 /* TodoListRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1278F189711A3165F87E3EF /* TodoListRow.swift */; };
 		58326B25C993CD986092B2AA /* OfflineSyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE2ECDEDCFB3D956F1518170 /* OfflineSyncTests.swift */; };
+		D3B100000000000000000001 /* SyncV2Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3B100000000000000000002 /* SyncV2Tests.swift */; };
 		599AC49C54505C142871D1F7 /* DateSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC2C36B0FC87FE8DD80A4C77 /* DateSupport.swift */; };
 		5A1E09BD2AFC0ECDDFF4B775 /* PhotoPreviewZoomStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D1B30336555F77BD9A5DE9 /* PhotoPreviewZoomStateTests.swift */; };
 		5C0043E59EB5E55E05A7DB3E /* DesignTopEdgeBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8F1C53D0FDBEB509E809E1 /* DesignTopEdgeBackground.swift */; };
@@ -92,6 +98,7 @@
 		D0AA00000000000000000003 /* ViewFrameStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0AB00000000000000000003 /* ViewFrameStore.swift */; };
 		D0AA00000000000000000004 /* AttachmentImageDecoderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0AB00000000000000000004 /* AttachmentImageDecoderTests.swift */; };
 		A0B6F8756DE99A9546949193 /* CalendarDayCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4C88F117877FCBFCB92C847 /* CalendarDayCell.swift */; };
+		A0B6F8756DE99A9546949194 /* CalendarDayIndicators.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4C88F117877FCBFCB92C848 /* CalendarDayIndicators.swift */; };
 		A1956724BAA6C906CF61D659 /* CoupleCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2E621C211BFD180A01C07A6 /* CoupleCoreTests.swift */; };
 		F07010CA7100000000000004 /* PhotoLocationExtractorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F07010CA7100000000000003 /* PhotoLocationExtractorTests.swift */; };
 		A305144BE24908FBE2BB7292 /* APIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E89908416DD57B054D3992A8 /* APIService.swift */; };
@@ -103,6 +110,9 @@
 		B8F6E5EDFDAAC36669A60F3C /* APIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D92E27D0F4E19EAD8037A78 /* APIModels.swift */; };
 		B9A6450A2D9A3F856CC7CD85 /* SampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53AF261A9D87E6EEB78399C8 /* SampleData.swift */; };
 		B9B0F1229A94B3B8237AB9F4 /* SyncV1Transport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C749A3E0D1E4A6C29893A13 /* SyncV1Transport.swift */; };
+		D3A100000000000000000001 /* SyncV2Transport.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A100000000000000000002 /* SyncV2Transport.swift */; };
+		D3A100000000000000000003 /* SyncRepositoryV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A100000000000000000004 /* SyncRepositoryV2.swift */; };
+		D3A100000000000000000005 /* SyncEngineV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A100000000000000000006 /* SyncEngineV2.swift */; };
 		BF07FAB9E9E4BA3152BB2A5F /* MainPagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79B2058D10B1619A09A3B483 /* MainPagerView.swift */; };
 		C1536A7567795BE922FD71C4 /* TodoCompletionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 048B64F77D7BAE239A747450 /* TodoCompletionTests.swift */; };
 		C21ACD7727EAF71F3AF521A5 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47574B845991BEF80EED047B /* AppTheme.swift */; };
@@ -177,6 +187,8 @@
 		3950B5B300C206EBA7D6F45B /* NewTodoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTodoView.swift; sourceTree = "<group>"; };
 		3A2866D154195C5512195AB8 /* NewAnniversaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewAnniversaryView.swift; sourceTree = "<group>"; };
 		44DBA5B163A90AAA086D385C /* OfflineStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineStore.swift; sourceTree = "<group>"; };
+		D2F100000000000000000002 /* UnsyncedContentIDs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnsyncedContentIDs.swift; sourceTree = "<group>"; };
+		D2F200000000000000000002 /* SyncToastNotice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncToastNotice.swift; sourceTree = "<group>"; };
 		47574B845991BEF80EED047B /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		49C3EC2F15D5BFE2BDB0C781 /* CoupleJourneyUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoupleJourneyUITests.swift; sourceTree = "<group>"; };
 		49D779C659FFA44AF6FD0E2F /* TodoDisplayOrder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoDisplayOrder.swift; sourceTree = "<group>"; };
@@ -185,6 +197,8 @@
 		4D92E27D0F4E19EAD8037A78 /* APIModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIModels.swift; sourceTree = "<group>"; };
 		4EA30C1031DF107336DF7DE9 /* NewCalendarEventView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewCalendarEventView.swift; sourceTree = "<group>"; };
 		4FCD593DB9E8685FBCA89140 /* DesignDecorations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignDecorations.swift; sourceTree = "<group>"; };
+		D2F100000000000000000004 /* UnsyncedPulseModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnsyncedPulseModifier.swift; sourceTree = "<group>"; };
+		D2F200000000000000000004 /* SyncToastHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncToastHost.swift; sourceTree = "<group>"; };
 		50596DF5A601C0ED43F906B8 /* PhotoPreviewPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewPage.swift; sourceTree = "<group>"; };
 		53AF261A9D87E6EEB78399C8 /* SampleData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleData.swift; sourceTree = "<group>"; };
 		53D1B30336555F77BD9A5DE9 /* PhotoPreviewZoomStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewZoomStateTests.swift; sourceTree = "<group>"; };
@@ -216,6 +230,9 @@
 		92CB2E0E9EAEF62E918A70E1 /* PhotoPreviewHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewHost.swift; sourceTree = "<group>"; };
 		95CA78F3316077DE991304C8 /* CoupleTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = CoupleTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9C749A3E0D1E4A6C29893A13 /* SyncV1Transport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncV1Transport.swift; sourceTree = "<group>"; };
+		D3A100000000000000000002 /* SyncV2Transport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncV2Transport.swift; sourceTree = "<group>"; };
+		D3A100000000000000000004 /* SyncRepositoryV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncRepositoryV2.swift; sourceTree = "<group>"; };
+		D3A100000000000000000006 /* SyncEngineV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncEngineV2.swift; sourceTree = "<group>"; };
 		A499C009D370664DF245EB08 /* TodoListDisplayOrderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoListDisplayOrderTests.swift; sourceTree = "<group>"; };
 		A9C27A244961E86B2E0B0510 /* DesignTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTabBar.swift; sourceTree = "<group>"; };
 		AD3FB7ACAC3C260B3FDE3EE9 /* MainPagerRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainPagerRoute.swift; sourceTree = "<group>"; };
@@ -223,6 +240,7 @@
 		B232DEE9E341C8C947453B12 /* PhotoPreviewSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewSource.swift; sourceTree = "<group>"; };
 		B43D624952C3975E9582E261 /* PhotoPreviewTransitionStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewTransitionStyle.swift; sourceTree = "<group>"; };
 		B4C88F117877FCBFCB92C847 /* CalendarDayCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarDayCell.swift; sourceTree = "<group>"; };
+		B4C88F117877FCBFCB92C848 /* CalendarDayIndicators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarDayIndicators.swift; sourceTree = "<group>"; };
 		BA03DF9BC1CC5105C17BCC9E /* PhotoFlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoFlowLayout.swift; sourceTree = "<group>"; };
 		C0D3F0020000000000000001 /* JustifiedAttachmentFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JustifiedAttachmentFlow.swift; sourceTree = "<group>"; };
 		C0D3F0020000000000000002 /* JustifiedPhotoLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JustifiedPhotoLayout.swift; sourceTree = "<group>"; };
@@ -248,6 +266,7 @@
 		D0AB00000000000000000003 /* ViewFrameStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewFrameStore.swift; sourceTree = "<group>"; };
 		D0AB00000000000000000004 /* AttachmentImageDecoderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentImageDecoderTests.swift; sourceTree = "<group>"; };
 		DA12ABDCC12F47B0103421D7 /* SyncV1DTOTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncV1DTOTests.swift; sourceTree = "<group>"; };
+		D3B100000000000000000002 /* SyncV2Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncV2Tests.swift; sourceTree = "<group>"; };
 		E48EA09FE1EA460E19604BE4 /* Couple.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Couple.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E728E9791F235E108CB45A5B /* AppHapticFeedbackModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHapticFeedbackModifier.swift; sourceTree = "<group>"; };
 		E89908416DD57B054D3992A8 /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService.swift; sourceTree = "<group>"; };
@@ -257,6 +276,17 @@
 		F3FB2704D6C3AB2DBA8DE11F /* PairingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingView.swift; sourceTree = "<group>"; };
 		FBD9ABB86485717A9666AAA1 /* PhotoPreviewPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewPresentation.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D2F200000000000000000008 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D2F200000000000000000005 /* Toasts in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		052F93C612A32AC36DE714CE /* Models */ = {
@@ -286,6 +316,7 @@
 			children = (
 				EE2ECDEDCFB3D956F1518170 /* OfflineSyncTests.swift */,
 				DA12ABDCC12F47B0103421D7 /* SyncV1DTOTests.swift */,
+				D3B100000000000000000002 /* SyncV2Tests.swift */,
 				048B64F77D7BAE239A747450 /* TodoCompletionTests.swift */,
 			);
 			path = Offline;
@@ -315,6 +346,7 @@
 				3E7A91C5B4D24F6081A9E2C7 /* CalendarAgendaBackgroundShape.swift */,
 				0D7B4CB9E2F7481AA30C6D95 /* CalendarDayAgendaView.swift */,
 				B4C88F117877FCBFCB92C847 /* CalendarDayCell.swift */,
+				B4C88F117877FCBFCB92C848 /* CalendarDayIndicators.swift */,
 				C4A110000000000000000002 /* CalendarMonthHeaderPositionsPreferenceKey.swift */,
 				60734C7C5F8A39BEA866997C /* CalendarMonthView.swift */,
 				C4A120000000000000000002 /* CalendarScrollTarget.swift */,
@@ -384,6 +416,8 @@
 				D0AB00000000000000000001 /* AttachmentImageDecoder.swift */,
 				68F57A3CA83DDC65731106BA /* DeferredTodoCompletionRow.swift */,
 				4FCD593DB9E8685FBCA89140 /* DesignDecorations.swift */,
+				D2F200000000000000000004 /* SyncToastHost.swift */,
+				D2F100000000000000000004 /* UnsyncedPulseModifier.swift */,
 				866943AD76A71CCBB22D0F38 /* DesignNavigationContainer.swift */,
 				A9C27A244961E86B2E0B0510 /* DesignTabBar.swift */,
 				4B8F1C53D0FDBEB509E809E1 /* DesignTopEdgeBackground.swift */,
@@ -589,8 +623,13 @@
 				C97B0B1BE123B2CDABD8416F /* HybridLogicalClock.swift */,
 				862492117B1F02A0757AD9D4 /* OfflineModels.swift */,
 				44DBA5B163A90AAA086D385C /* OfflineStore.swift */,
+				D2F200000000000000000002 /* SyncToastNotice.swift */,
+				D2F100000000000000000002 /* UnsyncedContentIDs.swift */,
 				7A81E42508F7E7D0194DD054 /* SyncCore.swift */,
 				9C749A3E0D1E4A6C29893A13 /* SyncV1Transport.swift */,
+				D3A100000000000000000002 /* SyncV2Transport.swift */,
+				D3A100000000000000000004 /* SyncRepositoryV2.swift */,
+				D3A100000000000000000006 /* SyncEngineV2.swift */,
 			);
 			path = Offline;
 			sourceTree = "<group>";
@@ -697,6 +736,7 @@
 			buildConfigurationList = 6BC41166AF63AEC4F67B15AF /* Build configuration list for PBXNativeTarget "Couple" */;
 			buildPhases = (
 				AF9648922D377AF354981A60 /* Sources */,
+				D2F200000000000000000008 /* Frameworks */,
 				C09B62E2FA8398B1C5F642D0 /* Resources */,
 			);
 			buildRules = (
@@ -705,6 +745,7 @@
 			);
 			name = Couple;
 			packageProductDependencies = (
+				D2F200000000000000000006 /* Toasts */,
 			);
 			productName = Couple;
 			productReference = E48EA09FE1EA460E19604BE4 /* Couple.app */;
@@ -743,6 +784,9 @@
 			);
 			mainGroup = 646713B2FC7645B41AB578AA;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				D2F200000000000000000007 /* XCRemoteSwiftPackageReference "swiftui-toasts" */,
+			);
 			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
@@ -799,6 +843,7 @@
 				D1A100000000000000000009 /* CalendarAgendaAnniversaryRow.swift in Sources */,
 				8C4F1A9B6D2E47C18A3F905B /* CalendarAgendaBackgroundShape.swift in Sources */,
 				A0B6F8756DE99A9546949193 /* CalendarDayCell.swift in Sources */,
+				A0B6F8756DE99A9546949194 /* CalendarDayIndicators.swift in Sources */,
 				1B173057AC6DE16C0FB72E4A /* CalendarMonthView.swift in Sources */,
 				C4A110000000000000000001 /* CalendarMonthHeaderPositionsPreferenceKey.swift in Sources */,
 				C4A120000000000000000001 /* CalendarScrollTarget.swift in Sources */,
@@ -811,6 +856,8 @@
 				599AC49C54505C142871D1F7 /* DateSupport.swift in Sources */,
 				9A36D123731CC365037CADB7 /* DeferredTodoCompletionRow.swift in Sources */,
 				87796C37918793070E77674B /* DesignDecorations.swift in Sources */,
+				D2F200000000000000000003 /* SyncToastHost.swift in Sources */,
+				D2F100000000000000000003 /* UnsyncedPulseModifier.swift in Sources */,
 				E1A7C3D95B6F4280A4E9C2D7 /* TodoCheckboxSymbol.swift in Sources */,
 				27109272F0CE02067665ADB8 /* DesignNavigationContainer.swift in Sources */,
 				279DE5398D791DA53A47BE5B /* DesignTabBar.swift in Sources */,
@@ -830,6 +877,8 @@
 				F1A2B3C4D5E6F70809101112 /* HomeInviteRow.swift in Sources */,
 				55BF5D05D162644DB032EB6E /* OfflineModels.swift in Sources */,
 				3B39692EB3FF3E55873ABADD /* OfflineStore.swift in Sources */,
+				D2F200000000000000000001 /* SyncToastNotice.swift in Sources */,
+				D2F100000000000000000001 /* UnsyncedContentIDs.swift in Sources */,
 				71563E98015D90C644CF9E7E /* PairingView.swift in Sources */,
 				D1A100000000000000000005 /* NotificationCoordinator.swift in Sources */,
 				D1A100000000000000000003 /* NotificationDestination.swift in Sources */,
@@ -858,6 +907,9 @@
 				E4003FD6B3C8C7E22658C499 /* SettingsView.swift in Sources */,
 				C8029A9F3E617AF01677C912 /* SyncCore.swift in Sources */,
 				B9B0F1229A94B3B8237AB9F4 /* SyncV1Transport.swift in Sources */,
+				D3A100000000000000000001 /* SyncV2Transport.swift in Sources */,
+				D3A100000000000000000003 /* SyncRepositoryV2.swift in Sources */,
+				D3A100000000000000000005 /* SyncEngineV2.swift in Sources */,
 				5744B0F6700EF8FEC5F3BD9B /* TodoCompletionStrike.swift in Sources */,
 				C5F4A9D8E7B64102A3C5D6E7 /* TodoCompletionInteraction.swift in Sources */,
 				065A75575DE29369DFFEFFAB /* TodoDisplayOrder.swift in Sources */,
@@ -893,6 +945,7 @@
 				C4A120000000000000000003 /* CalendarScrollTargetTests.swift in Sources */,
 				8AC6AF88130095C101AF1471 /* ReviewFeedbackTests.swift in Sources */,
 				E38BB36A3D77587B744FEE90 /* SyncV1DTOTests.swift in Sources */,
+				D3B100000000000000000001 /* SyncV2Tests.swift in Sources */,
 				C1536A7567795BE922FD71C4 /* TodoCompletionTests.swift in Sources */,
 				F325DB5E85A378D954EA9376 /* TodoDisplayOrderTests.swift in Sources */,
 				26DADC0E9BFDB1AE16E63C93 /* TodoListDisplayOrderTests.swift in Sources */,
@@ -1003,7 +1056,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.oursince.couple;
 				PRODUCT_NAME = Couple;
-				PROVISIONING_PROFILE_SPECIFIER = "Oursince Couple Development Huawei Air Push 20260820";
+				PROVISIONING_PROFILE_SPECIFIER = "Oursince Couple Development Available Devices Push 20260822";
 				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_STRICT_CONCURRENCY = complete;
@@ -1220,6 +1273,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		D2F200000000000000000007 /* XCRemoteSwiftPackageReference "swiftui-toasts" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Rabithua/swiftui-toasts.git";
+			requirement = {
+				kind = exactVersion;
+				version = 1.2.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D2F200000000000000000006 /* Toasts */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D2F200000000000000000007 /* XCRemoteSwiftPackageReference "swiftui-toasts" */;
+			productName = Toasts;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 40C4CA05813ACAD0858EC2DE /* Project object */;
 }

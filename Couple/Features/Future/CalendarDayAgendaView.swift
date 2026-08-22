@@ -10,6 +10,7 @@ struct CalendarDayAgendaView: View {
     let events: [CalendarEvent]
     let todos: [Todo]
     let anniversaries: [Anniversary]
+    let unsyncedContent: UnsyncedContentIDs
     let highlightedAnniversaryID: String?
     let createEvent: @MainActor (Date) -> Void
     let createAnniversary: @MainActor (Date) -> Void
@@ -42,6 +43,7 @@ struct CalendarDayAgendaView: View {
                     isHighlighted: anniversary.id == highlightedAnniversaryID,
                     open: { open(anniversary) }
                 )
+                .unsyncedPulse(unsyncedContent.contains(anniversary))
                 .anniversaryContentActions(
                     anniversary,
                     editAction: { editAnniversary(anniversary) },
@@ -62,6 +64,7 @@ struct CalendarDayAgendaView: View {
                     .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
+                .unsyncedPulse(unsyncedContent.contains(event))
                 .editableContentActions(
                     deletionTitle: AppLocalization.string("deleteEventConfirmation",
                         defaultValue: "删除日程“\(event.title)”？"
@@ -80,6 +83,7 @@ struct CalendarDayAgendaView: View {
                     setCompletion: setTodoCompletion,
                     open: { editTodo(todo) }
                 )
+                .unsyncedPulse(unsyncedContent.contains(todo))
                 .editableContentActions(
                     deletionTitle: AppLocalization.string("deleteTodoConfirmation",
                         defaultValue: "删除清单“\(todo.title)”？"
@@ -103,7 +107,7 @@ struct CalendarDayAgendaView: View {
                 .accessibilityIdentifier("calendarAgendaNewEventButton")
 
                 Button(action: beginCreatingAnniversary) {
-                    Label("新建纪念日", systemImage: "birthday.cake")
+                    Label("新建纪念日", systemImage: "party.popper.fill")
                         .font(.subheadline.bold())
                         .foregroundStyle(AppTheme.muted)
                         .padding(.horizontal, 10)

@@ -42,8 +42,10 @@ struct PastPageView: View {
                     AssociatedNoteRow(
                         note: note,
                         association: association,
+                        symbol: associationSymbol(for: association),
                         previewGroupID: previewGroupID(for: note)
                     )
+                        .unsyncedPulse(store.unsyncedContent.contains(note))
                         .editableContentActions(
                             deletionTitle: AppLocalization.string("删除这条动态？"),
                             editAction: { editingNote = note },
@@ -54,6 +56,7 @@ struct PastPageView: View {
                         note: note,
                         previewGroupID: previewGroupID(for: note)
                     )
+                        .unsyncedPulse(store.unsyncedContent.contains(note))
                         .editableContentActions(
                             deletionTitle: AppLocalization.string("删除这条动态？"),
                             editAction: { editingNote = note },
@@ -82,6 +85,7 @@ struct PastPageView: View {
                             attachments: note.attachments.filter(\.isImage),
                             previewGroupID: previewGroupID(for: note)
                         )
+                            .unsyncedPulse(store.unsyncedContent.contains(note))
                             .editableContentActions(
                                 deletionTitle: AppLocalization.string("删除这条动态及其中照片？"),
                                 editAction: { editingNote = note },
@@ -105,6 +109,7 @@ struct PastPageView: View {
                         )
                             .font(AppTheme.titleFont())
                     }
+                    .unsyncedPulse(store.unsyncedContent.contains(note))
                     .editableContentActions(
                         deletionTitle: AppLocalization.string("删除这条动态？"),
                         editAction: { editingNote = note },
@@ -121,6 +126,16 @@ struct PastPageView: View {
 
     private func previewGroupID(for note: Note) -> String {
         "past.\(filter.scrollIdentifier).\(note.id)"
+    }
+
+    private func associationSymbol(for association: NoteAssociation) -> String {
+        guard association.type == .anniversary else { return "checkmark.square" }
+        if let anniversary = store.anniversaries.first(where: {
+            $0.id.caseInsensitiveCompare(association.id) == .orderedSame
+        }) {
+            return anniversary.systemImageName
+        }
+        return Anniversary.systemImageName(for: association.title ?? "")
     }
 }
 
@@ -150,11 +165,8 @@ private struct StandardNoteRow: View {
 private struct AssociatedNoteRow: View {
     let note: Note
     let association: NoteAssociation
+    let symbol: String
     let previewGroupID: String
-
-    private var symbol: String {
-        association.type == .anniversary ? "birthday.cake.fill" : "checkmark.square"
-    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {

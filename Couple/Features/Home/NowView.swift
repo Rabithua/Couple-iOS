@@ -135,6 +135,9 @@ struct NowView: View {
                                     .shadow(color: .black.opacity(0.2), radius: 14, y: 4)
                                     .rotationEffect(.degrees(-1))
                             }
+                                .unsyncedPulse(
+                                    note.map { store.unsyncedContent.contains($0) } ?? false
+                                )
                                 .accessibilityIdentifier("featuredPhoto-\(index)")
                                 .editableContentActions(
                                     deletionTitle: AppLocalization.string("删除这条动态及其中照片？"),
@@ -194,12 +197,16 @@ struct NowView: View {
                         )
                             .font(.caption)
                             .foregroundStyle(AppTheme.muted)
-                        Label(anniversary.displayTitle, systemImage: "birthday.cake.fill")
+                        Label(
+                            anniversary.displayTitle,
+                            systemImage: anniversary.systemImageName
+                        )
                             .font(AppTheme.titleFont())
                     }
                 }
                 .padding(.horizontal, 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .unsyncedPulse(store.unsyncedContent.contains(anniversary))
                 .anniversaryContentActions(
                     anniversary,
                     editAction: { editingAnniversary = anniversary },
@@ -228,6 +235,7 @@ struct NowView: View {
                         editingTodo = todo
                     }
                 )
+                .unsyncedPulse(store.unsyncedContent.contains(todo))
                 .editableContentActions(
                     deletionTitle: AppLocalization.string("deleteTodoConfirmation",
                         defaultValue: "删除清单“\(todo.title)”？"

@@ -7,6 +7,7 @@ struct CalendarDayCell: View {
     let events: [CalendarEvent]
     let todos: [Todo]
     let anniversaries: [Anniversary]
+    let unsyncedContent: UnsyncedContentIDs
     let editEvent: @MainActor (CalendarEvent) -> Void
     let editTodo: @MainActor (Todo) -> Void
     let editAnniversary: @MainActor (Anniversary) -> Void
@@ -26,6 +27,9 @@ struct CalendarDayCell: View {
     var body: some View {
         let calendar = Calendar.localizedGregorian(locale: locale)
         let hasScheduledItem = !events.isEmpty || !todos.isEmpty || !anniversaries.isEmpty
+        let hasUnsyncedItem = events.contains(where: unsyncedContent.contains)
+            || todos.contains(where: unsyncedContent.contains)
+            || anniversaries.contains(where: unsyncedContent.contains)
         let isToday = calendar.isDateInToday(date)
         let isPast = date < calendar.startOfDay(for: .now)
 
@@ -34,8 +38,7 @@ struct CalendarDayCell: View {
                 dayButton(
                     calendar: calendar,
                     isToday: isToday,
-                    isPast: isPast,
-                    hasScheduledItem: true
+                    isPast: isPast
                 )
                     .contextMenu { scheduledItemMenu }
                     .confirmationDialog(
@@ -56,13 +59,14 @@ struct CalendarDayCell: View {
                 dayButton(
                     calendar: calendar,
                     isToday: isToday,
-                    isPast: isPast,
-                    hasScheduledItem: false
+                    isPast: isPast
                 )
             }
         }
         .accessibilityLabel(date.localizedDate(locale: locale, style: .complete))
-        .accessibilityValue(accessibilityValue(isToday: isToday))
+        .accessibilityValue(
+            accessibilityValue(isToday: isToday, hasUnsyncedItem: hasUnsyncedItem)
+        )
         .accessibilityHint(accessibilityHint(hasScheduledItem: hasScheduledItem))
         .accessibilityIdentifier("calendarDay-\(date.dateOnlyString)")
     }
@@ -70,8 +74,7 @@ struct CalendarDayCell: View {
     private func dayButton(
         calendar: Calendar,
         isToday: Bool,
-        isPast: Bool,
-        hasScheduledItem: Bool
+        isPast: Bool
     ) -> some View {
         Button(action: selectDay) {
             VStack(spacing: 2) {
@@ -95,10 +98,17 @@ struct CalendarDayCell: View {
                 }
                 .frame(width: 32, height: 32)
 
-                Circle()
-                    .fill(hasScheduledItem ? Color.primary.opacity(0.45) : .clear)
-                    .frame(width: 3, height: 3)
-                    .opacity(isPast ? 0.6 : 1)
+                CalendarDayIndicators(
+                    hasEvents: !events.isEmpty,
+                    hasTodos: !todos.isEmpty,
+                    hasAnniversaries: !anniversaries.isEmpty,
+                    hasUnsyncedEvents: events.contains(where: unsyncedContent.contains),
+                    hasUnsyncedTodos: todos.contains(where: unsyncedContent.contains),
+                    hasUnsyncedAnniversaries: anniversaries.contains(
+                        where: unsyncedContent.contains
+                    ),
+                    isPast: isPast
+                )
             }
             .frame(maxWidth: .infinity, minHeight: AppTheme.calendarDayHeight)
             .contentShape(.rect)
@@ -186,7 +196,7 @@ struct CalendarDayCell: View {
         selectDate(date)
     }
 
-    private func accessibilityValue(isToday: Bool) -> String {
+    private func accessibilityValue(isToday: Bool, hasUnsyncedItem: Bool) -> String {
         var values: [String] = []
         if isToday { values.append(AppLocalization.string("今天")) }
         if isSelected { values.append(AppLocalization.string("已展开")) }
@@ -206,6 +216,7 @@ struct CalendarDayCell: View {
                 defaultValue: "\(anniversaries.count) 个纪念日"
             ))
         }
+        if hasUnsyncedItem { values.append(AppLocalization.string("尚未同步")) }
         return values.isEmpty
             ? AppLocalization.string("无安排")
             : values.formatted(.list(type: .and, width: .short).locale(locale))
