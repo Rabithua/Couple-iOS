@@ -72,17 +72,6 @@ actor AttachmentImageCache {
 
 @MainActor
 struct AttachmentImage: View {
-    private static let decodedImages: NSCache<NSString, UIImage> = {
-        let cache = NSCache<NSString, UIImage>()
-        cache.countLimit = 40
-        cache.totalCostLimit = 96 * 1_024 * 1_024
-        return cache
-    }()
-    private static let liveImages = NSMapTable<NSString, UIImage>(
-        keyOptions: .strongMemory,
-        valueOptions: .weakMemory
-    )
-
     let attachment: Attachment
     var contentMode: ContentMode = .fit
     var placeholderColor: Color?
@@ -111,7 +100,9 @@ struct AttachmentImage: View {
         }
         .clipped()
         .task(id: cacheKey) {
-            if let cachedImage = Self.cachedImage(forKey: cacheKey) {
+            if let cachedImage = AttachmentImageDecodedCache.shared.image(
+                forVariantKey: cacheKey
+            ) {
                 image = cachedImage
                 resolvedCacheKey = cacheKey
                 failed = false
@@ -132,14 +123,10 @@ struct AttachmentImage: View {
                     return
                 }
                 try Task.checkCancellation()
-                Self.decodedImages.setObject(
+                AttachmentImageDecodedCache.shared.insert(
                     decodedImage,
-                    forKey: cacheKey as NSString,
-                    cost: decodedImageCost(decodedImage)
-                )
-                Self.liveImages.setObject(
-                    decodedImage,
-                    forKey: cacheKey as NSString
+                    variantKey: cacheKey,
+                    resourceKey: resourceCacheKey
                 )
                 image = decodedImage
                 resolvedCacheKey = cacheKey
@@ -153,9 +140,13 @@ struct AttachmentImage: View {
         .accessibilityLabel(attachment.filename)
     }
 
+    private var resourceCacheKey: String {
+        "\(attachment.id)|\(attachment.url ?? "")|\(attachment.demoAssetName ?? "")"
+    }
+
     private var cacheKey: String {
         let dimension = requestedPixelDimension.map(String.init) ?? "full"
-        return "\(attachment.id)|\(attachment.url ?? "")|\(attachment.demoAssetName ?? "")|\(dimension)"
+        return "\(resourceCacheKey)|\(dimension)"
     }
 
     private var requestedPixelDimension: Int? {
@@ -175,16 +166,10 @@ struct AttachmentImage: View {
         if resolvedCacheKey == cacheKey, let image {
             return image
         }
-        return Self.cachedImage(forKey: cacheKey)
-    }
-
-    private static func cachedImage(forKey cacheKey: String) -> UIImage? {
-        let key = cacheKey as NSString
-        return decodedImages.object(forKey: key) ?? liveImages.object(forKey: key)
-    }
-
-    private func decodedImageCost(_ image: UIImage) -> Int {
-        guard let cgImage = image.cgImage else { return 0 }
-        return cgImage.bytesPerRow * cgImage.height
+        return AttachmentImageDecodedCache.shared.image(forVariantKey: cacheKey)
+            ?? AttachmentImageDecodedCache.shared.bestAvailableImage(
+                forResourceKey: resourceCacheKey,
+                targetPixelDimension: requestedPixelDimension
+            )
     }
 }

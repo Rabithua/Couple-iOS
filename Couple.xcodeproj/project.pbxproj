@@ -93,6 +93,8 @@
 		998B471ADAA4E5155F2EA1BD /* PastPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CF891D7864253C43B017ECD /* PastPageView.swift */; };
 		9A36D123731CC365037CADB7 /* DeferredTodoCompletionRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68F57A3CA83DDC65731106BA /* DeferredTodoCompletionRow.swift */; };
 		A037B3489A0F6AA92E044D78 /* AttachmentImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6C4CDD170E0CF0620452769 /* AttachmentImage.swift */; };
+		E2A100000000000000000001 /* AttachmentImageDecodedCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A100000000000000000011 /* AttachmentImageDecodedCache.swift */; };
+		E2A100000000000000000002 /* AttachmentImageDecodedCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A100000000000000000012 /* AttachmentImageDecodedCacheTests.swift */; };
 		D0AA00000000000000000001 /* AttachmentImageDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0AB00000000000000000001 /* AttachmentImageDecoder.swift */; };
 		D0AA00000000000000000002 /* PhotoPreviewSourceFrameRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0AB00000000000000000002 /* PhotoPreviewSourceFrameRegistry.swift */; };
 		D0AA00000000000000000003 /* ViewFrameStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0AB00000000000000000003 /* ViewFrameStore.swift */; };
@@ -263,6 +265,8 @@
 		D22BDF968357311A06F19C02 /* MainPagerPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainPagerPage.swift; sourceTree = "<group>"; };
 		D5E729A30B5C4A2CA2E864F0 /* CalendarScheduleIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarScheduleIndex.swift; sourceTree = "<group>"; };
 		D6C4CDD170E0CF0620452769 /* AttachmentImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentImage.swift; sourceTree = "<group>"; };
+		E2A100000000000000000011 /* AttachmentImageDecodedCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentImageDecodedCache.swift; sourceTree = "<group>"; };
+		E2A100000000000000000012 /* AttachmentImageDecodedCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentImageDecodedCacheTests.swift; sourceTree = "<group>"; };
 		D0AB00000000000000000001 /* AttachmentImageDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentImageDecoder.swift; sourceTree = "<group>"; };
 		D0AB00000000000000000002 /* PhotoPreviewSourceFrameRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewSourceFrameRegistry.swift; sourceTree = "<group>"; };
 		D0AB00000000000000000003 /* ViewFrameStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewFrameStore.swift; sourceTree = "<group>"; };
@@ -416,6 +420,7 @@
 			isa = PBXGroup;
 			children = (
 				D6C4CDD170E0CF0620452769 /* AttachmentImage.swift */,
+				E2A100000000000000000011 /* AttachmentImageDecodedCache.swift */,
 				D0AB00000000000000000001 /* AttachmentImageDecoder.swift */,
 				68F57A3CA83DDC65731106BA /* DeferredTodoCompletionRow.swift */,
 				4FCD593DB9E8685FBCA89140 /* DesignDecorations.swift */,
@@ -660,6 +665,7 @@
 		C0D3F0030000000000000001 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				E2A100000000000000000012 /* AttachmentImageDecodedCacheTests.swift */,
 				D0AB00000000000000000004 /* AttachmentImageDecoderTests.swift */,
 				C0D3F0020000000000000005 /* JustifiedPhotoLayoutTests.swift */,
 			);
@@ -840,6 +846,7 @@
 				C21ACD7727EAF71F3AF521A5 /* AppTheme.swift in Sources */,
 				8D839A0DB954A715E9A6826F /* AttachmentFileStore.swift in Sources */,
 				A037B3489A0F6AA92E044D78 /* AttachmentImage.swift in Sources */,
+				E2A100000000000000000001 /* AttachmentImageDecodedCache.swift in Sources */,
 				D0AA00000000000000000001 /* AttachmentImageDecoder.swift in Sources */,
 				28BC3DEAE4A2D58F49AB860A /* AuthView.swift in Sources */,
 				F19E57B4A7D24C839A106E51 /* CalendarDayAgendaView.swift in Sources */,
@@ -941,6 +948,7 @@
 				A1956724BAA6C906CF61D659 /* CoupleCoreTests.swift in Sources */,
 				F07010CA7100000000000004 /* PhotoLocationExtractorTests.swift in Sources */,
 				C0D3F0010000000000000005 /* JustifiedPhotoLayoutTests.swift in Sources */,
+				E2A100000000000000000002 /* AttachmentImageDecodedCacheTests.swift in Sources */,
 				D0AA00000000000000000004 /* AttachmentImageDecoderTests.swift in Sources */,
 				062FE797585C2017DF312C5D /* MainPagerGestureStateTests.swift in Sources */,
 				58326B25C993CD986092B2AA /* OfflineSyncTests.swift in Sources */,
